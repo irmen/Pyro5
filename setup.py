@@ -8,7 +8,7 @@ with open("Readme.rst", encoding="utf-8") as f:
 setup(
     name='Pyro5',
     version='5.0',
-    description='Remote object communication library, number 5',
+    description='Remote object communication library, fifth incarnation',
     long_description=long_description,
     url='https://github.com/irmen/Pyro5',
     author='Irmen de Jong',
