@@ -1,0 +1,10 @@
+*.py[cod]
+*.class
+*.egg
+*.egg-info
+/MANIFEST
+/.idea/
+/.tox/
+/build/
+/dist/
+/.cache/
