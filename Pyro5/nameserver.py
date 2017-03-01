@@ -9,6 +9,7 @@ import random
 import socket
 from . import config, errors, core, client, socketutil
 
+__all__ = ["resolve", "locateNS"]
 
 log = logging.getLogger("Pyro5.nameserver")
 

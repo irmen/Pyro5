@@ -18,7 +18,7 @@ from . import errors, config, core, protocol, serializers
 from .socketservers import multiplexserver, threadpoolserver
 from .nameserver import locateNS
 
-__all__ = ["Daemon", "callback", "expose", "behavior", "oneway"]
+__all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway"]
 
 log = logging.getLogger("Pyro5.server")
 

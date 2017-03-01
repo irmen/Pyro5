@@ -2,8 +2,9 @@ from . import __version__
 from . import config
 from .core import URI
 from .client import Proxy, BatchProxy, SerializedBlob
-from .server import Daemon, callback, expose, behavior, oneway
-
+from .server import Daemon, DaemonObject, callback, expose, behavior, oneway
+from .nameserver import locateNS, resolve
 
 __all__ = ["config", "URI", "Proxy", "BatchProxy", "SerializedBlob",
-           "Daemon", "callback", "expose", "behavior", "oneway"]
+           "Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway",
+           "locateNS", "resolve"]
