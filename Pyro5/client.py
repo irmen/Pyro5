@@ -10,7 +10,6 @@ import time
 import threading
 import serpent
 from . import errors, config, protocol, serializers, socketutil, core
-from .nameserver import resolve
 
 
 log = logging.getLogger("Pyro5.client")
@@ -282,6 +281,7 @@ class Proxy(object):
         with self.__pyroConnLock:
             if self._pyroConnection is not None:
                 return False  # already connected
+            from .nameserver import resolve   # not in global scope because of circular import
             uri = resolve(self._pyroUri)
             # socket connection (normal or Unix domain socket)
             conn = None

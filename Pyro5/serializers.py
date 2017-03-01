@@ -15,11 +15,11 @@ def serialize_pyro_object_to_dict(obj):
 
 
 def get_serializer_by_id(serializer_id):
-    raise NotImplementedError
+    return MarshalSerializer()   # XXX
 
 
 def get_serializer(name):
-    raise NotImplementedError
+    return MarshalSerializer()   # XXX
 
 
 class SerializerBase:
@@ -32,4 +32,5 @@ class SerializerBase:
 
 
 class MarshalSerializer(SerializerBase):
-    pass
+    serializer_id = 1
+    pass  # XXX
