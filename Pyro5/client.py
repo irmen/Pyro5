@@ -9,8 +9,7 @@ import logging
 import sys
 import time
 import threading
-from . import errors, protocol, serializers, socketutil, core
-from .configuration import config
+from . import errors, config, protocol, serializers, socketutil, core
 from .nameserver import resolve
 
 

@@ -9,7 +9,7 @@ import errno
 import time
 import sys
 import select
-from .configuration import config
+from . import config
 from .errors import CommunicationError, TimeoutError, ConnectionClosedError
 
 

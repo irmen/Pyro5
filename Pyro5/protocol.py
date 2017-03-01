@@ -35,8 +35,7 @@ Finally the actual payload data bytes follow.
 import struct
 import logging
 import zlib
-from . import errors
-from .configuration import config
+from . import errors, config
 
 
 __all__ = ["SendingMessage", "ReceivingMessage"]

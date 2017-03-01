@@ -1,5 +1,5 @@
-from .configuration import config
 from . import __version__
+from . import config
 from .core import URI
 
 

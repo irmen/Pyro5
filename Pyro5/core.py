@@ -9,8 +9,7 @@ import uuid
 import re
 import logging
 import threading
-from . import errors
-from .configuration import config
+from . import errors, config
 
 __all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME"]
 
