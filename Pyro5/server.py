@@ -797,10 +797,7 @@ class Daemon(object):
     def __setstate_from_dict__(self, state):
         pass
 
-    if sys.version_info < (3, 0):
-        __lazy_dict_iterator_types = (type({}.iterkeys()), type({}.itervalues()), type({}.iteritems()))
-    else:
-        __lazy_dict_iterator_types = (type({}.keys()), type({}.values()), type({}.items()))
+    __lazy_dict_iterator_types = (type({}.keys()), type({}.values()), type({}.items()))
 
     def _streamResponse(self, data, client):
         if isinstance(data, collections.Iterator) or inspect.isgenerator(data):

@@ -6,7 +6,6 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 
 import logging
-import sys
 import time
 import threading
 import serpent
@@ -313,20 +312,14 @@ class Proxy(object):
                 if isinstance(x, errors.CommunicationError):
                     raise
                 else:
-                    ce = errors.CommunicationError(err)
-                    if sys.version_info >= (3, 0):
-                        ce.__cause__ = x
-                    raise ce
+                    raise errors.CommunicationError(err) from x
             else:
                 handshake_response = "?"
                 if msg.data:
                     serializer = serializers.get_serializer_by_id(msg.serializer_id)
                     handshake_response = serializer.deserializeData(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
                 if msg.type == protocol.MSG_CONNECTFAIL:
-                    if sys.version_info < (3, 0):
-                        error = "connection to %s rejected: %s" % (connect_location, handshake_response.decode())
-                    else:
-                        error = "connection to %s rejected: %s" % (connect_location, handshake_response)
+                    error = "connection to %s rejected: %s" % (connect_location, handshake_response)
                     conn.close()
                     log.error(error)
                     raise errors.CommunicationError(error)

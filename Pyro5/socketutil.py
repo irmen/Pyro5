@@ -42,9 +42,6 @@ ERRNO_EADDRINUSE = [errno.EADDRINUSE]
 if hasattr(errno, "WSAEADDRINUSE"):
     ERRNO_EADDRINUSE.append(errno.WSAEADDRINUSE)
 
-if sys.version_info >= (3, 0):
-    basestring = str
-
 
 def getIpVersion(hostnameOrAddress):
     """
@@ -227,7 +224,7 @@ def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True, timeo
     if bind and connect:
         raise ValueError("bind and connect cannot both be specified at the same time")
     forceIPv6 = ipv6 or (ipv6 is None and config.PREFER_IP_VERSION == 6)
-    if isinstance(bind, basestring) or isinstance(connect, basestring):
+    if isinstance(bind, str) or isinstance(connect, str):
         family = socket.AF_UNIX
     elif not bind and not connect:
         family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
