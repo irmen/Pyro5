@@ -394,8 +394,6 @@ try:
 except ImportError:
     # no fcntl available, try the windows version
     try:
-        if sys.platform == "cli":
-            raise NotImplementedError("IronPython can't obtain a proper HANDLE from a socket")
         from ctypes import windll, WinError, wintypes
         # help ctypes to set the proper args for this kernel32 call on 64-bit pythons
         _SetHandleInformation = windll.kernel32.SetHandleInformation
@@ -466,10 +464,7 @@ def findProbablyUnusedPort(family=socket.AF_INET, socktype=socket.SOCK_STREAM):
     This code is copied from the stdlib's test.test_support module."""
     tempsock = socket.socket(family, socktype)
     try:
-        port = bindOnUnusedPort(tempsock)
-        if sys.platform == "cli":
-            return port + 1  # the actual port is somehow still in use by the socket when using IronPython
-        return port
+        return bindOnUnusedPort(tempsock)
     finally:
         tempsock.close()
 
