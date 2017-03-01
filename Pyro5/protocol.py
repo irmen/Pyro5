@@ -35,11 +35,11 @@ Finally the actual payload data bytes follow.
 import struct
 import logging
 import zlib
-from .core import PyroError
+from . import errors
 from .configuration import config
 
 
-__all__ = ["ProtocolError", "SendingMessage", "ReceivingMessage"]
+__all__ = ["SendingMessage", "ReceivingMessage"]
 
 log = logging.getLogger("Pyro5.protocol")
 
@@ -56,11 +56,6 @@ FLAGS_BATCH = 1 << 3
 FLAGS_ITEMSTREAMRESULT = 1 << 4
 
 PROTOCOL_VERSION = 501
-
-
-class ProtocolError(PyroError):
-    """There was a protocol related error such as a malformed message."""
-    pass
 
 
 _header_format = "!4sHHHHiHiii"
@@ -88,13 +83,13 @@ class SendingMessage:
         self.flags = flags
         total_size = len(payload) + annotations_size
         if total_size > config.MAX_MESSAGE_SIZE:
-            raise ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
+            raise errors.ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
         header_data = struct.pack(_header_format, b"PYRO", PROTOCOL_VERSION, msgtype, flags, seq,
                                   len(payload), serializer_id, annotations_size, 0, _magic_number)
         annotation_data = []
         for k, v in annotations.items():
             if len(k) != 4:
-                raise ProtocolError("annotation identifier must be 4 ascii characters")
+                raise errors.ProtocolError("annotation identifier must be 4 ascii characters")
             annotation_data.append(struct.pack("!4si", k.encode("ascii"), len(v)))
             annotation_data.append(v)
         self.data = header_data + b"".join(annotation_data) + payload
@@ -109,9 +104,9 @@ class ReceivingMessage:
         """Parses a message."""
         tag, ver, self.type, self.flags, self.seq, self.data_size, self.serializer_id, self.annotations_size, _, magic = struct.unpack(_header_format, header)
         if tag != b"PYRO" or ver != PROTOCOL_VERSION or magic != _magic_number:
-            raise ProtocolError("invalid message or protocol version")
+            raise errors.ProtocolError("invalid message or protocol version")
         if self.data_size+self.annotations_size > config.MAX_MESSAGE_SIZE:
-            raise ProtocolError("message too large ({:d}, max={:d})".format(self.data_size+self.annotations_size, config.MAX_MESSAGE_SIZE))
+            raise errors.ProtocolError("message too large ({:d}, max={:d})".format(self.data_size+self.annotations_size, config.MAX_MESSAGE_SIZE))
         self.payload = None
         self.annotations = {}
         if payload:
@@ -128,17 +123,17 @@ class ReceivingMessage:
         if ld < 4:
             raise ValueError("data must be at least 4 bytes to be able to identify")
         if not data.startswith(b"PYRO"):
-            raise ProtocolError("invalid data")
+            raise errors.ProtocolError("invalid data")
         if ld >= 6 and data[4:6] != _protocol_version_bytes:
-            raise ProtocolError("invalid protocol version: {:d}".format(int.from_bytes(data[4:6], "big")))
+            raise errors.ProtocolError("invalid protocol version: {:d}".format(int.from_bytes(data[4:6], "big")))
         if ld >= _header_size and data[26:30] != _magic_number_bytes:
-            raise ProtocolError("invalid magic number")
+            raise errors.ProtocolError("invalid magic number")
 
     def add_payload(self, payload):
         """Parses and adds payload data to a received message."""
         assert not self.payload
         if len(payload) != self.data_size + self.annotations_size:
-            raise ProtocolError("payload length doesn't match message header")
+            raise errors.ProtocolError("payload length doesn't match message header")
         if self.annotations_size:
             payload = memoryview(payload)  # avoid copying
             self.annotations = {}
@@ -156,3 +151,8 @@ class ReceivingMessage:
             self.payload = zlib.decompress(self.payload)
             self.flags &= ~FLAGS_COMPRESSED
             self.data_size = len(self.payload)
+
+
+
+def recv_stub(socketconnection, accepted_msgtypes):
+    raise NotImplementedError  # XXX

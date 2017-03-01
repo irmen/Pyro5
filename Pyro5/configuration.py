@@ -108,9 +108,9 @@ class Configuration(object):
             implementation = platform.python_implementation()
         else:
             implementation = "???"
-        config = self.asDict()
-        config["LOGFILE"] = os.environ.get("PYRO_LOGFILE")
-        config["LOGLEVEL"] = os.environ.get("PYRO_LOGLEVEL")
+        cfg = self.asDict()
+        cfg["LOGFILE"] = os.environ.get("PYRO_LOGFILE")
+        cfg["LOGLEVEL"] = os.environ.get("PYRO_LOGLEVEL")
         from .protocol import PROTOCOL_VERSION
         from . import __version__
         result = ["Pyro version: %s" % __version__,
@@ -118,7 +118,7 @@ class Configuration(object):
                   "Python version: %s %s (%s, %s)" % (implementation, platform.python_version(), platform.system(), os.name),
                   "Protocol version: %d" % PROTOCOL_VERSION,
                   "Currently active configuration settings:"]
-        for n, v in sorted(config.items()):
+        for n, v in sorted(cfg.items()):
             result.append("%s = %s" % (n, v))
         return "\n".join(result)
 

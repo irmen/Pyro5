@@ -1,5 +1,6 @@
 import pytest
 import Pyro5.protocol
+import Pyro5.errors
 
 
 class TestSendingMessage:
@@ -28,21 +29,21 @@ class TestReceivingMessage:
     def test_validate(self):
         with pytest.raises(ValueError):
             Pyro5.protocol.ReceivingMessage.validate(b"abc")
-        with pytest.raises(Pyro5.protocol.ProtocolError):
+        with pytest.raises(Pyro5.errors.ProtocolError):
             Pyro5.protocol.ReceivingMessage.validate(b"ZXCV")
         Pyro5.protocol.ReceivingMessage.validate(b"PYRO")
-        with pytest.raises(Pyro5.protocol.ProtocolError):
+        with pytest.raises(Pyro5.errors.ProtocolError):
             Pyro5.protocol.ReceivingMessage.validate(b"PYRO__")
         msg = self.createmessage()
         msg.data = bytearray(msg.data)
         Pyro5.protocol.ReceivingMessage.validate(msg.data)
         msg.data[27] = 0xff   # kill the magic number
-        with pytest.raises(Pyro5.protocol.ProtocolError) as x:
+        with pytest.raises(Pyro5.errors.ProtocolError) as x:
             Pyro5.protocol.ReceivingMessage.validate(msg.data)
         assert "magic number" in str(x)
         msg.data[27] = 0xc1   # repair the magic number
         msg.data[5] = 0xff   # invalid protocol version
-        with pytest.raises(Pyro5.protocol.ProtocolError) as x:
+        with pytest.raises(Pyro5.errors.ProtocolError) as x:
             Pyro5.protocol.ReceivingMessage.validate(msg.data)
         assert "protocol version" in str(x)
 
