@@ -9,6 +9,7 @@ import logging
 import sys
 import time
 import threading
+import serpent
 from . import errors, config, protocol, serializers, socketutil, core
 from .nameserver import resolve
 
@@ -16,7 +17,7 @@ from .nameserver import resolve
 log = logging.getLogger("Pyro5.client")
 
 
-__all__ = ["Proxy", "SerializedBlob", "batch"]
+__all__ = ["Proxy", "BatchProxy", "SerializedBlob"]
 
 
 class Proxy(object):
@@ -78,13 +79,12 @@ class Proxy(object):
         if name in Proxy.__pyroAttributes:
             # allows it to be safely pickled
             raise AttributeError(name)
-        if config.METADATA:
-            # get metadata if it's not there yet
-            if not self._pyroMethods and not self._pyroAttrs:
-                self._pyroGetMetadata()
+        # get metadata if it's not there yet
+        if not self._pyroMethods and not self._pyroAttrs:
+            self._pyroGetMetadata()
         if name in self._pyroAttrs:
             return self._pyroInvoke("__getattr__", (name,), None)
-        if config.METADATA and name not in self._pyroMethods:
+        if name not in self._pyroMethods:
             # client side check if the requested attr actually exists
             raise AttributeError("remote object '%s' has no exposed attribute or method '%s'" % (self._pyroUri, name))
         if self.__async:
@@ -94,17 +94,13 @@ class Proxy(object):
     def __setattr__(self, name, value):
         if name in Proxy.__pyroAttributes:
             return super(Proxy, self).__setattr__(name, value)  # one of the special pyro attributes
-        if config.METADATA:
-            # get metadata if it's not there yet
-            if not self._pyroMethods and not self._pyroAttrs:
-                self._pyroGetMetadata()
+        # get metadata if it's not there yet
+        if not self._pyroMethods and not self._pyroAttrs:
+            self._pyroGetMetadata()
         if name in self._pyroAttrs:
             return self._pyroInvoke("__setattr__", (name, value), None)  # remote attribute
-        if config.METADATA:
-            # client side validation if the requested attr actually exists
-            raise AttributeError("remote object '%s' has no exposed attribute '%s'" % (self._pyroUri, name))
-        # metadata disabled, just treat it as a local attribute on the proxy:
-        return super(Proxy, self).__setattr__(name, value)
+        # client side validation if the requested attr actually exists
+        raise AttributeError("remote object '%s' has no exposed attribute '%s'" % (self._pyroUri, name))
 
     def __repr__(self):
         connected = "connected" if self._pyroConnection else "not connected"
@@ -299,14 +295,8 @@ class Proxy(object):
                 conn = socketutil.SocketConnection(sock, uri.object)
                 # Do handshake.
                 serializer = serializers.get_serializer(self._pyroSerializer or config.SERIALIZER)
-                data = {"handshake": self._pyroHandshake}
-                if config.METADATA:
-                    # the object id is only used/needed when piggybacking the metadata on the connection response
-                    # make sure to pass the resolved object id instead of the logical id
-                    data["object"] = uri.object
-                    flags = protocol.FLAGS_META_ON_CONNECT
-                else:
-                    flags = 0
+                data = {"handshake": self._pyroHandshake, "object": uri.object}
+                flags = 0
                 data, serializer.serializeData(data)
                 msg = protocol.SendingMessage(protocol.MSG_CONNECT, flags, self._pyroSeq, serializer.serializer_id, data, self._pyroAnnotations())
                 if config.LOGWIRE:
@@ -341,9 +331,8 @@ class Proxy(object):
                     log.error(error)
                     raise errors.CommunicationError(error)
                 elif msg.type == protocol.MSG_CONNECTOK:
-                    if msg.flags & protocol.FLAGS_META_ON_CONNECT:
-                        self.__processMetadata(handshake_response["meta"])
-                        handshake_response = handshake_response["handshake"]
+                    self.__processMetadata(handshake_response["meta"])
+                    handshake_response = handshake_response["handshake"]
                     self._pyroConnection = conn
                     if replaceUri:
                         self._pyroUri = uri
@@ -356,12 +345,11 @@ class Proxy(object):
                     err = "cannot connect to %s: invalid msg type %d received" % (connect_location, msg.type)
                     log.error(err)
                     raise errors.ProtocolError(err)
-            if config.METADATA:
-                # obtain metadata if this feature is enabled, and the metadata is not known yet
-                if self._pyroMethods or self._pyroAttrs:
-                    log.debug("reusing existing metadata")
-                else:
-                    self._pyroGetMetadata(uri.object)
+            # obtain metadata if it is not known yet
+            if self._pyroMethods or self._pyroAttrs:
+                log.debug("reusing existing metadata")
+            else:
+                self._pyroGetMetadata(uri.object)
             return True
 
     def _pyroGetMetadata(self, objectId=None, known_metadata=None):
@@ -419,10 +407,6 @@ class Proxy(object):
         msg = "failed to reconnect"
         log.error(msg)
         raise errors.ConnectionClosedError(msg)
-
-    def _pyroBatch(self):
-        """returns a helper class that lets you create batched method calls on the proxy"""
-        return _BatchProxyAdapter(self)
 
     def _pyroAsync(self):
         """returns an async version of the proxy so you can do asynchronous method calls"""
@@ -531,15 +515,15 @@ class _BatchedRemoteMethod(object):
         self.__calls.append((self.__name, args, kwargs))
 
 
-class _BatchProxyAdapter(object):
-    """Helper class that lets you batch multiple method calls into one.
+class BatchProxy(object):
+    """Proxy that lets you batch multiple method calls into one.
     It is constructed with a reference to the normal proxy that will
     carry out the batched calls. Call methods on this object that you want to batch,
     and finally call the batch proxy itself. That call will return a generator
     for the results of every method call in the batch (in sequence)."""
 
-    def __init__(self, proxy):
-        self.__proxy = proxy
+    def __init__(self, normalproxy):
+        self.__proxy = normalproxy
         self.__calls = []
 
     def __getattr__(self, name):
@@ -581,11 +565,6 @@ class _BatchProxyAdapter(object):
         return self.__resultsgenerator(results)
 
 
-def batch(proxy):
-    """convenience method to get a batch proxy adapter"""
-    return proxy._pyroBatch()
-
-
 class SerializedBlob(object):
     """
     Used to wrap some data to make Pyro pass this object transparently (it keeps the serialized payload as-is)
@@ -611,3 +590,8 @@ class SerializedBlob(object):
             return data
         else:
             return self._data
+
+
+# register the special serializers for the pyro objects
+serpent.register_class(Proxy, serializers.pyro_class_serpent_serializer)
+serializers.SerializerBase.register_class_to_dict(Proxy, serializers.serialize_pyro_object_to_dict, serpent_too=False)

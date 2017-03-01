@@ -152,6 +152,5 @@ class ReceivingMessage:
             self.data_size = len(self.payload)
 
 
-
 def recv_stub(socketconnection, accepted_msgtypes):
     raise NotImplementedError  # XXX

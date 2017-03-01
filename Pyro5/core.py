@@ -9,7 +9,8 @@ import uuid
 import re
 import logging
 import threading
-from . import errors, config
+import serpent
+from . import errors, config, serializers
 
 __all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME"]
 
@@ -208,3 +209,10 @@ class _CallContext(threading.local):
 
 current_context = _CallContext()
 """the context object for the current call. (thread-local)"""
+
+
+# register the special serializers for the pyro objects
+serpent.register_class(URI, serializers.pyro_class_serpent_serializer)
+serpent.register_class(_ExceptionWrapper, serializers.pyro_class_serpent_serializer)
+serializers.SerializerBase.register_class_to_dict(URI, serializers.serialize_pyro_object_to_dict, serpent_too=False)
+serializers.SerializerBase.register_class_to_dict(_ExceptionWrapper, _ExceptionWrapper.__serialized_dict__, serpent_too=False)
