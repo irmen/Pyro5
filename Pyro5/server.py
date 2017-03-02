@@ -16,7 +16,6 @@ import warnings
 import serpent
 from . import errors, config, core, protocol, serializers
 from .socketservers import multiplexserver, threadpoolserver
-from .nameserver import locateNS
 
 __all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway"]
 
@@ -234,8 +233,6 @@ class Daemon(object):
         #: Dictionary from Pyro object id to the actual Pyro object registered by this id
         self.objectsById = {pyroObject._pyroId: pyroObject}
         # assert that the configured serializers are available, and remember their ids:
-        self.__serializer_ids = {serializers.get_serializer(ser_name).serializer_id for ser_name in config.SERIALIZERS_ACCEPTED}
-        log.debug("accepted serializers: %s" % config.SERIALIZERS_ACCEPTED)
         log.debug("pyro protocol version: %d" % protocol.PROTOCOL_VERSION)
         self._pyroInstances = {}   # pyro objects for instance_mode=single (singletons, just one per daemon)
         self.streaming_responses = {}   # stream_id -> (client, creation_timestamp, linger_timestamp, stream)
@@ -271,6 +268,7 @@ class Daemon(object):
             daemon = Daemon(host, port)
         with daemon:
             if ns:
+                from .nameserver import locateNS   # not in global scope because of circular import
                 ns = locateNS()
             for obj, name in objects.items():
                 if ns:
@@ -343,15 +341,15 @@ class Daemon(object):
                 raise Exception(denied_reason)
             if config.LOGWIRE:
                 core.log_wiredata(log, "daemon handshake received", msg)
-            if msg.serializer_id not in self.__serializer_ids:
+            if msg.serializer_id not in serializers.serializers_by_id:
                 raise errors.SerializationError("message used serializer that is not accepted: %d" % msg.serializer_id)
             if "CORR" in msg.annotations:
                 core.current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"])
             else:
                 core.current_context.correlation_id = uuid.uuid4()
             serializer_id = msg.serializer_id
-            serializer = serializers.get_serializer_by_id(serializer_id)
-            data = serializer.deserializeData(msg.data, msg.flags & protocol.FLAGS_COMPRESSED)
+            serializer = serializers.serializers_by_id[serializer_id]
+            data = serializer.loads(msg.data)
             handshake_response = self.validateHandshake(conn, data["handshake"])
             # Getting the metadata is done by including the object metadata
             # in the handshake response. This avoids a separate remote call to get_metadata.
@@ -360,19 +358,17 @@ class Daemon(object):
                 "meta": self.objectsById[core.DAEMON_NAME].get_metadata(data["object"], as_lists=True)
             }
             flags = 0
-            data, compressed = serializer.serializeData(handshake_response, config.COMPRESSION)
+            data = serializer.dumps(handshake_response)
             msgtype = protocol.MSG_CONNECTOK
-            if compressed:
-                flags |= protocol.FLAGS_COMPRESSED
         except errors.ConnectionClosedError:
             log.debug("handshake failed, connection closed early")
             return False
         except Exception as x:
             log.debug("handshake failed, reason:", exc_info=True)
-            serializer = serializers.get_serializer_by_id(serializer_id)
-            data, compressed = serializer.serializeData(str(x), False)
+            serializer = serializers.serializers_by_id[serializer_id]
+            data = serializer.dumps(str(x))
             msgtype = protocol.MSG_CONNECTFAIL
-            flags = protocol.FLAGS_COMPRESSED if compressed else 0
+            flags = 0
         # We need a minimal amount of response data or the socket will remain blocked
         # on some systems... (messages smaller than 40 bytes)
         msg = protocol.SendingMessage(msgtype, flags, msg_seq, serializer_id, data, annotations=self.annotations())
@@ -430,11 +426,11 @@ class Daemon(object):
                     core.log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.data)
                 return
-            if msg.serializer_id not in self.__serializer_ids:
+            if msg.serializer_id not in serializers.serializers_by_id:
                 raise errors.SerializationError("message used serializer that is not accepted: %d" % msg.serializer_id)
-            serializer = serializers.get_serializer_by_id(msg.serializer_id)
+            serializer = serializers.serializers_by_id[msg.serializer_id]
             # normal deserialization of remote call arguments
-            objId, method, vargs, kwargs = serializer.deserializeCall(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
+            objId, method, vargs, kwargs = serializer.loadsCall(msg.data)
             core.current_context.client = conn
             core.current_context.client_sock_addr = conn.sock.getpeername()   # store this because on oneway calls the socket will be disconnected
             core.current_context.seq = msg.seq
@@ -450,7 +446,7 @@ class Daemon(object):
                     # batched method calls, loop over them all and collect all results
                     data = []
                     for method, vargs, kwargs in vargs:
-                        method = util.getAttribute(obj, method)
+                        method = get_attribute(obj, method)
                         try:
                             result = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
                         except Exception:
@@ -471,7 +467,7 @@ class Daemon(object):
                         # special case for direct attribute access (only exposed @properties are accessible)
                         data = set_exposed_property_value(obj, vargs[0], vargs[1])
                     else:
-                        method = util.getAttribute(obj, method)
+                        method = get_attribute(obj, method)
                         if request_flags & protocol.FLAGS_ONEWAY and config.ONEWAY_THREADED:
                             # oneway call to be run inside its own thread
                             _OnewayCallThread(target=method, args=vargs, kwargs=kwargs).start()
@@ -494,10 +490,8 @@ class Daemon(object):
             if request_flags & protocol.FLAGS_ONEWAY:
                 return  # oneway call, don't send a response
             else:
-                data, compressed = serializer.serializeData(data, compress=config.COMPRESSION)
+                data = serializer.dumps(data)
                 response_flags = 0
-                if compressed:
-                    response_flags |= protocol.FLAGS_COMPRESSED
                 if wasBatched:
                     response_flags |= protocol.FLAGS_BATCH
                 msg = protocol.SendingMessage(protocol.MSG_RESULT, response_flags, request_seq, serializer.serializer_id, data, annotations=self.annotations())
@@ -614,19 +608,17 @@ class Daemon(object):
     def _sendExceptionResponse(self, connection, seq, serializer_id, exc_value, tbinfo, flags=0, annotations={}):
         """send an exception back including the local traceback info"""
         exc_value._pyroTraceback = tbinfo
-        serializer = serializers.get_serializer_by_id(serializer_id)
+        serializer = serializers.serializers_by_id[serializer_id]
         try:
-            data, compressed = serializer.serializeData(exc_value)
+            data = serializer.dumps(exc_value)
         except:
             # the exception object couldn't be serialized, use a generic PyroError instead
             xt, xv, tb = sys.exc_info()
             msg = "Error serializing exception: %s. Original exception: %s: %s" % (str(xv), type(exc_value), str(exc_value))
             exc_value = errors.PyroError(msg)
             exc_value._pyroTraceback = tbinfo
-            data, compressed = serializer.serializeData(exc_value)
+            data = serializer.dumps(exc_value)
         flags |= protocol.FLAGS_EXCEPTION
-        if compressed:
-            flags |= protocol.FLAGS_COMPRESSED
         ann = self.annotations()
         ann.update(annotations or {})
         msg = protocol.SendingMessage(protocol.MSG_RESULT, flags, seq, serializer_id, data, annotations=ann)
@@ -662,11 +654,10 @@ class Daemon(object):
         # set some pyro attributes
         obj_or_class._pyroId = objectId
         obj_or_class._pyroDaemon = self
-        if config.AUTOPROXY:
-            # register a custom serializer for the type to automatically return proxies
-            # we need to do this for all known serializers
-            for ser in serializers._serializers.values():
-                ser.register_type_replacement(type(obj_or_class), pyroObjectToAutoProxy)
+        # register a custom serializer for the type to automatically return proxies     # XXX remove autoproxy feature?
+        # we need to do this for all known serializers
+        for ser in serializers.serializers.values():
+            ser.register_type_replacement(type(obj_or_class), pyroObjectToAutoProxy)
         # register the object/class in the mapping
         self.objectsById[obj_or_class._pyroId] = obj_or_class
         return self.uriFor(objectId)
@@ -713,7 +704,7 @@ class Daemon(object):
             loc = self.natLocationStr or self.locationStr
         else:
             loc = self.locationStr
-        return URI("PYRO:%s@%s" % (objectOrId, loc))
+        return core.URI("PYRO:%s@%s" % (objectOrId, loc))
 
     def resetMetadataCache(self, objectOrId, nat=True):
         """Reset cache of metadata when a Daemon has available methods/attributes
@@ -921,3 +912,19 @@ def set_exposed_property_value(obj, propname, value, only_exposed=True):
         if v.fset and getattr(pfunc, "_pyroExposed", not only_exposed):
             return v.fset(obj, value)
     raise AttributeError("attempt to access unexposed or unknown remote attribute '%s'" % propname)
+
+
+def get_attribute(obj, attr):
+    """
+    Resolves an attribute name to an object.  Raises
+    an AttributeError if any attribute in the chain starts with a '``_``'.
+    Doesn't resolve a dotted name, because that is a security vulnerability.
+    It treats it as a single attribute name (and the lookup will likely fail).
+    """
+    if is_private_attribute(attr):
+        raise AttributeError("attempt to access private attribute '%s'" % attr)
+    else:
+        obj = getattr(obj, attr)
+    if getattr(obj, "_pyroExposed", False):
+        return obj
+    raise AttributeError("attempt to access unexposed attribute '%s'" % attr)

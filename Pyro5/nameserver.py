@@ -7,9 +7,9 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 import logging
 import random
 import socket
-from . import config, errors, core, client, socketutil
+from . import config, errors, core, client, socketutil, server
 
-__all__ = ["resolve", "locateNS"]
+__all__ = ["resolve", "locateNS", "startNS"]
 
 log = logging.getLogger("Pyro5.nameserver")
 
@@ -125,3 +125,10 @@ def locateNS(host=None, port=None, broadcast=True):
     except errors.PyroError as x:
         e = errors.NamingError("Failed to locate the nameserver")
         raise e from x
+
+
+def startNS(hostname=None):
+    uri = core.URI("PYRO:bla@host:5555")
+    daemon = server.Daemon()
+    bcserver = None
+    return uri, daemon, bcserver   # XXX

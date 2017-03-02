@@ -138,9 +138,6 @@ class URI(object):
     def __hash__(self):
         return hash((self.protocol, str(self.object), self.sockname, self.host, self.port))
 
-    # note: getstate/setstate are not needed if we use pickle protocol 2,
-    # but this way it helps pickle to make the representation smaller by omitting all attribute names.
-
     def __getstate__(self):
         return self.protocol, self.object, self.sockname, self.host, self.port
 

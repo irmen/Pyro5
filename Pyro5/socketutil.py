@@ -7,6 +7,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 import socket
 import errno
 import time
+import platform
 import sys
 import select
 from . import config
@@ -41,6 +42,8 @@ if hasattr(errno, "WSAEADDRNOTAVAIL"):
 ERRNO_EADDRINUSE = [errno.EADDRINUSE]
 if hasattr(errno, "WSAEADDRINUSE"):
     ERRNO_EADDRINUSE.append(errno.WSAEADDRINUSE)
+
+USE_MSG_WAITALL = hasattr(socket, "MSG_WAITALL") and platform.system() != "Windows"  # not reliable on windows even though it is defined
 
 
 def getIpVersion(hostnameOrAddress):
@@ -122,22 +125,16 @@ def receiveData(sock, size):
     try:
         retrydelay = 0.0
         msglen = 0
-        chunks = []
-        if config.USE_MSG_WAITALL:
-            # waitall is very convenient and if a socket error occurs,
-            # we can assume the receive has failed. No need for a loop,
-            # unless it is a retryable error.
-            # Some systems have an erratic MSG_WAITALL and sometimes still return
-            # less bytes than asked. In that case, we drop down into the normal
-            # receive loop to finish the task.
+        data = bytearray()
+        if USE_MSG_WAITALL:
             while True:
                 try:
-                    data = sock.recv(size, socket.MSG_WAITALL)
-                    if len(data) == size:
-                        return data
+                    chunk = sock.recv(size, socket.MSG_WAITALL)
+                    if len(chunk) == size:
+                        return chunk
                     # less data than asked, drop down into normal receive loop to finish
-                    msglen = len(data)
-                    chunks = [data]
+                    msglen = len(chunk)
+                    data.extend(chunk)
                     break
                 except socket.timeout:
                     raise TimeoutError("receiving: timeout")
@@ -155,10 +152,8 @@ def receiveData(sock, size):
                     chunk = sock.recv(min(60000, size - msglen))
                     if not chunk:
                         break
-                    chunks.append(chunk)
+                    data.extend(chunk)
                     msglen += len(chunk)
-                data = b"".join(chunks)
-                del chunks
                 if len(data) != size:
                     err = ConnectionClosedError("receiving: not enough data")
                     err.partialData = data  # store the message that was received until now
@@ -166,8 +161,7 @@ def receiveData(sock, size):
                 return data  # yay, complete
             except socket.timeout:
                 raise TimeoutError("receiving: timeout")
-            except socket.error:
-                x = sys.exc_info()[1]
+            except socket.error as x:
                 err = getattr(x, "errno", x.args[0])
                 if err not in ERRNO_RETRIES:
                     raise ConnectionClosedError("receiving: connection lost: " + str(x))

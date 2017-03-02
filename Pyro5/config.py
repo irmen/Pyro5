@@ -36,7 +36,6 @@ MAX_MESSAGE_SIZE = 1024 * 1024 * 1024  # 1 gigabyte
 BROADCAST_ADDRS = ["<broadcast>", "0.0.0.0"]  # list of broadcast addresses to try, in this order
 PREFER_IP_VERSION = 0  # 4, 6 or 0 (let OS choose according to RFC 3484)
 SERIALIZER = "serpent"
-SERIALIZERS_ACCEPTED = {"serpent", "marshal", "msgpack", "json"}  # these are the 'safe' serializers
 LOGWIRE = False  # log wire-level messages
 ITER_STREAMING = True
 ITER_STREAM_LIFETIME = 0.0
@@ -57,7 +56,7 @@ def _save_defaults():
         defaults[key] = copy.copy(value)
     return defaults
 __defaults = _save_defaults()
-assert len(__defaults) == 30
+assert len(__defaults) == 29
 del _save_defaults
 
 

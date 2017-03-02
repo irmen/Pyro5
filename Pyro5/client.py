@@ -66,7 +66,8 @@ class Proxy(object):
         self._pyroMaxRetries = config.MAX_RETRIES
         self.__pyroTimeout = config.COMMTIMEOUT
         self.__pyroConnLock = threading.RLock()
-        serializers.get_serializer(config.SERIALIZER)  # assert that the configured serializer is available
+        if config.SERIALIZER not in serializers.serializers:
+            raise errors.SerializationError("invalid serializer '{:s}'".format(config.SERIALIZER))
         self.__async = False
 
     def __del__(self):
@@ -214,7 +215,9 @@ class Proxy(object):
             if self._pyroConnection is None:
                 # rebind here, don't do it from inside the invoke because deadlock will occur
                 self.__pyroCreateConnection()
-            serializer = serializers.get_serializer(self._pyroSerializer or config.SERIALIZER)
+            serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
+            if not serializer:
+                raise errors.SerializationError("invalid serializer")
             annotations = self._pyroAnnotations()
             objectId = objectId or self._pyroConnection.objectId
             if vargs and isinstance(vargs[0], SerializedBlob):
@@ -222,11 +225,11 @@ class Proxy(object):
                 raise NotImplementedError  # XXX
             else:
                 # normal serialization of the remote call
-                data = serializer.serializeCall(objectId, methodname, vargs, kwargs)
+                data = serializer.dumpsCall(objectId, methodname, vargs, kwargs)
             if methodname in self._pyroOneway:
                 flags |= protocol.FLAGS_ONEWAY
             self._pyroSeq = (self._pyroSeq + 1) & 0xffff
-            msg = protocol.SendingMessage(protocol.MSG_INVOKE, flags, self._pyroSeq, serializer.serializer_id, data, annotations, config.COMPRESSION)
+            msg = protocol.SendingMessage(protocol.MSG_INVOKE, flags, self._pyroSeq, serializer.serializer_id, data, annotations)
             flags = msg.flags
             if config.LOGWIRE:
                 core.log_wiredata(log, "proxy wiredata sending", msg)
@@ -248,7 +251,7 @@ class Proxy(object):
                     if self._pyroRawWireResponse:
                         msg.decompress_if_needed()
                         return msg
-                    data = serializer.deserializeData(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
+                    data = serializer.loads(msg.data)
                     if msg.flags & protocol.FLAGS_ITEMSTREAMRESULT:
                         streamId = msg.annotations.get("STRM", b"").decode()
                         if not streamId:
@@ -293,11 +296,12 @@ class Proxy(object):
                 sock = socketutil.createSocket(connect=connect_location, reuseaddr=config.SOCK_REUSE, timeout=self.__pyroTimeout, nodelay=config.SOCK_NODELAY)
                 conn = socketutil.SocketConnection(sock, uri.object)
                 # Do handshake.
-                serializer = serializers.get_serializer(self._pyroSerializer or config.SERIALIZER)
+                serializername = self._pyroSerializer or config.SERIALIZER
+                serializer = serializers.serializers.get(serializername)
+                if not serializer:
+                    raise errors.SerializationError("invalid serializer '{:s}'".format(serializername))
                 data = {"handshake": self._pyroHandshake, "object": uri.object}
-                flags = 0
-                data, serializer.serializeData(data)
-                msg = protocol.SendingMessage(protocol.MSG_CONNECT, flags, self._pyroSeq, serializer.serializer_id, data, self._pyroAnnotations())
+                msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id, serializer.dumps(data), self._pyroAnnotations())
                 if config.LOGWIRE:
                     core.log_wiredata(log, "proxy connect sending", msg)
                 conn.send(msg.data)
@@ -316,8 +320,8 @@ class Proxy(object):
             else:
                 handshake_response = "?"
                 if msg.data:
-                    serializer = serializers.get_serializer_by_id(msg.serializer_id)
-                    handshake_response = serializer.deserializeData(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
+                    serializer = serializers.serializers_by_id[msg.serializer_id]
+                    handshake_response = serializer.loads(msg.data)
                 if msg.type == protocol.MSG_CONNECTFAIL:
                     error = "connection to %s rejected: %s" % (connect_location, handshake_response)
                     conn.close()
@@ -578,8 +582,8 @@ class SerializedBlob(object):
         """Retrieves the client data stored in this blob. Deserializes the data automatically if required."""
         if self._contains_blob:
             protocol_msg = self._data
-            serializer = serializers.get_serializer_by_id(protocol_msg.serializer_id)
-            _, _, data, _ = serializer.deserializeData(protocol_msg.data, protocol_msg.flags & protocol.FLAGS_COMPRESSED)
+            serializer = serializers.serializers_by_id[protocol_msg.serializer_id]
+            _, _, data, _ = serializer.loads(protocol_msg.data)
             return data
         else:
             return self._data

@@ -65,10 +65,9 @@ _protocol_version_bytes = PROTOCOL_VERSION.to_bytes(2, "big")
 
 
 class SendingMessage:
-    def __init__(self, msgtype, flags, seq, serializer_id, payload, annotations=None, compress=False):
+    def __init__(self, msgtype, flags, seq, serializer_id, payload, annotations=None):
         """
         Creates a new wire protocol message to be sent.
-        If compress=True, the payload (but not the annotations) will be compressed.
         """
         self.type = msgtype
         self.seq = seq
@@ -76,7 +75,7 @@ class SendingMessage:
         annotations = annotations or {}
         annotations_size = sum([8 + len(v) for v in annotations.values()])
         flags &= ~FLAGS_COMPRESSED
-        if compress and len(payload) > 100:
+        if config.COMPRESSION and len(payload) > 100:
             payload = zlib.compress(payload, 4)
             flags |= FLAGS_COMPRESSED
         self.flags = flags
@@ -90,6 +89,8 @@ class SendingMessage:
             if len(k) != 4:
                 raise errors.ProtocolError("annotation identifier must be 4 ascii characters")
             annotation_data.append(struct.pack("!4si", k.encode("ascii"), len(v)))
+            if not isinstance(v, (bytes, bytearray)):
+                raise errors.ProtocolError("annotation data must be bytes")
             annotation_data.append(v)
         self.data = header_data + b"".join(annotation_data) + payload
 
@@ -106,14 +107,14 @@ class ReceivingMessage:
             raise errors.ProtocolError("invalid message or protocol version")
         if self.data_size+self.annotations_size > config.MAX_MESSAGE_SIZE:
             raise errors.ProtocolError("message too large ({:d}, max={:d})".format(self.data_size+self.annotations_size, config.MAX_MESSAGE_SIZE))
-        self.payload = None
+        self.data = None
         self.annotations = {}
         if payload:
             self.add_payload(payload)
 
     def __repr__(self):
         return "<{:s}.{:s} at 0x{:x}; type={:d} flags={:d} seq={:d} size={:d}>" \
-            .format(self.__module__, self.__class__.__name__, id(self), self.type, self.flags, self.seq, len(self.payload or ""))
+            .format(self.__module__, self.__class__.__name__, id(self), self.type, self.flags, self.seq, len(self.data or ""))
 
     @staticmethod
     def validate(data):
@@ -130,7 +131,7 @@ class ReceivingMessage:
 
     def add_payload(self, payload):
         """Parses and adds payload data to a received message."""
-        assert not self.payload
+        assert not self.data
         if len(payload) != self.data_size + self.annotations_size:
             raise errors.ProtocolError("payload length doesn't match message header")
         if self.annotations_size:
@@ -143,14 +144,31 @@ class ReceivingMessage:
                 self.annotations[annotation_id] = payload[i+8:i+8+length]
                 i += 8 + length
             assert i == self.annotations_size
-            self.payload = payload[self.annotations_size:]
+            self.data = payload[self.annotations_size:]
         else:
-            self.payload = payload
+            self.data = payload
         if self.flags & FLAGS_COMPRESSED:
-            self.payload = zlib.decompress(self.payload)
+            self.data = zlib.decompress(self.data)
             self.flags &= ~FLAGS_COMPRESSED
-            self.data_size = len(self.payload)
+            self.data_size = len(self.data)
 
 
-def recv_stub(socketconnection, accepted_msgtypes):
-    raise NotImplementedError  # XXX
+def recv_stub(connection, accepted_msgtypes=None):    # XXX
+        """
+        Receives a pyro message from a given connection.
+        Accepts the given message types (None=any, or pass a sequence).
+        Also reads annotation chunks and the actual payload data.
+        """
+        header = connection.recv(6)   # 'PYRO' + 2 bytes protocol version
+        ReceivingMessage.validate(header)
+        header += connection.recv(_header_size-6)
+        msg = ReceivingMessage(header)
+        if accepted_msgtypes and msg.type not in accepted_msgtypes:
+            err = "invalid msg type {:d} received (expected: {:s})".format(msg.type, ",".join(str(t) for t in accepted_msgtypes))
+            log.error(err)
+            exc = errors.ProtocolError(err)
+            exc.pyroMsg = msg
+            raise exc
+        payload = connection.recv(msg.annotations_size + msg.data_size)
+        msg.add_payload(payload)
+        return msg
