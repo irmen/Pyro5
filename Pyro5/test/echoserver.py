@@ -2,8 +2,8 @@
 Echo server for test purposes.
 This is usually invoked by starting this module as a script:
 
-  :command:`python -m Pyro5.utils.echoserver`
-  or simply: :command:`pyro5-utils-echoserver`
+  :command:`python -m Pyro5.test.echoserver`
+  or simply: :command:`pyro5-test-echoserver`
 
 
 It is also possible to use the :class:`EchoServer` in user code
@@ -144,7 +144,6 @@ def main(args=None, returnWithoutLooping=False):
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="verbose output")
     parser.add_argument("-q", "--quiet", action="store_true", default=False, help="don't output anything")
     args = parser.parse_args(args)
-    print(args)
 
     if args.verbose:
         args.quiet = False

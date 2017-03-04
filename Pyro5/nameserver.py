@@ -692,15 +692,6 @@ def startNS(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None
     return nsUri, daemon, bcserver
 
 
-def type_meta(class_or_object, prefix="class:"):
-    """extracts type metadata from the given class or object, can be used as Name server metadata."""
-    if hasattr(class_or_object, "__mro__"):
-        return {prefix+c.__module__+"."+c.__name__ for c in class_or_object.__mro__ if c.__module__ not in ("builtins", "__builtin__")}
-    if hasattr(class_or_object, "__class__"):
-        return type_meta(class_or_object.__class__)
-    return frozenset()
-
-
 def main(args=None):
     from argparse import ArgumentParser
     parser = ArgumentParser(description="Pyro name server command line launcher.")

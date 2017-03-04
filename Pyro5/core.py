@@ -5,7 +5,6 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
 
-import uuid
 import re
 import logging
 import threading
@@ -14,7 +13,7 @@ import random
 import socket
 from . import errors, config, serializers, socketutil
 
-__all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME", "resolve", "locateNS"]
+__all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME", "resolve", "locateNS", "type_meta"]
 
 log = logging.getLogger("Pyro5.core")
 
@@ -288,11 +287,13 @@ def locateNS(host=None, port=None, broadcast=True):
         raise e from x
 
 
-def log_wiredata(logger, text, msg):
-    """logs all the given properties of the wire message in the given logger"""
-    corr = str(uuid.UUID(bytes=msg.annotations["CORR"])) if "CORR" in msg.annotations else "?"
-    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s\nannotations=%r\ndata=%r" %
-                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, msg.annotations, msg.data))
+def type_meta(class_or_object, prefix="class:"):
+    """extracts type metadata from the given class or object, can be used as Name server metadata."""
+    if hasattr(class_or_object, "__mro__"):
+        return {prefix+c.__module__+"."+c.__name__ for c in class_or_object.__mro__ if c.__module__ not in ("builtins", "__builtin__")}
+    if hasattr(class_or_object, "__class__"):
+        return type_meta(class_or_object.__class__)
+    return frozenset()
 
 
 # call context thread local

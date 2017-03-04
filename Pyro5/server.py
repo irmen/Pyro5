@@ -15,7 +15,6 @@ import uuid
 import warnings
 import serpent
 from . import errors, config, core, protocol, serializers, client
-from .socketservers import multiplexserver, threadpoolserver
 
 __all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway"]
 
@@ -207,9 +206,11 @@ class Daemon(object):
         if (nathost is None) ^ (natport is None):
             raise ValueError("must provide natport with nathost")
         if config.SERVERTYPE == "thread":
-            self.transportServer = threadpoolserver.SocketServer_Threadpool()
+            from .socketservers.thread import SocketServer
+            self.transportServer = SocketServer()
         elif config.SERVERTYPE == "multiplex":
-            self.transportServer = multiplexserver.SocketServer_Multiplex()
+            from .socketservers.multiplex import SocketServer
+            self.transportServer = SocketServer()
         else:
             raise errors.PyroError("invalid server type '%s'" % config.SERVERTYPE)
         self.__mustshutdown = threading.Event()
@@ -339,7 +340,7 @@ class Daemon(object):
             if denied_reason:
                 raise Exception(denied_reason)
             if config.LOGWIRE:
-                core.log_wiredata(log, "daemon handshake received", msg)
+                protocol.log_wiredata(log, "daemon handshake received", msg)
             if msg.serializer_id not in serializers.serializers_by_id:
                 raise errors.SerializationError("message used serializer that is not accepted: %d" % msg.serializer_id)
             if "CORR" in msg.annotations:
@@ -372,7 +373,7 @@ class Daemon(object):
         # on some systems... (messages smaller than 40 bytes)
         msg = protocol.SendingMessage(msgtype, flags, msg_seq, serializer_id, data, annotations=self.annotations())
         if config.LOGWIRE:
-            core.log_wiredata(log, "daemon handshake response", msg)
+            protocol.log_wiredata(log, "daemon handshake response", msg)
         conn.send(msg.data)
         return msg.type == protocol.MSG_CONNECTOK
 
@@ -417,12 +418,12 @@ class Daemon(object):
             else:
                 core.current_context.correlation_id = uuid.uuid4()
             if config.LOGWIRE:
-                core.log_wiredata(log, "daemon wiredata received", msg)
+                protocol.log_wiredata(log, "daemon wiredata received", msg)
             if msg.type == protocol.MSG_PING:
                 # return same seq, but ignore any data (it's a ping, not an echo). Nothing is deserialized.
                 msg = protocol.SendingMessage(protocol.MSG_PING, 0, msg.seq, msg.serializer_id, b"pong", annotations=self.annotations())
                 if config.LOGWIRE:
-                    core.log_wiredata(log, "daemon wiredata sending", msg)
+                    protocol.log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.data)
                 return
             if msg.serializer_id not in serializers.serializers_by_id:
@@ -495,7 +496,7 @@ class Daemon(object):
                     response_flags |= protocol.FLAGS_BATCH
                 msg = protocol.SendingMessage(protocol.MSG_RESULT, response_flags, request_seq, serializer.serializer_id, data, annotations=self.annotations())
                 if config.LOGWIRE:
-                    core.log_wiredata(log, "daemon wiredata sending", msg)
+                    protocol.log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.data)
         except Exception:
             xt, xv = sys.exc_info()[0:2]
@@ -622,7 +623,7 @@ class Daemon(object):
         ann.update(annotations or {})
         msg = protocol.SendingMessage(protocol.MSG_RESULT, flags, seq, serializer_id, data, annotations=ann)
         if config.LOGWIRE:
-            core.log_wiredata(log, "daemon wiredata sending (error response)", msg)
+            protocol.log_wiredata(log, "daemon wiredata sending (error response)", msg)
         connection.send(msg.data)
 
     def register(self, obj_or_class, objectId=None, force=False):

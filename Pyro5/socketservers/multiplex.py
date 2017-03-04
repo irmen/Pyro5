@@ -22,7 +22,7 @@ from .. import errors, config, socketutil
 log = logging.getLogger("Pyro5.multiplexserver")
 
 
-class SocketServer_Multiplex(object):
+class SocketServer(object):
     """Multiplexed transport server for socket connections (uses select, poll, kqueue, ...)"""
     def __init__(self):
         self.sock = self.daemon = self.locationStr = None

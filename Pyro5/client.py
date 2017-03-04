@@ -232,7 +232,7 @@ class Proxy(object):
             msg = protocol.SendingMessage(protocol.MSG_INVOKE, flags, self._pyroSeq, serializer.serializer_id, data, annotations)
             flags = msg.flags
             if config.LOGWIRE:
-                core.log_wiredata(log, "proxy wiredata sending", msg)
+                protocol.log_wiredata(log, "proxy wiredata sending", msg)
             try:
                 self._pyroConnection.send(msg.data)
                 if flags & protocol.FLAGS_ONEWAY:
@@ -240,7 +240,7 @@ class Proxy(object):
                 else:
                     msg = protocol.recv_stub(self._pyroConnection, [protocol.MSG_RESULT])
                     if config.LOGWIRE:
-                        core.log_wiredata(log, "proxy wiredata received", msg)
+                        protocol.log_wiredata(log, "proxy wiredata received", msg)
                     self.__pyroCheckSequence(msg.seq)
                     if msg.serializer_id != serializer.serializer_id:
                         error = "invalid serializer in response: %d" % msg.serializer_id
@@ -302,11 +302,11 @@ class Proxy(object):
                 data = {"handshake": self._pyroHandshake, "object": uri.object}
                 msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id, serializer.dumps(data), self._pyroAnnotations())
                 if config.LOGWIRE:
-                    core.log_wiredata(log, "proxy connect sending", msg)
+                    protocol.log_wiredata(log, "proxy connect sending", msg)
                 conn.send(msg.data)
                 msg = protocol.recv_stub(conn, [protocol.MSG_CONNECTOK, protocol.MSG_CONNECTFAIL])
                 if config.LOGWIRE:
-                    core.log_wiredata(log, "proxy connect response received", msg)
+                    protocol.log_wiredata(log, "proxy connect response received", msg)
             except Exception as x:
                 if conn:
                     conn.close()

@@ -14,7 +14,7 @@ import threading
 import os
 from .. import socketutil, errors, config
 
-log = logging.getLogger("Pyro5.threadpoolserver")
+log = logging.getLogger("Pyro5.threadserver")
 _client_disconnect_lock = threading.Lock()
 
 
@@ -96,7 +96,7 @@ class Housekeeper(threading.Thread):
             self.pyroDaemon._housekeeping()
 
 
-class SocketServer_Threadpool(object):
+class SocketServer(object):
     """transport server for socket connections, worker thread pool version."""
 
     def __init__(self):

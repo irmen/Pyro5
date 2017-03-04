@@ -35,10 +35,9 @@ Finally the actual payload data bytes follow.
 import struct
 import logging
 import zlib
+import uuid
 from . import errors, config
 
-
-__all__ = ["SendingMessage", "ReceivingMessage"]
 
 log = logging.getLogger("Pyro5.protocol")
 
@@ -151,6 +150,13 @@ class ReceivingMessage:
             self.data = zlib.decompress(self.data)
             self.flags &= ~FLAGS_COMPRESSED
             self.data_size = len(self.data)
+
+
+def log_wiredata(logger, text, msg):
+    """logs all the given properties of the wire message in the given logger"""
+    corr = str(uuid.UUID(bytes=msg.annotations["CORR"])) if "CORR" in msg.annotations else "?"
+    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s\nannotations=%r\ndata=%r" %
+                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, msg.annotations, msg.data))
 
 
 def recv_stub(connection, accepted_msgtypes=None):    # XXX
