@@ -84,7 +84,7 @@ class ClientConnectionJob(object):
 
 class Housekeeper(threading.Thread):
     def __init__(self, daemon):
-        super(Housekeeper, self).__init__(name="housekeeper")
+        super().__init__(name="housekeeper")
         self.pyroDaemon = daemon
         self.stop = threading.Event()
         self.daemon = True

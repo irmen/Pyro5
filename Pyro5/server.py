@@ -811,13 +811,13 @@ serializers.SerializerBase.register_class_to_dict(Daemon, serializers.serialize_
 
 class _OnewayCallThread(threading.Thread):
     def __init__(self, target, args, kwargs):
-        super(_OnewayCallThread, self).__init__(target=target, args=args, kwargs=kwargs, name="oneway-call")
+        super().__init__(target=target, args=args, kwargs=kwargs, name="oneway-call")
         self.daemon = True
         self.parent_context = core.current_context.to_global()
 
     def run(self):
         core.current_context.from_global(self.parent_context)
-        super(_OnewayCallThread, self).run()
+        super().run()
 
 
 __exposed_member_cache = {}

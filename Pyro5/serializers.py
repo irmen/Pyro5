@@ -14,7 +14,7 @@ from . import errors
 __all__ = ["SerializerBase", "SerpentSerializer", "JsonSerializer", "MarshalSerializer", "MsgpackSerializer",
            "serializers", "serializers_by_id"]
 
-log = logging.getLogger("Pyro4.util")
+log = logging.getLogger("Pyro5.serializers")
 
 
 if '-' in serpent.__version__:
@@ -45,7 +45,7 @@ def pyro_class_serpent_serializer(obj, serializer, stream, level):
 
 def serialize_pyro_object_to_dict(obj):
     return {
-        "__class__": "{:s}.{:s}".format(obj.__module__, + obj.__class__.__name__),
+        "__class__": "{:s}.{:s}".format(obj.__module__, obj.__class__.__name__),
         "state": obj.__getstate_for_dict__()
     }
 
@@ -70,6 +70,13 @@ class SerializerBase(object):
     def loadsCall(self, data):
         """Deserializes the given call data back to (object, method, vargs, kwargs) tuple."""
         raise NotImplementedError("implement in subclass")
+
+    def _convertToBytes(self, data):
+        if type(data) is bytearray:
+            return bytes(data)
+        if type(data) is memoryview:
+            return data.tobytes()
+        return data
 
     @classmethod
     def register_type_replacement(cls, object_type, replacement_function):
@@ -160,6 +167,7 @@ class SerializerBase(object):
         Recreate an object out of a dict containing the class name and the attributes.
         Only a fixed set of classes are recognized.
         """
+        from . import core, client, server  # XXX circular
         classname = data.get("__class__", "<unknown>")
         if isinstance(classname, bytes):
             classname = classname.decode("utf-8")
@@ -169,39 +177,39 @@ class SerializerBase(object):
         if "__" in classname:
             raise errors.SecurityError("refused to deserialize types with double underscores in their name: " + classname)
         # for performance, the constructors below are hardcoded here instead of added on a per-class basis to the dict-to-class registry
-        if classname.startswith("Pyro4.core."):
-            from Pyro4 import core  # XXX circular
-            if classname == "Pyro4.core.URI":
+        if classname.startswith("Pyro5.core."):
+            if classname == "Pyro5.core.URI":
                 uri = core.URI.__new__(core.URI)
                 uri.__setstate_from_dict__(data["state"])
                 return uri
-            elif classname == "Pyro4.core.Proxy":
-                proxy = core.Proxy.__new__(core.Proxy)
+            elif classname == "Pyro5.core._ExceptionWrapper":
+                ex = data["exception"]
+                if isinstance(ex, dict) and "__class__" in ex:
+                    ex = SerializerBase.dict_to_class(ex)
+                return core._ExceptionWrapper(ex)
+        elif classname.startswith("Pyro5.client."):
+            if classname == "Pyro5.client.Proxy":
+                proxy = client.Proxy.__new__(client.Proxy)
                 proxy.__setstate_from_dict__(data["state"])
                 return proxy
-            elif classname == "Pyro4.core.Daemon":
-                daemon = core.Daemon.__new__(core.Daemon)
+        elif classname.startswith("Pyro5.server."):
+            if classname == "Pyro5.server.Daemon":
+                daemon = server.Daemon.__new__(server.Daemon)
                 daemon.__setstate_from_dict__(data["state"])
                 return daemon
-        elif classname.startswith("Pyro4.util."):
-            if classname == "Pyro4.util.SerpentSerializer":
+        elif classname.startswith("Pyro5.serializers."):
+            if classname == "Pyro5.serializers.SerpentSerializer":
                 return SerpentSerializer()
-            elif classname == "Pyro4.util.MarshalSerializer":
+            elif classname == "Pyro5.serializers.MarshalSerializer":
                 return MarshalSerializer()
-            elif classname == "Pyro4.util.JsonSerializer":
+            elif classname == "Pyro5.serializers.JsonSerializer":
                 return JsonSerializer()
-            elif classname == "Pyro4.util.MsgpackSerializer":
+            elif classname == "Pyro5.serializers.MsgpackSerializer":
                 return MsgpackSerializer()
-        elif classname.startswith("Pyro4.errors."):
+        elif classname.startswith("Pyro5.errors."):
             errortype = getattr(errors, classname.split('.', 2)[2])
             if issubclass(errortype, errors.PyroError):
                 return SerializerBase.make_exception(errortype, data)
-        elif classname == "Pyro4.futures._ExceptionWrapper":
-            from Pyro4 import futures  # XXX circular
-            ex = data["exception"]
-            if isinstance(ex, dict) and "__class__" in ex:
-                ex = SerializerBase.dict_to_class(ex)
-            return futures._ExceptionWrapper(ex)
         elif data.get("__exception__", False):
             if classname in all_exceptions:
                 return SerializerBase.make_exception(all_exceptions[classname], data)
@@ -218,11 +226,6 @@ class SerializerBase(object):
                 exceptiontype = getattr(sqlite3, short_classname)
                 if issubclass(exceptiontype, BaseException):
                     return SerializerBase.make_exception(exceptiontype, data)
-
-        # try one of the serializer classes
-        for serializer in serializers.values():
-            if classname == serializer.__class__.__name__:
-                return serializer
         log.warning("unsupported serialized class: " + classname)
         raise errors.SerializationError("unsupported serialized class: " + classname)
 
@@ -296,7 +299,7 @@ class SerpentSerializer(SerializerBase):
     def dict_to_class(cls, data):
         if data.get("__class__") == "float":
             return float(data["value"])     # serpent encodes a float nan as a special class dict like this
-        return super(SerpentSerializer, cls).dict_to_class(data)
+        return super().dict_to_class(data)
 
 
 class MarshalSerializer(SerializerBase):
@@ -325,7 +328,7 @@ class MarshalSerializer(SerializerBase):
     def class_to_dict(cls, obj):
         if isinstance(obj, uuid.UUID):
             return str(obj)
-        return super(MarshalSerializer, cls).class_to_dict(obj)
+        return super().class_to_dict(obj)
 
     @classmethod
     def register_type_replacement(cls, object_type, replacement_function):
@@ -348,18 +351,14 @@ class JsonSerializer(SerializerBase):
         return data.encode("utf-8")
 
     def loadsCall(self, data):
-        if isinstance(data, memoryview):
-            data = data.tobytes()
-        data = data.decode("utf-8")
+        data = self._convertToBytes(data).decode("utf-8")
         data = json.loads(data)
         vargs = self.recreate_classes(data["params"])
         kwargs = self.recreate_classes(data["kwargs"])
         return data["object"], data["method"], vargs, kwargs
 
     def loads(self, data):
-        if isinstance(data, memoryview):
-            data = data.tobytes()
-        data = data.decode("utf-8")
+        data = self._convertToBytes(data).decode("utf-8")
         return self.recreate_classes(json.loads(data))
 
     def default(self, obj):
@@ -394,11 +393,11 @@ class MsgpackSerializer(SerializerBase):
         return msgpack.packb(data, use_bin_type=True, default=self.default)
 
     def loadsCall(self, data):
-        obj, method, vargs, kwargs = msgpack.unpackb(data, encoding="utf-8", object_hook=self.object_hook)
+        obj, method, vargs, kwargs = msgpack.unpackb(self._convertToBytes(data), encoding="utf-8", object_hook=self.object_hook)
         return obj, method, vargs, kwargs
 
     def loads(self, data):
-        return msgpack.unpackb(data, encoding="utf-8", object_hook=self.object_hook, ext_hook=self.ext_hook)
+        return msgpack.unpackb(self._convertToBytes(data), encoding="utf-8", object_hook=self.object_hook, ext_hook=self.ext_hook)
 
     def default(self, obj):
         replacer = self.__type_replacements.get(type(obj), None)

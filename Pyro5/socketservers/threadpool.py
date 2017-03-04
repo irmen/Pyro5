@@ -22,7 +22,7 @@ class NoFreeWorkersError(PoolError):
 
 class Worker(threading.Thread):
     def __init__(self, pool):
-        super(Worker, self).__init__()
+        super().__init__()
         self.daemon = True
         self.name = "Pyro-Worker-%d " % id(self)
         self.job_available = threading.Event()

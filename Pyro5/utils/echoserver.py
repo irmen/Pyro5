@@ -2,8 +2,8 @@
 Echo server for test purposes.
 This is usually invoked by starting this module as a script:
 
-  :command:`python -m Pyro4.test.echoserver`
-  or simply: :command:`pyro4-test-echoserver`
+  :command:`python -m Pyro5.utils.echoserver`
+  or simply: :command:`pyro5-utils-echoserver`
 
 
 It is also possible to use the :class:`EchoServer` in user code
@@ -14,7 +14,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 import time
 import threading
-from optparse import OptionParser
+from argparse import ArgumentParser
 from .. import config, server, nameserver
 
 __all__ = ["EchoServer"]
@@ -114,7 +114,7 @@ class EchoServer(object):
 
 class NameServer(threading.Thread):
     def __init__(self, hostname):
-        super(NameServer, self).__init__()
+        super().__init__()
         self.setDaemon(1)
         self.hostname = hostname
         self.started = threading.Event()
@@ -135,39 +135,40 @@ def startNameServer(host):
 
 
 def main(args=None, returnWithoutLooping=False):
-    parser = OptionParser()
-    parser.add_option("-H", "--host", default="localhost", help="hostname to bind server on (default=%default)")
-    parser.add_option("-p", "--port", type="int", default=0, help="port to bind server on")
-    parser.add_option("-u", "--unixsocket", help="Unix domain socket name to bind server on")
-    parser.add_option("-n", "--naming", action="store_true", default=False, help="register with nameserver")
-    parser.add_option("-N", "--nameserver", action="store_true", default=False, help="also start a nameserver")
-    parser.add_option("-v", "--verbose", action="store_true", default=False, help="verbose output")
-    parser.add_option("-q", "--quiet", action="store_true", default=False, help="don't output anything")
-    options, args = parser.parse_args(args)
+    parser = ArgumentParser(description="Pyro test echo/nameserver command line launcher.")
+    parser.add_argument("-H", "--host", default="localhost", help="hostname to bind server on (default=%(default)s)")
+    parser.add_argument("-p", "--port", type=int, default=0, help="port to bind server on")
+    parser.add_argument("-u", "--unixsocket", help="Unix domain socket name to bind server on")
+    parser.add_argument("-n", "--naming", action="store_true", default=False, help="register with nameserver")
+    parser.add_argument("-N", "--nameserver", action="store_true", default=False, help="also start a nameserver")
+    parser.add_argument("-v", "--verbose", action="store_true", default=False, help="verbose output")
+    parser.add_argument("-q", "--quiet", action="store_true", default=False, help="don't output anything")
+    args = parser.parse_args(args)
+    print(args)
 
-    if options.verbose:
-        options.quiet = False
-    if not options.quiet:
+    if args.verbose:
+        args.quiet = False
+    if not args.quiet:
         print("Starting Pyro's built-in test echo server.")
     config.SERVERTYPE = "multiplex"
 
     nsrv = None
-    if options.nameserver:
-        options.naming = True
-        nsrv = startNameServer(options.host)
+    if args.nameserver:
+        args.naming = True
+        nsrv = startNameServer(args.host)
 
-    d = server.Daemon(host=options.host, port=options.port, unixsocket=options.unixsocket)
+    d = server.Daemon(host=args.host, port=args.port, unixsocket=args.unixsocket)
     echo = EchoServer()
-    echo._verbose = options.verbose
+    echo._verbose = args.verbose
     objectName = "test.echoserver"
     uri = d.register(echo, objectName)
-    if options.naming:
+    if args.naming:
         host, port = None, None
         if nsrv is not None:
             host, port = nsrv.uri.host, nsrv.uri.port
         ns = nameserver.locateNS(host, port)
         ns.register(objectName, uri)
-        if options.verbose:
+        if args.verbose:
             print("using name server at", ns._pyroUri)
             if nsrv is not None:
                 if nsrv.bc_server:
@@ -175,9 +176,9 @@ def main(args=None, returnWithoutLooping=False):
                 else:
                     print("not using a broadcast server")
     else:
-        if options.verbose:
+        if args.verbose:
             print("not using a name server.")
-    if not options.quiet:
+    if not args.quiet:
         print("object name:", objectName)
         print("echo uri:", uri)
         print("echoserver running.")
