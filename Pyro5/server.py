@@ -14,7 +14,7 @@ import threading
 import uuid
 import warnings
 import serpent
-from . import errors, config, core, protocol, serializers
+from . import errors, config, core, protocol, serializers, client
 from .socketservers import multiplexserver, threadpoolserver
 
 __all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway"]
@@ -268,8 +268,7 @@ class Daemon(object):
             daemon = Daemon(host, port)
         with daemon:
             if ns:
-                from .nameserver import locateNS   # not in global scope because of circular import
-                ns = locateNS()
+                ns = core.locateNS()
             for obj, name in objects.items():
                 if ns:
                     localname = None  # name is used for the name server
@@ -453,7 +452,7 @@ class Daemon(object):
                             xt, xv = sys.exc_info()[0:2]
                             log.debug("Exception occurred while handling batched request: %s", xv)
                             xv._pyroTraceback = errors.formatTraceback(detailed=config.DETAILED_TRACEBACK)
-                            data.append(futures._ExceptionWrapper(xv))
+                            data.append(core._ExceptionWrapper(xv))
                             break  # stop processing the rest of the batch
                         else:
                             data.append(result)    # note that we don't support streaming results in batch mode
@@ -654,7 +653,7 @@ class Daemon(object):
         # set some pyro attributes
         obj_or_class._pyroId = objectId
         obj_or_class._pyroDaemon = self
-        # register a custom serializer for the type to automatically return proxies     # XXX remove autoproxy feature?
+        # register a custom serializer for the type to automatically return proxies     # XXX remove autoproxy feature alltogether instead of having it as default?
         # we need to do this for all known serializers
         for ser in serializers.serializers.values():
             ser.register_type_replacement(type(obj_or_class), pyroObjectToAutoProxy)
@@ -725,7 +724,7 @@ class Daemon(object):
         (you can't get a proxy for an unknown object)
         """
         uri = self.uriFor(objectOrId, nat)
-        proxy = Proxy(uri)
+        proxy = client.Proxy(uri)
         try:
             registered_object = self.objectsById[uri.object]
         except KeyError:

@@ -15,7 +15,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 import time
 import threading
 from argparse import ArgumentParser
-from .. import config, server, nameserver
+from .. import config, server, core, nameserver
 
 __all__ = ["EchoServer"]
 
@@ -166,7 +166,7 @@ def main(args=None, returnWithoutLooping=False):
         host, port = None, None
         if nsrv is not None:
             host, port = nsrv.uri.host, nsrv.uri.port
-        ns = nameserver.locateNS(host, port)
+        ns = core.locateNS(host, port)
         ns.register(objectName, uri)
         if args.verbose:
             print("using name server at", ns._pyroUri)
