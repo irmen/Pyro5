@@ -693,6 +693,9 @@ def startNS(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None
     return nsUri, daemon, bcserver
 
 
+# XXX move resolve and locateNS to core
+
+
 def resolve(uri):
     """
     Resolve a 'magic' uri (PYRONAME, PYROMETA) into the direct PYRO uri.
