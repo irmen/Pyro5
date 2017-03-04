@@ -19,7 +19,7 @@ setup(
     packages=['Pyro5'],
 
     install_requires=[
-        "serpent>=1.17",
+        "serpent>=1.19",
         "msgpack-python>=0.4.8"
     ],
 

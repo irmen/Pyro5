@@ -22,8 +22,8 @@ if '-' in serpent.__version__:
 else:
     ver = serpent.__version__
 ver = tuple(map(int, ver.split(".")))
-if ver < (1, 17):
-    raise RuntimeError("requires serpent 1.17 or better")
+if ver < (1, 19):
+    raise RuntimeError("requires serpent 1.19 or better")
 
 
 all_exceptions = {}
