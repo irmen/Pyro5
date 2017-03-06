@@ -264,7 +264,7 @@ class Worker(threading.Thread):
         self.pool = None
 
 
-# XXX use threadpool from pythons standard library (concurrent.futures?)
+# XXX use threadpool from pythons standard library (concurrent.futures.xyzExecutor) perhaps also process pool executor...?
 class Pool(object):
     """
     A job processing pool that is using a pool of worker threads.

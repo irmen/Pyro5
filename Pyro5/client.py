@@ -27,8 +27,6 @@ class Proxy(object):
     .. automethod:: _pyroReconnect
     .. automethod:: _pyroBatch
     .. automethod:: _pyroAsync
-    .. automethod:: _pyroAnnotations
-    .. automethod:: _pyroResponseAnnotations
     .. automethod:: _pyroValidateHandshake
     .. autoattribute:: _pyroTimeout
     .. attribute:: _pyroMaxRetries
@@ -251,7 +249,6 @@ class Proxy(object):
                         raise errors.SerializationError(error)
                     if msg.annotations:
                         core.current_context.response_annotations = msg.annotations
-                        self._pyroResponseAnnotations(msg.annotations, msg.type)
                     if self._pyroRawWireResponse:
                         msg.decompress_if_needed()
                         return msg
@@ -338,8 +335,6 @@ class Proxy(object):
                         self._pyroUri = uri
                     self._pyroValidateHandshake(handshake_response)
                     log.debug("connected to %s - %s", self._pyroUri, conn.family())
-                    if msg.annotations:
-                        self._pyroResponseAnnotations(msg.annotations, msg.type)
                 else:
                     conn.close()
                     err = "cannot connect to %s: invalid msg type %d received" % (connect_location, msg.type)
@@ -418,22 +413,6 @@ class Proxy(object):
             flags |= protocol.FLAGS_ONEWAY
         return self._pyroInvoke("<batch>", calls, None, flags)
 
-    def _pyroAnnotations(self):   # XXX deprecated api, remove?
-        """
-        Override to return a dict with custom user annotations to be sent with each request message.
-        Code using Pyro 4.56 or newer can skip this and instead set the annotations directly on the context object.
-        """
-        return {}
-
-    def _pyroResponseAnnotations(self, annotations, msgtype):    # XXX deprecated api, remove?
-        """
-        Process any response annotations (dictionary set by the daemon).
-        Usually this contains the internal Pyro annotations such as hmac and correlation id,
-        and if you override the annotations method in the daemon, can contain your own annotations as well.
-        Code using Pyro 4.56 or newer can skip this and instead read the response_annotations directly from the context object.
-        """
-        pass
-
     def _pyroValidateHandshake(self, response):
         """
         Process and validate the initial connection handshake response data received from the daemon.
@@ -449,7 +428,6 @@ class Proxy(object):
             annotations["CORR"] = ctx.correlation_id.bytes
         else:
             annotations.pop("CORR", None)
-        annotations.update(self._pyroAnnotations())
         if clear:
             ctx.annotations = {}
         return annotations
