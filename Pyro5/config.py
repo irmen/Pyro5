@@ -47,18 +47,55 @@ del _pyro_logfile
 del _pyro_loglevel
 
 
+def _config_items():
+    return {item for item in globals() if not item.startswith("_") and item not in {"os", "copy", "dump", "reset"}}
+
+
+def _check_configitems():
+    wrong = _config_items() - _check_configitems.correct_items
+    if wrong:
+        raise RuntimeError("invalid Pyro config item(s) set: "+", ".join(wrong))
+_check_configitems.correct_items = set(_config_items())
+
+
 # store a copy of the config values as defaults
 def _save_defaults():
     defaults = {}
-    for key, value in globals().items():
-        if key.startswith("_") or key in {"os", "copy"}:
-            continue
-        defaults[key] = copy.copy(value)
+    g = globals()
+    for key in _config_items():
+        defaults[key] = copy.copy(g[key])
     return defaults
 __defaults = _save_defaults()
-# XXX validate config settings against set of known items, call this from Daemon as well
 assert len(__defaults) == 29
 del _save_defaults
+
+
+def _read_env():
+    PREFIX = "PYRO_"
+    configitems = globals()
+    for item, envvalue in (e for e in os.environ.items() if e[0].startswith(PREFIX)):
+        item = item[len(PREFIX):]
+        value = __defaults.get(item)
+        if value is None:
+            raise ValueError("invalid Pyro environment config variable: %s%s" % (PREFIX, item))
+        valuetype = type(value)
+        if valuetype is set:
+            envvalue = {v.strip() for v in envvalue.split(",")}
+        elif valuetype is list:
+            envvalue = [v.strip() for v in envvalue.split(",")]
+        elif valuetype is bool:
+            envvalue = envvalue.lower()
+            if envvalue in ("0", "off", "no", "false"):
+                envvalue = False
+            elif envvalue in ("1", "yes", "on", "true"):
+                envvalue = True
+            else:
+                raise ValueError("invalid boolean value: %s%s=%s" % (PREFIX, item, envvalue))
+        else:
+            envvalue = valuetype(envvalue)
+        configitems[item] = envvalue
+
+_read_env()
 
 
 def reset(useenvironment=True):
@@ -70,31 +107,7 @@ def reset(useenvironment=True):
     for item, value in __defaults.items():
         configitems[item] = copy.copy(value)
     if useenvironment:
-        PREFIX = "PYRO_"
-        for item in __defaults:   # XXX loop over environ instead
-            if PREFIX + item in os.environ:
-                # environment variable overwrites config item
-                value = __defaults[item]
-                if value is not None:
-                    envvalue = os.environ[PREFIX + item]
-                    valuetype = type(value)
-                    if valuetype is set:
-                        envvalue = {v.strip() for v in envvalue.split(",")}
-                    elif valuetype is list:
-                        envvalue = [v.strip() for v in envvalue.split(",")]
-                    elif valuetype is bool:
-                        envvalue = envvalue.lower()
-                        if envvalue in ("0", "off", "no", "false"):
-                            envvalue = False
-                        elif envvalue in ("1", "yes", "on", "true"):
-                            envvalue = True
-                        else:
-                            raise ValueError("invalid boolean value: %s%s=%s" % (PREFIX, item, envvalue))
-                    else:
-                        envvalue = valuetype(envvalue)
-                    configitems[item] = envvalue
-
-reset()
+        _read_env()  # environment variables overwrite config items
 
 
 def dump():
@@ -102,6 +115,7 @@ def dump():
     import platform
     from .protocol import PROTOCOL_VERSION
     from . import __version__
+    _check_configitems()
     result = ["Pyro version: %s" % __version__,
               "Loaded from: %s" % os.path.dirname(__file__),
               "Python version: %s %s (%s, %s)" % (platform.python_implementation(), platform.python_version(), platform.system(), os.name),

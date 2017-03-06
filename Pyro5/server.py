@@ -195,6 +195,7 @@ class Daemon(object):
     """
 
     def __init__(self, host=None, port=0, unixsocket=None, nathost=None, natport=None, interface=DaemonObject):
+        config._check_configitems()
         if host is None:
             host = config.HOST
         if nathost is None:
