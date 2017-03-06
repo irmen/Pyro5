@@ -230,6 +230,8 @@ def locateNS(host=None, port=None, broadcast=True):
                     return proxy
                 except errors.PyroError:
                     pass
+        if config.PREFER_IP_VERSION == 6:
+            broadcast = False   # ipv6 doesn't have broadcast. We should probably use multicast....
         if broadcast:
             # broadcast lookup
             if not port:
@@ -307,6 +309,7 @@ class _CallContext(threading.local):
         self.msg_flags = 0
         self.serializer_id = 0
         self.annotations = {}
+        self.response_annotations = {}
         self.correlation_id = None
 
     def to_global(self):
@@ -318,6 +321,7 @@ class _CallContext(threading.local):
         self.msg_flags = values["msg_flags"]
         self.serializer_id = values["serializer_id"]
         self.annotations = values["annotations"]
+        self.response_annotations = values["response_annotations"]
         self.correlation_id = values["correlation_id"]
         self.client_sock_addr = values["client_sock_addr"]
 

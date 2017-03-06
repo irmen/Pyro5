@@ -15,7 +15,7 @@ import sqlite3
 from collections import MutableMapping
 from . import config, errors, core, socketutil, server
 
-__all__ = ["startNS", "startNSloop", "type_meta"]
+__all__ = ["startNS", "startNSloop"]
 
 log = logging.getLogger("Pyro5.nameserver")
 
@@ -62,6 +62,7 @@ class SqlStorage(MutableMapping):
     """
     Sqlite-based storage.
     It is just a single (name,uri) table for the names and another table for the metadata.
+    Sqlite db connection objects aren't thread-safe, so a new connection is created in every method.
     """
     def __init__(self, dbfile):
         if dbfile == ":memory:":
@@ -555,14 +556,14 @@ class BroadcastServer(object):
             for bc in eventobjects:
                 bc.processRequest()
 
-    def __init__(self, nsUri, bchost=None, bcport=None):
+    def __init__(self, nsUri, bchost=None, bcport=None, ipv6=False):
         self.transportServer = self.TransportServerAdapter(self)
         self.nsUri = nsUri
         if bcport is None:
             bcport = config.NS_BCPORT
         if bchost is None:
             bchost = config.NS_BCHOST
-        if ":" in nsUri.host:  # ipv6
+        if ":" in nsUri.host or ipv6:  # match nameserver's ip version
             bchost = bchost or "::"
             self.sock = socketutil.createBroadcastSocket((bchost, bcport, 0, 0), reuseaddr=config.SOCK_REUSE, timeout=2.0)
         else:
@@ -574,7 +575,7 @@ class BroadcastServer(object):
             self.locationStr = "[%s]:%d" % (bchost, bcport)
         else:
             self.locationStr = "%s:%d" % (bchost, bcport)
-        log.info("ns broadcast server created on %s", self.locationStr)
+            log.info("ns broadcast server created on %s - %s", self.locationStr, socketutil.family_str(self.sock))
         self.running = True
 
     def close(self):
@@ -646,7 +647,11 @@ def startNSloop(host=None, port=None, enableBroadcast=True, bchost=None, bcport=
         hostip = "Unix domain socket"
     else:
         hostip = daemon.sock.getsockname()[0]
-        if hostip.startswith("127."):
+        if daemon.sock.family == socket.AF_INET6:       # ipv6 doesn't have broadcast. We should probably use multicast instead...
+            print("Not starting broadcast server for IPv6.")
+            log.info("Not starting NS broadcast server because NS is using IPv6")
+            enableBroadcast = False
+        elif hostip.startswith("127.") or hostip == "::1":
             print("Not starting broadcast server for localhost.")
             log.info("Not starting NS broadcast server because NS is bound to localhost")
             enableBroadcast = False
@@ -654,7 +659,7 @@ def startNSloop(host=None, port=None, enableBroadcast=True, bchost=None, bcport=
             # Make sure to pass the internal uri to the broadcast responder.
             # It is almost always useless to let it return the external uri,
             # because external systems won't be able to talk to this thing anyway.
-            bcserver = BroadcastServer(internalUri, bchost, bcport)
+            bcserver = BroadcastServer(internalUri, bchost, bcport, ipv6=daemon.sock.family == socket.AF_INET6)
             print("Broadcast server running on %s" % bcserver.locationStr)
             bcserver.runInThread()
     existing = daemon.nameserver.count()
@@ -688,7 +693,7 @@ def startNS(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None
             enableBroadcast = False
         if enableBroadcast:
             internalUri = daemon.uriFor(daemon.nameserver, nat=False)
-            bcserver = BroadcastServer(internalUri, bchost, bcport)
+            bcserver = BroadcastServer(internalUri, bchost, bcport, ipv6=daemon.sock.family == socket.AF_INET6)
     return nsUri, daemon, bcserver
 
 

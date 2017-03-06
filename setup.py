@@ -20,7 +20,7 @@ setup(
 
     install_requires=[
         "serpent>=1.19",
-        "msgpack-python>=0.4.8"
+        "msgpack-python>=0.4.6"
     ],
 
     classifiers=[

@@ -102,7 +102,10 @@ class Proxy(object):
         raise AttributeError("remote object '%s' has no exposed attribute '%s'" % (self._pyroUri, name))
 
     def __repr__(self):
-        connected = "connected" if self._pyroConnection else "not connected"
+        if self._pyroConnection:
+            connected = "connected "+self._pyroConnection.family()
+        else:
+            connected = "not connected"
         return "<%s.%s at 0x%x; %s; for %s>" % (self.__class__.__module__, self.__class__.__name__,
                                                 id(self), connected, self._pyroUri)
 
@@ -211,9 +214,9 @@ class Proxy(object):
 
     def _pyroInvoke(self, methodname, vargs, kwargs, flags=0, objectId=None):
         """perform the remote method call communication"""
-        with self.__pyroConnLock:
+        core.current_context.response_annotations = {}
+        with self.__pyroConnLock:  # XXX thread-id owner instead of lock?
             if self._pyroConnection is None:
-                # rebind here, don't do it from inside the invoke because deadlock will occur
                 self.__pyroCreateConnection()
             serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
             if not serializer:
@@ -247,6 +250,7 @@ class Proxy(object):
                         log.error(error)
                         raise errors.SerializationError(error)
                     if msg.annotations:
+                        core.current_context.response_annotations = msg.annotations
                         self._pyroResponseAnnotations(msg.annotations, msg.type)
                     if self._pyroRawWireResponse:
                         msg.decompress_if_needed()
@@ -300,7 +304,7 @@ class Proxy(object):
                 if not serializer:
                     raise errors.SerializationError("invalid serializer '{:s}'".format(serializername))
                 data = {"handshake": self._pyroHandshake, "object": uri.object}
-                msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id, serializer.dumps(data), self._pyroAnnotations())
+                msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id, serializer.dumps(data), self.__annotations())
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "proxy connect sending", msg)
                 conn.send(msg.data)
@@ -333,7 +337,7 @@ class Proxy(object):
                     if replaceUri:
                         self._pyroUri = uri
                     self._pyroValidateHandshake(handshake_response)
-                    log.debug("connected to %s", self._pyroUri)
+                    log.debug("connected to %s - %s", self._pyroUri, conn.family())
                     if msg.annotations:
                         self._pyroResponseAnnotations(msg.annotations, msg.type)
                 else:
@@ -379,9 +383,7 @@ class Proxy(object):
         self._pyroMethods = set(metadata["methods"])
         self._pyroAttrs = set(metadata["attrs"])
         if log.isEnabledFor(logging.DEBUG):
-            log.debug("from meta: oneway methods=%s", sorted(self._pyroOneway))
-            log.debug("from meta: methods=%s", sorted(self._pyroMethods))
-            log.debug("from meta: attributes=%s", sorted(self._pyroAttrs))
+            log.debug("from meta: methods=%s, oneway methods=%s, attributes=%s", sorted(self._pyroMethods), sorted(self._pyroOneway), sorted(self._pyroAttrs))
         if not self._pyroMethods and not self._pyroAttrs:
             raise errors.PyroError("remote object doesn't expose any methods or attributes. Did you forget setting @expose on them?")
 
@@ -416,22 +418,19 @@ class Proxy(object):
             flags |= protocol.FLAGS_ONEWAY
         return self._pyroInvoke("<batch>", calls, None, flags)
 
-    def _pyroAnnotations(self):
+    def _pyroAnnotations(self):   # XXX deprecated api, remove?
         """
-        Returns a dict with annotations to be sent with each message.
-        Default behavior is to include the correlation id from the current context (if it is set).
-        If you override this, don't forget to call the original method and add to the dictionary returned from it,
-        rather than simply returning a new dictionary.
+        Override to return a dict with custom user annotations to be sent with each request message.
+        Code using Pyro 4.56 or newer can skip this and instead set the annotations directly on the context object.
         """
-        if core.current_context.correlation_id:
-            return {"CORR": core.current_context.correlation_id.bytes}
         return {}
 
-    def _pyroResponseAnnotations(self, annotations, msgtype):
+    def _pyroResponseAnnotations(self, annotations, msgtype):    # XXX deprecated api, remove?
         """
         Process any response annotations (dictionary set by the daemon).
-        Usually this contains the internal Pyro annotations such as correlation id,
+        Usually this contains the internal Pyro annotations such as hmac and correlation id,
         and if you override the annotations method in the daemon, can contain your own annotations as well.
+        Code using Pyro 4.56 or newer can skip this and instead read the response_annotations directly from the context object.
         """
         pass
 
@@ -442,6 +441,18 @@ class Proxy(object):
         Raise an exception if something is wrong and the connection should not be made.
         """
         return
+
+    def __annotations(self, clear=True):
+        ctx = core.current_context
+        annotations = ctx.annotations
+        if ctx.correlation_id:
+            annotations["CORR"] = ctx.correlation_id.bytes
+        else:
+            annotations.pop("CORR", None)
+        annotations.update(self._pyroAnnotations())
+        if clear:
+            ctx.annotations = {}
+        return annotations
 
     def __serializeBlobArgs(self, vargs, kwargs, annotations, flags, objectId, methodname, serializer):
         """
@@ -503,6 +514,7 @@ class _StreamResultIterator(object):
     def __init__(self, streamId, proxy):
         self.streamId = streamId
         self.proxy = proxy
+        self.pyroseq = proxy._pyroSeq
 
     def __iter__(self):
         return self
@@ -514,6 +526,7 @@ class _StreamResultIterator(object):
     def __next__(self):
         if self.proxy._pyroConnection is None:
             raise errors.ConnectionClosedError("the proxy for this stream result has been closed")
+        self.pyroseq += 1
         return self.proxy._pyroInvoke("get_next_stream_item", [self.streamId], {}, objectId=core.DAEMON_NAME)
 
     def __del__(self):
@@ -521,7 +534,18 @@ class _StreamResultIterator(object):
 
     def close(self):
         if self.proxy and self.proxy._pyroConnection is not None:
-            self.proxy._pyroInvoke("close_stream", [self.streamId], {}, flags=protocol.FLAGS_ONEWAY, objectId=core.DAEMON_NAME)
+            if self.pyroseq == self.proxy._pyroSeq:
+                # we're still in sync, it's okay to use the same proxy to close this stream
+                self.proxy._pyroInvoke("close_stream", [self.streamId], {}, flags=protocol.FLAGS_ONEWAY, objectId=core.DAEMON_NAME)
+            else:
+                # The proxy's sequence number has diverged.
+                # One of the reasons this can happen is because this call is being done from python's GC where
+                # it decides to gc old iterator objects *during a new call on the proxy*.
+                # If we use the same proxy and do a call in between, the other call on the proxy will get an out of sync seq and crash!
+                # We create a temporary second proxy to call close_stream on. This is inefficient, but avoids the problem.
+                # or use a HACK to decrease the proxy's sequence number by one so it will be unchanged after this call.
+                with self.proxy.__copy__() as closingProxy:
+                    closingProxy._pyroInvoke("close_stream", [self.streamId], {}, flags=protocol.FLAGS_ONEWAY, objectId=core.DAEMON_NAME)
         self.proxy = None
 
 

@@ -118,9 +118,8 @@ def main(args=None):
         args.host = "./u:" + args.unixsocket
     try:
         namesrv = core.locateNS(args.host, args.port)
-    except errors.PyroError:
-        x = sys.exc_info()[1]
-        print("Failed to locate the name server: %s" % x)
+    except errors.PyroError as x:
+        print("Error:", x)
         return
     if args.verbose:
         print("Name server found: %s" % namesrv._pyroUri)

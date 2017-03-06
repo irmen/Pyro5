@@ -14,7 +14,7 @@ import threading
 import uuid
 import warnings
 import serpent
-from . import errors, config, core, protocol, serializers, client
+from . import errors, config, core, protocol, serializers, client, socketutil
 
 __all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway"]
 
@@ -220,7 +220,7 @@ class Daemon(object):
         self.transportServer.init(self, host, port, unixsocket)
         #: The location (str of the form ``host:portnumber``) on which the Daemon is listening
         self.locationStr = self.transportServer.locationStr
-        log.debug("created daemon on %s (pid %d)", self.locationStr, os.getpid())
+        log.debug("daemon created on %s - %s (pid %d)", self.locationStr, socketutil.family_str(self.transportServer.sock), os.getpid())
         natport_for_loc = natport
         if natport == 0:
             # expose internal port number as NAT port as well. (don't use port because it could be 0 and will be chosen by the OS)
@@ -233,7 +233,6 @@ class Daemon(object):
         pyroObject._pyroId = core.DAEMON_NAME
         #: Dictionary from Pyro object id to the actual Pyro object registered by this id
         self.objectsById = {pyroObject._pyroId: pyroObject}
-        # assert that the configured serializers are available, and remember their ids:
         log.debug("pyro protocol version: %d" % protocol.PROTOCOL_VERSION)
         self._pyroInstances = {}   # pyro objects for instance_mode=single (singletons, just one per daemon)
         self.streaming_responses = {}   # stream_id -> (client, creation_timestamp, linger_timestamp, stream)
@@ -343,10 +342,7 @@ class Daemon(object):
                 protocol.log_wiredata(log, "daemon handshake received", msg)
             if msg.serializer_id not in serializers.serializers_by_id:
                 raise errors.SerializationError("message used serializer that is not accepted: %d" % msg.serializer_id)
-            if "CORR" in msg.annotations:
-                core.current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"])
-            else:
-                core.current_context.correlation_id = uuid.uuid4()
+            core.current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"]) if "CORR" in msg.annotations else uuid.uuid4()
             serializer_id = msg.serializer_id
             serializer = serializers.serializers_by_id[serializer_id]
             data = serializer.loads(msg.data)
@@ -371,7 +367,7 @@ class Daemon(object):
             flags = 0
         # We need a minimal amount of response data or the socket will remain blocked
         # on some systems... (messages smaller than 40 bytes)
-        msg = protocol.SendingMessage(msgtype, flags, msg_seq, serializer_id, data, annotations=self.annotations())
+        msg = protocol.SendingMessage(msgtype, flags, msg_seq, serializer_id, data, annotations=self.__annotations())
         if config.LOGWIRE:
             protocol.log_wiredata(log, "daemon handshake response", msg)
         conn.send(msg.data)
@@ -413,15 +409,12 @@ class Daemon(object):
             request_flags = msg.flags
             request_seq = msg.seq
             request_serializer_id = msg.serializer_id
-            if "CORR" in msg.annotations:
-                core.current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"])
-            else:
-                core.current_context.correlation_id = uuid.uuid4()
+            core.current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"]) if "CORR" in msg.annotations else uuid.uuid4()
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "daemon wiredata received", msg)
             if msg.type == protocol.MSG_PING:
                 # return same seq, but ignore any data (it's a ping, not an echo). Nothing is deserialized.
-                msg = protocol.SendingMessage(protocol.MSG_PING, 0, msg.seq, msg.serializer_id, b"pong", annotations=self.annotations())
+                msg = protocol.SendingMessage(protocol.MSG_PING, 0, msg.seq, msg.serializer_id, b"pong", annotations=self.__annotations())
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.data)
@@ -509,7 +502,8 @@ class Daemon(object):
                 request_seq = msg.seq
                 request_serializer_id = msg.serializer_id
             if xt is not errors.ConnectionClosedError:
-                log.debug("Exception occurred while handling request: %r", xv)
+                if xt is not StopIteration:
+                    log.debug("Exception occurred while handling request: %r", xv)
                 if not request_flags & protocol.FLAGS_ONEWAY:
                     if isinstance(xv, errors.SerializationError) or not isinstance(xv, errors.CommunicationError):
                         # only return the error to the client if it wasn't a oneway call, and not a communication error
@@ -609,7 +603,7 @@ class Daemon(object):
         else:
             raise errors.DaemonError("invalid instancemode in registered class")
 
-    def _sendExceptionResponse(self, connection, seq, serializer_id, exc_value, tbinfo, flags=0, annotations={}):
+    def _sendExceptionResponse(self, connection, seq, serializer_id, exc_value, tbinfo, flags=0, annotations=None):
         """send an exception back including the local traceback info"""
         exc_value._pyroTraceback = tbinfo
         serializer = serializers.serializers_by_id[serializer_id]
@@ -623,9 +617,9 @@ class Daemon(object):
             exc_value._pyroTraceback = tbinfo
             data = serializer.dumps(exc_value)
         flags |= protocol.FLAGS_EXCEPTION
-        ann = self.annotations()
-        ann.update(annotations or {})
-        msg = protocol.SendingMessage(protocol.MSG_RESULT, flags, seq, serializer_id, data, annotations=ann)
+        annotations = dict(annotations or {})
+        annotations.update(self.annotations())
+        msg = protocol.SendingMessage(protocol.MSG_RESULT, flags, seq, serializer_id, data, annotations=annotations)
         if config.LOGWIRE:
             protocol.log_wiredata(log, "daemon wiredata sending (error response)", msg)
         connection.send(msg.data)
@@ -748,14 +742,7 @@ class Daemon(object):
             self.transportServer = None
 
     def annotations(self):
-        """
-        Returns a dict with annotations to be sent with each message.
-        Default behavior is to include the correlation id from the current context (if it is set).
-        If you override this, don't forget to call the original method and add to the dictionary returned from it,
-        rather than simply returning a new dictionary.
-        """
-        if core.current_context.correlation_id:
-            return {"CORR": core.current_context.correlation_id.bytes}
+        """Override to return a dict with custom user annotations to be sent with each response message."""
         return {}
 
     def combine(self, daemon):
@@ -767,10 +754,21 @@ class Daemon(object):
         log.debug("combining event loop with other daemon")
         self.transportServer.combine_loop(daemon.transportServer)
 
+    def __annotations(self):
+        ctx = core.current_context
+        annotations = ctx.response_annotations
+        if ctx.correlation_id:
+            annotations["CORR"] = ctx.correlation_id.bytes
+        else:
+            annotations.pop("CORR", None)
+        annotations.update(self.annotations())
+        return annotations
+
     def __repr__(self):
         if hasattr(self, "locationStr"):
-            return "<%s.%s at 0x%x; %s; %d objects>" % (self.__class__.__module__, self.__class__.__name__,
-                                                        id(self), self.locationStr, len(self.objectsById))
+            family = socketutil.family_str(self.sock)
+            return "<%s.%s at 0x%x; %s - %s; %d objects>" % (self.__class__.__module__, self.__class__.__name__,
+                                                             id(self), self.locationStr, family, len(self.objectsById))
         else:
             # daemon objects may come back from serialized form without being properly initialized (by design)
             return "<%s.%s at 0x%x; unusable>" % (self.__class__.__module__, self.__class__.__name__, id(self))

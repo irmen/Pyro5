@@ -72,7 +72,7 @@ class SendingMessage:
         self.type = msgtype
         self.seq = seq
         self.serializer_id = serializer_id
-        annotations = annotations or {}
+        annotations = dict(annotations or {})
         annotations_size = sum([8 + len(v) for v in annotations.values()])
         flags &= ~FLAGS_COMPRESSED
         if config.COMPRESSION and len(payload) > 100:
