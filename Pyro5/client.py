@@ -218,11 +218,11 @@ class Proxy(object):
             serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
             if not serializer:
                 raise errors.SerializationError("invalid serializer")
-            annotations = self._pyroAnnotations()
             objectId = objectId or self._pyroConnection.objectId
+            annotations = self.__annotations()
             if vargs and isinstance(vargs[0], SerializedBlob):
                 # special serialization of a 'blob' that stays serialized
-                raise NotImplementedError  # XXX
+                data, flags = self.__serializeBlobArgs(vargs, kwargs, annotations, flags, objectId, methodname, serializer)
             else:
                 # normal serialization of the remote call
                 data = serializer.dumpsCall(objectId, methodname, vargs, kwargs)
@@ -443,6 +443,34 @@ class Proxy(object):
         """
         return
 
+    def __serializeBlobArgs(self, vargs, kwargs, annotations, flags, objectId, methodname, serializer):
+        """
+        Special handling of a "blob" argument that has to stay serialized until explicitly deserialized in client code.
+        This makes efficient, transparent gateways or dispatchers and such possible:
+        they don't have to de/reserialize the message and are independent from the serialized class definitions.
+        Annotations are passed in because some blob metadata is added. They're not part of the blob itself.
+        """
+        if len(vargs) > 1 or kwargs:
+            raise errors.SerializationError("if SerializedBlob is used, it must be the only argument")
+        blob = vargs[0]
+        flags |= protocol.FLAGS_KEEPSERIALIZED
+        # Pass the objectId and methodname separately in an annotation because currently,
+        # they are embedded inside the serialized message data. And we're not deserializing that,
+        # so we have to have another means of knowing the object and method it is meant for...
+        # A better solution is perhaps to split the actual remote method arguments from the
+        # control data (object + methodname) but that requires a major protocol change.
+        # The code below is not as nice but it works without any protocol change and doesn't
+        # require a hack either - so it's actually not bad like this.
+        import marshal
+        annotations["BLBI"] = marshal.dumps((blob.info, objectId, methodname))
+        if blob._contains_blob:
+            # directly pass through the already serialized msg data from within the blob
+            data = blob._data.data
+        else:
+            # replaces SerializedBlob argument with the data to be serialized
+            data = serializer.dumpsCall(objectId, methodname, blob._data, kwargs)
+        return data, flags
+
 
 class _RemoteMethod(object):
     """method call abstraction"""
@@ -561,11 +589,12 @@ class BatchProxy(object):
         return self.__resultsgenerator(results)
 
 
-class SerializedBlob(object):
+class SerializedBlob(object):  # XXX experimental
     """
     Used to wrap some data to make Pyro pass this object transparently (it keeps the serialized payload as-is)
     Only when you need to access the actual client data you can deserialize on demand.
-    This allows for transparent Pyro proxies and dispatchers and such.
+    This makes efficient, transparent gateways or dispatchers and such possible:
+    they don't have to de/reserialize the message and are independent from the serialized class definitions.
     You have to pass this as the only parameter to a remote method call for Pyro to understand it.
     Init arguments:
     ``info`` = some (small) descriptive data about the blob. Can be a simple id or name or guid. Must be marshallable.

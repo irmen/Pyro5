@@ -34,7 +34,7 @@ THREADPOOL_SIZE = 40
 THREADPOOL_SIZE_MIN = 4
 MAX_MESSAGE_SIZE = 1024 * 1024 * 1024  # 1 gigabyte
 BROADCAST_ADDRS = ["<broadcast>", "0.0.0.0"]  # list of broadcast addresses to try, in this order
-PREFER_IP_VERSION = 4  # 4, 6 or 0 (let OS choose according to RFC 3484)
+PREFER_IP_VERSION = 0  # 4, 6 or 0 (let OS choose according to RFC 3484)
 SERIALIZER = "serpent"
 LOGWIRE = False  # log wire-level messages
 ITER_STREAMING = True
@@ -56,6 +56,7 @@ def _save_defaults():
         defaults[key] = copy.copy(value)
     return defaults
 __defaults = _save_defaults()
+# XXX validate config settings against set of known items, call this from Daemon as well
 assert len(__defaults) == 29
 del _save_defaults
 
@@ -70,7 +71,7 @@ def reset(useenvironment=True):
         configitems[item] = copy.copy(value)
     if useenvironment:
         PREFIX = "PYRO_"
-        for item in __defaults:
+        for item in __defaults:   # XXX loop over environ instead
             if PREFIX + item in os.environ:
                 # environment variable overwrites config item
                 value = __defaults[item]

@@ -429,8 +429,12 @@ class Daemon(object):
             if msg.serializer_id not in serializers.serializers_by_id:
                 raise errors.SerializationError("message used serializer that is not accepted: %d" % msg.serializer_id)
             serializer = serializers.serializers_by_id[msg.serializer_id]
-            # normal deserialization of remote call arguments
-            objId, method, vargs, kwargs = serializer.loadsCall(msg.data)
+            if request_flags & protocol.FLAGS_KEEPSERIALIZED:
+                # pass on the wire protocol message blob unchanged
+                objId, method, vargs, kwargs = self.__deserializeBlobArgs(msg)
+            else:
+                # normal deserialization of remote call arguments
+                objId, method, vargs, kwargs = serializer.loadsCall(msg.data)
             core.current_context.client = conn
             core.current_context.client_sock_addr = conn.sock.getpeername()   # store this because on oneway calls the socket will be disconnected
             core.current_context.seq = msg.seq
@@ -802,6 +806,13 @@ class Daemon(object):
                 return True, stream_id
             return True, None
         return False, data
+
+    def __deserializeBlobArgs(self, protocolmsg):
+        import marshal
+        blobinfo, objId, method = marshal.loads(protocolmsg.annotations["BLBI"])
+        blob = client.SerializedBlob(blobinfo, protocolmsg)
+        blob._contains_blob = True
+        return objId, method, (blob,), {}  # object, method, vargs, kwargs
 
 
 # register the special serializers for the pyro objects
