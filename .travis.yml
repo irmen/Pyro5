@@ -1,0 +1,13 @@
+# travis CI config
+language: python
+python:
+  - 3.4
+  - 3.5
+  - 3.6
+  - pypy3
+matrix:
+  fast_finish: true
+install:
+  - pip install .
+script:
+  - PYTHONPATH=. pytest tests
