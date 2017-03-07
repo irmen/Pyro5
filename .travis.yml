@@ -7,6 +7,10 @@ python:
   - pypy3
 matrix:
   fast_finish: true
+
+# Use fast travis build infrastructure explicitly
+sudo: false
+
 install:
   - pip install .
 script:
