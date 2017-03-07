@@ -14,4 +14,4 @@ sudo: false
 install:
   - pip install .
 script:
-  - PYTHONPATH=. pytest tests
+  - PYTHONPATH=. python -m pytest tests
