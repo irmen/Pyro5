@@ -352,11 +352,12 @@ class NameServer(object):
         return 0
 
     # noinspection PyNoneFunctionAssignment
-    def list(self, prefix=None, regex=None, metadata_all=None, metadata_any=None, return_metadata=False):
-        """Retrieve the registered items as a dictionary name-to-URI. The URIs
-        in the resulting dict are strings, not URI objects.
-        You can filter by prefix or by regex or by metadata subset (separately)"""
-        if sum(1 for x in [prefix, regex, metadata_all, metadata_any] if x is not None) > 1:
+    def list(self, prefix=None, regex=None, return_metadata=False):
+        """
+        Retrieve the registered items as a dictionary name-to-URI. The URIs in the resulting dict
+        are strings, not URI objects. You can filter by prefix or by regex.
+        """
+        if prefix and regex:
             raise ValueError("you can only filter on one thing at a time")
         with self.lock:
             if prefix:
@@ -382,37 +383,46 @@ class NameServer(object):
                         if regex.match(name):
                             result[name] = self.storage[name] if return_metadata else self.storage[name][0]
                     return result
-            elif metadata_all:
-                # return the entries which have all of the given metadata as (a subset of) their metadata
-                if isinstance(metadata_all, str):
-                    raise TypeError("metadata_all should not be a str, but another iterable (set, list, etc)")
-                metadata_all and iter(metadata_all)   # validate that metadata is iterable
-                result = self.storage.optimized_metadata_search(metadata_all=metadata_all, return_metadata=return_metadata)
-                if result is not None:
-                    return result
-                metadata_all = frozenset(metadata_all)
-                result = {}
-                for name, (uri, meta) in self.storage.everything(return_metadata=True).items():
-                    if metadata_all.issubset(meta):
-                        result[name] = (uri, meta) if return_metadata else uri
-                return result
-            elif metadata_any:
-                # return the entries which have any of the given metadata as part of their metadata
-                if isinstance(metadata_any, str):
-                    raise TypeError("metadata_any should not be a str, but another iterable (set, list, etc)")
-                metadata_any and iter(metadata_any)   # validate that metadata is iterable
-                result = self.storage.optimized_metadata_search(metadata_any=metadata_any, return_metadata=return_metadata)
-                if result is not None:
-                    return result
-                metadata_any = frozenset(metadata_any)
-                result = {}
-                for name, (uri, meta) in self.storage.everything(return_metadata=True).items():
-                    if metadata_any & meta:
-                        result[name] = (uri, meta) if return_metadata else uri
-                return result
             else:
                 # just return (a copy of) everything
                 return self.storage.everything(return_metadata)
+
+    # noinspection PyNoneFunctionAssignment
+    def yplookup(self, meta_all=None, meta_any=None, return_metadata=False):
+        """Do a yellow-pages lookup for registrations that have all or any of the given metadata tags."""
+        if meta_all and meta_any:
+            raise ValueError("you can't use meta_all or meta_any at the same time")
+        with self.lock:
+            if meta_all:
+                # return the entries which have all of the given metadata as (a subset of) their metadata
+                if isinstance(meta_all, str):
+                    raise TypeError("metadata_all should not be a str, but another iterable (set, list, etc)")
+                meta_all and iter(meta_all)   # validate that metadata is iterable
+                result = self.storage.optimized_metadata_search(metadata_all=meta_all, return_metadata=return_metadata)
+                if result is not None:
+                    return result
+                meta_all = frozenset(meta_all)
+                result = {}
+                for name, (uri, meta) in self.storage.everything(return_metadata=True).items():
+                    if meta_all.issubset(meta):
+                        result[name] = (uri, meta) if return_metadata else uri
+                return result
+            elif meta_any:
+                # return the entries which have any of the given metadata as part of their metadata
+                if isinstance(meta_any, str):
+                    raise TypeError("metadata_any should not be a str, but another iterable (set, list, etc)")
+                meta_any and iter(meta_any)   # validate that metadata is iterable
+                result = self.storage.optimized_metadata_search(metadata_any=meta_any, return_metadata=return_metadata)
+                if result is not None:
+                    return result
+                meta_any = frozenset(meta_any)
+                result = {}
+                for name, (uri, meta) in self.storage.everything(return_metadata=True).items():
+                    if meta_any & meta:
+                        result[name] = (uri, meta) if return_metadata else uri
+                return result
+            else:
+                return {}
 
     def ping(self):
         """A simple test method to check if the name server is running correctly."""

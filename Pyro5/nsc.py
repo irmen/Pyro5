@@ -73,22 +73,22 @@ def handleCommand(namesrv, cmd, args):
         else:
             print("Metadata cleared")
 
-    def cmd_listmeta_all():
+    def cmd_yplookup_all():
         if len(args) < 1:
             raise SystemExit("requires at least one metadata tag argument")
-        printListResult(namesrv.list(metadata_all=args, return_metadata=True), " - searched by metadata")
+        printListResult(namesrv.yplookup(meta_all=args, return_metadata=True), " - searched by metadata")
 
-    def cmd_listmeta_any():
+    def cmd_yplookup_any():
         if len(args) < 1:
             raise SystemExit("requires at least one metadata tag argument")
-        printListResult(namesrv.list(metadata_any=args, return_metadata=True), " - searched by metadata")
+        printListResult(namesrv.yplookup(meta_any=args, return_metadata=True), " - searched by metadata")
 
     commands = {
         "ping": cmd_ping,
         "list": cmd_listprefix,
         "listmatching": cmd_listregex,
-        "listmeta_all": cmd_listmeta_all,
-        "listmeta_any": cmd_listmeta_any,
+        "yplookup_all": cmd_yplookup_all,
+        "yplookup_any": cmd_yplookup_any,
         "lookup": cmd_lookup,
         "register": cmd_register,
         "remove": cmd_remove,
@@ -110,7 +110,7 @@ def main(args=None):
     parser.add_argument("-u", "--unixsocket", help="Unix domain socket name of the NS")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", help="verbose output")
     parser.add_argument("command", choices=("list", "lookup", "register", "remove", "removematching", "listmatching",
-                        "listmeta_all", "listmeta_any", "setmeta", "ping"))
+                        "yplookup_all", "yplookup_any", "setmeta", "ping"))
     args, unknown_args = parser.parse_known_args(args)
     if args.verbose:
         print("Locating name server...")

@@ -25,6 +25,7 @@ It is based on the proven concepts of Pyro4 and a lot should be familiar, but th
 - now prefers ipv6 over ipv4 if your os supports it
 - autoproxy always enabled (but this feature may be removed completely though)
 - a couple of other config items have been removed to make stuff easier.
+- moved metadata search in the name server to a separate yplookup method.
 
 
 

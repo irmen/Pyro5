@@ -194,7 +194,7 @@ def resolve(uri):
             return nameserver.lookup(uri.object)
     elif uri.protocol == "PYROMETA":
         with locateNS(uri.host, uri.port) as nameserver:
-            candidates = nameserver.list(metadata_all=uri.object)
+            candidates = nameserver.yplookup(meta_all=uri.object)
             if candidates:
                 candidate = random.choice(list(candidates.values()))
                 log.debug("resolved to candidate %s", candidate)

@@ -160,7 +160,7 @@ def log_wiredata(logger, text, msg):
                  (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, msg.annotations, msg.data))
 
 
-def recv_stub(connection, accepted_msgtypes=None):    # XXX
+def recv_stub(connection, accepted_msgtypes=None):    # XXX decouple i/o from actual protocol logic
         """
         Receives a pyro message from a given connection.
         Accepts the given message types (None=any, or pass a sequence).
