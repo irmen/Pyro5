@@ -20,8 +20,8 @@ num_bytes   meaning
    4        data length   (max 2 Gb)
    2        data serialization format (serializer id)
    4        annotations length (total of all chunks, 0 if no annotation chunks present)
-   4        (reserved)
-   4        magic number (message identifier)
+   2        (reserved)
+   2        magic number (message identifier)
 
 After the header, zero or more annotation chunks may follow, of the format:
 
@@ -48,7 +48,7 @@ MSG_INVOKE = 4
 MSG_RESULT = 5
 MSG_PING = 6
 FLAGS_EXCEPTION = 1 << 0
-FLAGS_COMPRESSED = 1 << 1
+FLAGS_COMPRESSED = 1 << 1       # only the data, not the annotations
 FLAGS_ONEWAY = 1 << 2
 FLAGS_BATCH = 1 << 3
 FLAGS_ITEMSTREAMRESULT = 1 << 4
@@ -57,10 +57,10 @@ FLAGS_KEEPSERIALIZED = 1 << 5       # XXX experimental
 PROTOCOL_VERSION = 501
 
 
-_header_format = "!4sHHHHiHiii"
+_header_format = "!4sHHHHiHiHH"
 _header_size = struct.calcsize(_header_format)
-_magic_number = 0x04C11DB7
-_magic_number_bytes = _magic_number.to_bytes(4, "big")
+_magic_number = 0x4dc8
+_magic_number_bytes = _magic_number.to_bytes(2, "big")
 _protocol_version_bytes = PROTOCOL_VERSION.to_bytes(2, "big")
 
 
@@ -126,7 +126,7 @@ class ReceivingMessage:
             raise errors.ProtocolError("invalid data")
         if ld >= 6 and data[4:6] != _protocol_version_bytes:
             raise errors.ProtocolError("invalid protocol version: {:d}".format(int.from_bytes(data[4:6], "big")))
-        if ld >= _header_size and data[26:30] != _magic_number_bytes:
+        if ld >= _header_size and data[24:26] != _magic_number_bytes:
             raise errors.ProtocolError("invalid magic number")
 
     def add_payload(self, payload):
