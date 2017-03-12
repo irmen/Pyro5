@@ -72,6 +72,8 @@ class Proxy(object):
         if config.SERIALIZER not in serializers.serializers:
             raise errors.SerializationError("invalid serializer '{:s}'".format(config.SERIALIZER))
         self.__async = False
+        core.current_context.annotations = {}
+        core.current_context.response_annotations = {}
 
     def __del__(self):
         if hasattr(self, "_pyroConnection"):
@@ -518,15 +520,19 @@ class _StreamResultIterator(object):
     def __iter__(self):
         return self
 
-    def next(self):
-        # python 2.x support
-        return self.__next__()
-
     def __next__(self):
+        if self.proxy is None:
+            raise StopIteration
         if self.proxy._pyroConnection is None:
             raise errors.ConnectionClosedError("the proxy for this stream result has been closed")
         self.pyroseq += 1
-        return self.proxy._pyroInvoke("get_next_stream_item", [self.streamId], {}, objectId=core.DAEMON_NAME)
+        try:
+            return self.proxy._pyroInvoke("get_next_stream_item", [self.streamId], {}, objectId=core.DAEMON_NAME)
+        except (StopIteration, GeneratorExit):
+            # when the iterator is exhausted, the proxy is removed to avoid unneeded close_stream calls later
+            # (the server has closed its part of the stream by itself already)
+            self.proxy = None
+            raise
 
     def __del__(self):
         self.close()
@@ -542,9 +548,11 @@ class _StreamResultIterator(object):
                 # it decides to gc old iterator objects *during a new call on the proxy*.
                 # If we use the same proxy and do a call in between, the other call on the proxy will get an out of sync seq and crash!
                 # We create a temporary second proxy to call close_stream on. This is inefficient, but avoids the problem.
-                # or use a HACK to decrease the proxy's sequence number by one so it will be unchanged after this call.
-                with self.proxy.__copy__() as closingProxy:
-                    closingProxy._pyroInvoke("close_stream", [self.streamId], {}, flags=protocol.FLAGS_ONEWAY, objectId=core.DAEMON_NAME)
+                try:
+                    with self.proxy.__copy__() as closingProxy:
+                        closingProxy._pyroInvoke("close_stream", [self.streamId], {}, flags=protocol.FLAGS_ONEWAY, objectId=core.DAEMON_NAME)
+                except errors.CommunicationError:
+                    pass
         self.proxy = None
 
 

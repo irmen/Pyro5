@@ -180,6 +180,7 @@ class DaemonObject(object):
         try:
             return next(stream)
         except Exception:
+            # in case of error (or StopIteration!) the stream is removed
             del self.daemon.streaming_responses[streamId]
             raise
 
@@ -503,7 +504,7 @@ class Daemon(object):
                 request_seq = msg.seq
                 request_serializer_id = msg.serializer_id
             if xt is not errors.ConnectionClosedError:
-                if xt is not StopIteration:
+                if xt not in(StopIteration, GeneratorExit):
                     log.debug("Exception occurred while handling request: %r", xv)
                 if not request_flags & protocol.FLAGS_ONEWAY:
                     if isinstance(xv, errors.SerializationError) or not isinstance(xv, errors.CommunicationError):
