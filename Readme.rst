@@ -16,11 +16,12 @@ It is based on the proven concepts of Pyro4 and a lot should be familiar, but th
 - - restructuring of the submodules, other module names
 - - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
 - - instead of the global package namespace you should now use Pyro5.api if you want to have one place to access the most important things
-- no Async (at this time)
-- no custom futures module anymore (use Python's own concurrent.futures instead)
-- no Hmac key anymore, will probably be replaced with a different security mechanism
+- no async proxy (may come back but probably not directly integrated into the Proxy class)
+- no custom futures module anymore (you should use Python's own concurrent.futures instead)
+- no Hmac key anymore, will probably be replaced by a different security mechanism
 - wire protocol changed (much larger annotations possible, no more checksumming)
-- no support for unsafe serializers AT ALL (pickle, dill) and thus also no 'flame' utility anymore
+- no support for unsafe serializers AT ALL (pickle, dill)
+- no 'flame' utility anymore (although maybe the remote module access may come back in some form)
 - using the @expose decorator to expose classes or methods is now required
 - now prefers ipv6 over ipv4 if your os supports it
 - autoproxy always enabled (but this feature may be removed completely though)

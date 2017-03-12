@@ -49,7 +49,7 @@ class Proxy(object):
     __pyroAttributes = frozenset(
         ["__getnewargs__", "__getnewargs_ex__", "__getinitargs__", "_pyroConnection", "_pyroUri",
          "_pyroOneway", "_pyroMethods", "_pyroAttrs", "_pyroTimeout", "_pyroSeq",
-         "_pyroRawWireResponse", "_pyroHandshake", "_pyroMaxRetries", "_pyroSerializer", "_Proxy__async",
+         "_pyroRawWireResponse", "_pyroHandshake", "_pyroMaxRetries", "_pyroSerializer",
          "_Proxy__pyroTimeout", "_Proxy__pyroOwnerThread"])
 
     def __init__(self, uri):
@@ -71,7 +71,6 @@ class Proxy(object):
         self.__pyroOwnerThread = get_ident()     # the thread that owns this proxy
         if config.SERIALIZER not in serializers.serializers:
             raise errors.SerializationError("invalid serializer '{:s}'".format(config.SERIALIZER))
-        self.__async = False
         core.current_context.annotations = {}
         core.current_context.response_annotations = {}
 
@@ -91,8 +90,6 @@ class Proxy(object):
         if name not in self._pyroMethods:
             # client side check if the requested attr actually exists
             raise AttributeError("remote object '%s' has no exposed attribute or method '%s'" % (self._pyroUri, name))
-        if self.__async:
-            raise NotImplementedError()  # XXX
         return _RemoteMethod(self._pyroInvoke, name, self._pyroMaxRetries)
 
     def __setattr__(self, name, value):
@@ -149,7 +146,6 @@ class Proxy(object):
         self._pyroConnection = None
         self._pyroSeq = 0
         self._pyroRawWireResponse = False
-        self.__async = False
 
     def __copy__(self):
         uri_copy = core.URI(self._pyroUri)
@@ -162,7 +158,6 @@ class Proxy(object):
         p._pyroHandshake = self._pyroHandshake
         p._pyroRawWireResponse = self._pyroRawWireResponse
         p._pyroMaxRetries = self._pyroMaxRetries
-        p.__async = self.__async
         return p
 
     def __enter__(self):
@@ -408,12 +403,6 @@ class Proxy(object):
         log.error(msg)
         raise errors.ConnectionClosedError(msg)
 
-    def _pyroAsync(self):
-        """returns an async version of the proxy so you can do asynchronous method calls"""
-        asyncproxy = self.__copy__()
-        asyncproxy.__async = True
-        return asyncproxy
-
     def _pyroInvokeBatch(self, calls, oneway=False):
         flags = protocol.FLAGS_BATCH
         if oneway:
@@ -602,16 +591,11 @@ class BatchProxy(object):
             else:
                 yield result  # it is a regular result object, yield that and continue.
 
-    def __call__(self, oneway=False, async=False):
-        if oneway and async:
-            raise errors.PyroError("async oneway calls make no sense")
-        if async:
-            raise NotImplementedError    # XXX
-        else:
-            results = self.__proxy._pyroInvokeBatch(self.__calls, oneway)
-            self.__calls = []  # clear for re-use
-            if not oneway:
-                return self.__resultsgenerator(results)
+    def __call__(self, oneway=False):
+        results = self.__proxy._pyroInvokeBatch(self.__calls, oneway)
+        self.__calls = []  # clear for re-use
+        if not oneway:
+            return self.__resultsgenerator(results)
 
     def _pyroInvoke(self, name, args, kwargs):
         # ignore all parameters, we just need to execute the batch
