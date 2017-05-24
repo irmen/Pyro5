@@ -7,7 +7,6 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 import logging
 import time
-import threading
 import serpent
 from . import errors, config, protocol, serializers, socketutil, core
 try:
@@ -19,8 +18,6 @@ except ImportError:
 log = logging.getLogger("Pyro5.client")
 
 __all__ = ["Proxy", "BatchProxy", "SerializedBlob"]
-
-
 
 
 class Proxy(object):
@@ -442,7 +439,7 @@ class Proxy(object):
 
     def __checkOwner(self):
         if get_ident() != self.__pyroOwnerThread:
-            raise threading.ThreadError("the calling thread is not the owner of this proxy")
+            raise errors.PyroError("the calling thread is not the owner of this proxy")
 
     def __serializeBlobArgs(self, vargs, kwargs, annotations, flags, objectId, methodname, serializer):
         """

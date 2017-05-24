@@ -22,6 +22,8 @@ setup(
         "serpent>=1.19",
         "msgpack-python>=0.4.6"
     ],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest'],
 
     classifiers=[
         "Development Status :: 3 - Alpha",
