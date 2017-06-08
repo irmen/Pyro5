@@ -1,2 +1,2 @@
-serpent>=1.19
+serpent>=1.22
 msgpack-python>=0.4.8
