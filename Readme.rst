@@ -3,6 +3,9 @@ Pyro5
 
 *Remote objects communication library for Python 3, fifth incarnation*
 
+**Don't use this yet, it is very much in development and can change or be canceled at any time. Use Pyro4 instead!**
+
+
 This may or may not become the next major Pyro version.
 It will only work on Python 3.5 or later (or perhaps 3.4 or later).
 Python 2.x is no longer supported!
