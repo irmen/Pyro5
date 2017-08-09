@@ -4,38 +4,61 @@ Pyro package. Some generic init stuff to set up logging etc.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-__version__ = "5.0.dev0"
+import sys
+from Pyro5.constants import VERSION as __version__
+
+if sys.version_info < (2, 7):
+    import warnings
+    warnings.warn("This Pyro version is unsupported on Python versions older than 2.7", ImportWarning)
 
 
-def __configure_logging():
+def _configLogging():
     """Do some basic config of the logging module at package import time.
     The configuring is done only if the PYRO_LOGLEVEL env var is set.
     If you want to use your own logging config, make sure you do
     that before any Pyro imports. Then Pyro will skip the autoconfig.
     Set the env var PYRO_LOGFILE to change the name of the autoconfigured
-    log file (default is pyro5.log in the current dir). Use '{stderr}' to
+    log file (default is pyro.log in the current dir). Use '{stderr}' to
     make the log go to the standard error output."""
     import os
     import logging
 
     level = os.environ.get("PYRO_LOGLEVEL")
-    logfilename = os.environ.get("PYRO_LOGFILE", "pyro5.log")
-    if level:
+    logfilename = os.environ.get("PYRO_LOGFILE", "pyro.log")
+    if logfilename == "{stderr}":
+        logfilename = None
+    if level not in (None, ""):
         levelvalue = getattr(logging, level)
         if len(logging.root.handlers) == 0:
-            logging.basicConfig(
-                level=levelvalue,
-                filename=None if logfilename == "{stderr}" else logfilename,
-                datefmt="%Y-%m-%d %H:%M:%S",
-                format="[%(asctime)s.%(msecs)03d,%(name)s,%(levelname)s] %(message)s"
-            )
+            # configure the logging with some sensible defaults.
+            try:
+                import tempfile
+                tempfile = tempfile.TemporaryFile(dir=".")
+                tempfile.close()
+            except OSError:
+                # cannot write in current directory, use the default console logger
+                logging.basicConfig(level=levelvalue)
+            else:
+                # set up a basic logfile in current directory
+                logging.basicConfig(
+                    level=levelvalue,
+                    filename=logfilename,
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                    format="[%(asctime)s.%(msecs)03d,%(name)s,%(levelname)s] %(message)s"
+                )
             log = logging.getLogger("Pyro5")
             log.info("Pyro log configured using built-in defaults, level=%s", level)
     else:
         # PYRO_LOGLEVEL is not set, disable Pyro logging. No message is printed about this fact.
         log = logging.getLogger("Pyro5")
         log.setLevel(9999)
-        return logfilename, None
-    return logfilename, level or None
 
-_pyro_logfile, _pyro_loglevel = __configure_logging()
+
+_configLogging()
+del _configLogging
+
+# import the required Pyro symbols into this package
+from Pyro5.configuration import config
+from Pyro5.core import URI, Proxy, Daemon, callback, batch, async, oneway, expose, behavior, current_context
+from Pyro5.core import _locateNS as locateNS, _resolve as resolve
+from Pyro5.futures import Future

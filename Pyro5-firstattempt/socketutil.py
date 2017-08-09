@@ -4,24 +4,16 @@ Low level socket utilities.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-import os
 import socket
 import errno
 import time
+import platform
 import sys
 import select
-try:
-    import ssl
-except ImportError:
-    ssl = None
-from Pyro5.configuration import config
-from Pyro5.errors import CommunicationError, TimeoutError, ConnectionClosedError
+from . import config
+from .errors import CommunicationError, TimeoutError, ConnectionClosedError
 
-try:
-    InterruptedError()  # new since Python 3.4
-except NameError:
-    class InterruptedError(Exception):
-        pass
+# XXX todo: use ipaddress module
 
 
 # Note: other interesting errnos are EPERM, ENOBUFS, EMFILE
@@ -53,8 +45,7 @@ ERRNO_EADDRINUSE = [errno.EADDRINUSE]
 if hasattr(errno, "WSAEADDRINUSE"):
     ERRNO_EADDRINUSE.append(errno.WSAEADDRINUSE)
 
-if sys.version_info >= (3, 0):
-    basestring = str
+USE_MSG_WAITALL = hasattr(socket, "MSG_WAITALL") and platform.system() != "Windows"  # not reliable on windows even though it is defined
 
 
 def getIpVersion(hostnameOrAddress):
@@ -136,23 +127,16 @@ def receiveData(sock, size):
     try:
         retrydelay = 0.0
         msglen = 0
-        chunks = []
-        if config.USE_MSG_WAITALL and not hasattr(sock, "getpeercert"):
-            # waitall is very convenient and if a socket error occurs,
-            # we can assume the receive has failed. No need for a loop,
-            # unless it is a retryable error.
-            # Some systems have an erratic MSG_WAITALL and sometimes still return
-            # less bytes than asked. In that case, we drop down into the normal
-            # receive loop to finish the task.
-            # Also note that on SSL sockets, you cannot use MSG_WAITALL (or any other flag)
+        data = bytearray()
+        if USE_MSG_WAITALL:
             while True:
                 try:
-                    data = sock.recv(size, socket.MSG_WAITALL)
-                    if len(data) == size:
-                        return data
+                    chunk = sock.recv(size, socket.MSG_WAITALL)
+                    if len(chunk) == size:
+                        return chunk
                     # less data than asked, drop down into normal receive loop to finish
-                    msglen = len(data)
-                    chunks = [data]
+                    msglen = len(chunk)
+                    data.extend(chunk)
                     break
                 except socket.timeout:
                     raise TimeoutError("receiving: timeout")
@@ -170,10 +154,8 @@ def receiveData(sock, size):
                     chunk = sock.recv(min(60000, size - msglen))
                     if not chunk:
                         break
-                    chunks.append(chunk)
+                    data.extend(chunk)
                     msglen += len(chunk)
-                data = b"".join(chunks)
-                del chunks
                 if len(data) != size:
                     err = ConnectionClosedError("receiving: not enough data")
                     err.partialData = data  # store the message that was received until now
@@ -181,8 +163,7 @@ def receiveData(sock, size):
                 return data  # yay, complete
             except socket.timeout:
                 raise TimeoutError("receiving: timeout")
-            except socket.error:
-                x = sys.exc_info()[1]
+            except socket.error as x:
                 err = getattr(x, "errno", x.args[0])
                 if err not in ERRNO_RETRIES:
                     raise ConnectionClosedError("receiving: connection lost: " + str(x))
@@ -228,8 +209,7 @@ def sendData(sock, data):
 _GLOBAL_DEFAULT_TIMEOUT = object()
 
 
-def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
-                 timeout=_GLOBAL_DEFAULT_TIMEOUT, noinherit=False, ipv6=False, nodelay=True, sslContext=None):
+def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True, timeout=_GLOBAL_DEFAULT_TIMEOUT, noinherit=False, ipv6=False, nodelay=True):
     """
     Create a socket. Default socket options are keepalive and IPv4 family, and nodelay (nagle disabled).
     If 'bind' or 'connect' is a string, it is assumed a Unix domain socket is requested.
@@ -240,7 +220,7 @@ def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
     if bind and connect:
         raise ValueError("bind and connect cannot both be specified at the same time")
     forceIPv6 = ipv6 or (ipv6 is None and config.PREFER_IP_VERSION == 6)
-    if isinstance(bind, basestring) or isinstance(connect, basestring):
+    if isinstance(bind, str) or isinstance(connect, str):
         family = socket.AF_UNIX
     elif not bind and not connect:
         family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
@@ -275,13 +255,6 @@ def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
     else:
         raise ValueError("unknown bind or connect format.")
     sock = socket.socket(family, socket.SOCK_STREAM)
-    if sslContext:
-        if bind:
-            sock = sslContext.wrap_socket(sock, server_side=True)
-        elif connect:
-            sock = sslContext.wrap_socket(sock, server_side=False, server_hostname=connect[0])
-        else:
-            sock = sslContext.wrap_socket(sock, server_side=False)
     if nodelay:
         setNoDelay(sock)
     if reuseaddr:
@@ -417,8 +390,6 @@ try:
 except ImportError:
     # no fcntl available, try the windows version
     try:
-        if sys.platform == "cli":
-            raise NotImplementedError("IronPython can't obtain a proper HANDLE from a socket")
         from ctypes import windll, WinError, wintypes
         # help ctypes to set the proper args for this kernel32 call on 64-bit pythons
         _SetHandleInformation = windll.kernel32.SetHandleInformation
@@ -484,12 +455,6 @@ class SocketConnection(object):
     def getTimeout(self):
         return self.sock.gettimeout()
 
-    def getpeercert(self):
-        try:
-            return self.sock.getpeercert()
-        except AttributeError:
-            return None
-
     timeout = property(getTimeout, setTimeout)
 
 
@@ -509,10 +474,7 @@ def findProbablyUnusedPort(family=socket.AF_INET, socktype=socket.SOCK_STREAM):
     This code is copied from the stdlib's test.test_support module."""
     tempsock = socket.socket(family, socktype)
     try:
-        port = bindOnUnusedPort(tempsock)
-        if sys.platform == "cli":
-            return port + 1  # the actual port is somehow still in use by the socket when using IronPython
-        return port
+        return bindOnUnusedPort(tempsock)
     finally:
         tempsock.close()
 
@@ -556,56 +518,3 @@ def interruptSocket(address):
         sock.close()
     except socket.error:
         pass
-
-
-__ssl_server_context = None
-__ssl_client_context = None
-
-
-def getSSLcontext(servercert="", serverkey="", clientcert="", clientkey="", cacerts="", keypassword=""):
-    """creates an SSL context and caches it, so you have to set the parameters correctly before doing anything"""
-    global __ssl_client_context, __ssl_server_context
-    if not ssl:
-        raise ValueError("SSL requested but ssl module is not available")
-    else:
-        if sys.version_info < (2, 7, 9):
-            raise RuntimeError("need Python 2.7.9 or newer to properly use SSL")
-        if (3, 0) < sys.version_info < (3, 4, 3):
-            raise RuntimeError("need Python 3.4.3 or newer to properly use SSL")
-    if servercert:
-        if clientcert:
-            raise ValueError("can't have both server cert and client cert")
-        # server context
-        if __ssl_server_context:
-            return __ssl_server_context
-        if not os.path.isfile(servercert):
-            raise IOError("server cert file not found")
-        if serverkey and not os.path.isfile(serverkey):
-            raise IOError("server key file not found")
-        __ssl_server_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        __ssl_server_context.load_cert_chain(servercert, serverkey or None, keypassword or None)
-        if cacerts:
-            if os.path.isdir(cacerts):
-                __ssl_server_context.load_verify_locations(capath=cacerts)
-            else:
-                __ssl_server_context.load_verify_locations(cafile=cacerts)
-        if config.SSL_REQUIRECLIENTCERT:
-            __ssl_server_context.verify_mode = ssl.CERT_REQUIRED   # 2-way ssl, server+client certs
-        else:
-            __ssl_server_context.verify_mode = ssl.CERT_NONE   # 1-way ssl, server cert only
-        return __ssl_server_context
-    else:
-        # client context
-        if __ssl_client_context:
-            return __ssl_client_context
-        __ssl_client_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-        if clientcert:
-            if not os.path.isfile(clientcert):
-                raise IOError("client cert file not found")
-            __ssl_client_context.load_cert_chain(clientcert, clientkey or None, keypassword or None)
-        if cacerts:
-            if os.path.isdir(cacerts):
-                __ssl_client_context.load_verify_locations(capath=cacerts)
-            else:
-                __ssl_client_context.load_verify_locations(cafile=cacerts)
-        return __ssl_client_context

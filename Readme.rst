@@ -12,6 +12,22 @@ Python 2.x is no longer supported!
 
 Pyro5 is an "overhauled" Pyro4: more secure, more efficent, simpler, streamlined and cleaned up.
 
+
+
+** changes done based on original Pyro4 sources (release 4.62) **
+
+- removed all __future__ imports because we're Python 3 only
+- removed Flame modules (utils/flameserver.py, utils/flame.py)
+- moved test.echoserver to utils.echoserver (next to httpgateway)
+- moved threadpool module into same module as threadpool server
+- moved socketservers modules into main package
+- replaced all Pyro4 references by Pyro4 (imports, class names, loggers)
+
+
+
+
+** changes done in earlier pyro5 version **
+
 It is based on the proven concepts of Pyro4 and a lot should be familiar, but there are some major differences:
 
 - the API is similar but not compatible:
