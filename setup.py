@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 with open("Readme.rst", encoding="utf-8") as f:
-    long_description=f.read()
+    long_description = f.read()
 
 
 setup(
@@ -13,13 +13,13 @@ setup(
     url='https://github.com/irmen/Pyro5',
     author='Irmen de Jong',
     author_email='irmen@razorvine.net',
-    keywords="distributed objects, middleware, network communication, remote method call, IPC",
+    keywords=["distributed objects", "RPC", "remote method call", "IPC"],
     license='MIT',
 
     packages=['Pyro5'],
 
     install_requires=[
-        "serpent>=1.22",
+        "serpent>=1.23",
         "msgpack-python>=0.4.6"
     ],
     setup_requires=['pytest-runner'],

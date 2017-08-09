@@ -1,5 +1,5 @@
-Pyro5
-=====
+Pyro5 - work in progress - use Pyro4 for now
+============================================
 
 *Remote objects communication library for Python 3, fifth incarnation*
 

@@ -1,7 +1,7 @@
 import time
 import Pyro4
 
-ns=Pyro4.locateNS()
+ns = Pyro4.locateNS()
 
 iterations = 10000
 print("PYRO 4 running", iterations, "calls...")
