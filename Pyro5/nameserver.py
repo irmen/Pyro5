@@ -11,16 +11,13 @@ import socket
 import sys
 import time
 import threading
-from Pyro5.errors import NamingError, PyroError, ProtocolError
-from Pyro5 import core, socketutil, constants
-from Pyro5.configuration import config
-from Pyro5.core import _locateNS as locateNS, _resolve as resolve    # API compatibility with older versions
+from .errors import NamingError, PyroError, ProtocolError
+from . import core, socketutil, constants
+from .configuration import config
+from .core import _locateNS as locateNS, _resolve as resolve    # API compatibility with older versions
 
 
 __all__ = ["locateNS", "resolve", "type_meta", "startNSloop", "startNS"]
-
-if sys.version_info >= (3, 0):
-    basestring = str
 
 log = logging.getLogger("Pyro5.naming")
 
@@ -99,13 +96,13 @@ class NameServer(object):
         The uri can be a string or an URI object. Metadata must be None, or a collection of strings."""
         if isinstance(uri, core.URI):
             uri = uri.asString()
-        elif not isinstance(uri, basestring):
+        elif not isinstance(uri, str):
             raise TypeError("only URIs or strings can be registered")
         else:
             core.URI(uri)  # check if uri is valid
-        if not isinstance(name, basestring):
+        if not isinstance(name, str):
             raise TypeError("name must be a str")
-        if isinstance(metadata, basestring):
+        if isinstance(metadata, str):
             raise TypeError("metadata should not be a str, but another iterable (set, list, etc)")
         metadata and iter(metadata)  # validate that metadata is iterable
         with self.lock:
@@ -117,9 +114,9 @@ class NameServer(object):
 
     def set_metadata(self, name, metadata):
         """update the metadata for an existing registration"""
-        if not isinstance(name, basestring):
+        if not isinstance(name, str):
             raise TypeError("name must be a str")
-        if isinstance(metadata, basestring):
+        if isinstance(metadata, str):
             raise TypeError("metadata should not be a str, but another iterable (set, list, etc)")
         metadata and iter(metadata)  # validate that metadata is iterable
         with self.lock:
@@ -194,7 +191,7 @@ class NameServer(object):
                     return fix_set(result)
             elif metadata_all:
                 # return the entries which have all of the given metadata as (a subset of) their metadata
-                if isinstance(metadata_all, basestring):
+                if isinstance(metadata_all, str):
                     raise TypeError("metadata_all should not be a str, but another iterable (set, list, etc)")
                 metadata_all and iter(metadata_all)   # validate that metadata is iterable
                 result = self.storage.optimized_metadata_search(metadata_all=metadata_all, return_metadata=return_metadata)
@@ -208,7 +205,7 @@ class NameServer(object):
                 return fix_set(result)
             elif metadata_any:
                 # return the entries which have any of the given metadata as part of their metadata
-                if isinstance(metadata_any, basestring):
+                if isinstance(metadata_any, str):
                     raise TypeError("metadata_any should not be a str, but another iterable (set, list, etc)")
                 metadata_any and iter(metadata_any)   # validate that metadata is iterable
                 result = self.storage.optimized_metadata_search(metadata_any=metadata_any, return_metadata=return_metadata)
@@ -245,18 +242,10 @@ class NameServerDaemon(core.Daemon):
         if storage == "memory":
             log.debug("using volatile in-memory dict storage")
             self.nameserver = NameServer(MemoryStorage())
-        elif storage.startswith("dbm:") and len(storage) > 4:
-            dbmfile = storage[4:]
-            log.debug("using persistent dbm storage in file %s", dbmfile)
-            from Pyro5.naming_storage import DbmStorage
-            self.nameserver = NameServer(DbmStorage(dbmfile))
-            warning = "Warning: the DbmStorage doesn't support metadata."
-            log.warning(warning)
-            print(warning)
         elif storage.startswith("sql:") and len(storage) > 4:
             sqlfile = storage[4:]
             log.debug("using persistent sql storage in file %s", sqlfile)
-            from Pyro5.naming_storage import SqlStorage
+            from .naming_storage import SqlStorage
             self.nameserver = NameServer(SqlStorage(sqlfile))
         else:
             raise ValueError("invalid storage type '%s'" % storage)
@@ -457,10 +446,9 @@ class BroadcastServer(object):
 
 
 def startNSloop(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None,
-                unixsocket=None, nathost=None, natport=None, storage=None, hmac=None):
+                unixsocket=None, nathost=None, natport=None, storage=None):
     """utility function that starts a new Name server and enters its requestloop."""
     daemon = NameServerDaemon(host, port, unixsocket, nathost=nathost, natport=natport, storage=storage)
-    daemon._pyroHmacKey = hmac
     nsUri = daemon.uriFor(daemon.nameserver)
     internalUri = daemon.uriFor(daemon.nameserver, nat=False)
     bcserver = None
@@ -487,8 +475,6 @@ def startNSloop(host=None, port=None, enableBroadcast=True, bchost=None, bcport=
     if existing > 1:   # don't count our own nameserver registration
         print("Persistent store contains %d existing registrations." % existing)
     print("NS running on %s (%s)" % (daemon.locationStr, hostip))
-    if not hmac:
-        print("Warning: HMAC key not set. Anyone can connect to this server!")
     if daemon.natLocationStr:
         print("internal URI = %s" % internalUri)
         print("external URI = %s" % nsUri)
@@ -504,11 +490,10 @@ def startNSloop(host=None, port=None, enableBroadcast=True, bchost=None, bcport=
 
 
 def startNS(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None,
-            unixsocket=None, nathost=None, natport=None, storage=None, hmac=None):
+            unixsocket=None, nathost=None, natport=None, storage=None):
     """utility fuction to quickly get a Name server daemon to be used in your own event loops.
     Returns (nameserverUri, nameserverDaemon, broadcastServer)."""
     daemon = NameServerDaemon(host, port, unixsocket, nathost=nathost, natport=natport, storage=storage)
-    daemon._pyroHmacKey = hmac
     bcserver = None
     nsUri = daemon.uriFor(daemon.nameserver)
     if not unixsocket:
@@ -538,7 +523,7 @@ def main(args=None):
     parser.add_option("-n", "--host", dest="host", help="hostname to bind server on")
     parser.add_option("-p", "--port", dest="port", type="int", help="port to bind server on (0=random)")
     parser.add_option("-u", "--unixsocket", help="Unix domain socket name to bind server on")
-    parser.add_option("-s", "--storage", help="Storage system to use (memory, dbm:file, sql:file)", default="memory")
+    parser.add_option("-s", "--storage", help="Storage system to use (memory, sql:file)", default="memory")
     parser.add_option("", "--bchost", dest="bchost", help="hostname to bind broadcast server on (default is \"\")")
     parser.add_option("", "--bcport", dest="bcport", type="int",
                       help="port to bind broadcast server on (0=random)")
@@ -546,12 +531,10 @@ def main(args=None):
     parser.add_option("", "--natport", dest="natport", type="int", help="external port in case of NAT")
     parser.add_option("-x", "--nobc", dest="enablebc", action="store_false", default=True,
                       help="don't start a broadcast server")
-    parser.add_option("-k", "--key", help="the HMAC key to use")
     options, args = parser.parse_args(args)
     startNSloop(options.host, options.port, enableBroadcast=options.enablebc,
                 bchost=options.bchost, bcport=options.bcport, unixsocket=options.unixsocket,
-                nathost=options.nathost, natport=options.natport, storage=options.storage,
-                hmac=options.key)
+                nathost=options.nathost, natport=options.natport, storage=options.storage)
 
 
 if __name__ == "__main__":

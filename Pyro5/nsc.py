@@ -4,14 +4,10 @@ Name server control tool.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-import sys
-from Pyro5 import errors, naming
-
-if sys.version_info < (3, 0):
-    input = raw_input
+from . import errors, nameserver
 
 
-def handleCommand(nameserver, options, args):
+def handleCommand(namesrv, options, args):
     def printListResult(resultdict, title=""):
         print("--------START LIST %s" % title)
         for name, (uri, metadata) in sorted(resultdict.items()):
@@ -21,24 +17,24 @@ def handleCommand(nameserver, options, args):
         print("--------END LIST %s" % title)
 
     def cmd_ping():
-        nameserver.ping()
+        namesrv.ping()
         print("Name server ping ok.")
 
     def cmd_listprefix():
         if len(args) == 1:
-            printListResult(nameserver.list(return_metadata=True))
+            printListResult(namesrv.list(return_metadata=True))
         else:
-            printListResult(nameserver.list(prefix=args[1], return_metadata=True), "- prefix '%s'" % args[1])
+            printListResult(namesrv.list(prefix=args[1], return_metadata=True), "- prefix '%s'" % args[1])
 
     def cmd_listregex():
         if len(args) != 2:
             raise SystemExit("requires one argument: pattern")
-        printListResult(nameserver.list(regex=args[1], return_metadata=True), "- regex '%s'" % args[1])
+        printListResult(namesrv.list(regex=args[1], return_metadata=True), "- regex '%s'" % args[1])
 
     def cmd_lookup():
         if len(args) != 2:
             raise SystemExit("requires one argument: name")
-        uri, metadata = nameserver.lookup(args[1], return_metadata=True)
+        uri, metadata = namesrv.lookup(args[1], return_metadata=True)
         print(uri)
         if metadata:
             print("metadata:", metadata)
@@ -46,13 +42,13 @@ def handleCommand(nameserver, options, args):
     def cmd_register():
         if len(args) != 3:
             raise SystemExit("requires two arguments: name uri")
-        nameserver.register(args[1], args[2], safe=True)
+        namesrv.register(args[1], args[2], safe=True)
         print("Registered %s" % args[1])
 
     def cmd_remove():
         if len(args) != 2:
             raise SystemExit("requires one argument: name")
-        count = nameserver.remove(args[1])
+        count = namesrv.remove(args[1])
         if count > 0:
             print("Removed %s" % args[1])
         else:
@@ -63,14 +59,14 @@ def handleCommand(nameserver, options, args):
             raise SystemExit("requires one argument: pattern")
         sure = input("Potentially removing lots of items from the Name server. Are you sure (y/n)?").strip()
         if sure in ('y', 'Y'):
-            count = nameserver.remove(regex=args[1])
+            count = namesrv.remove(regex=args[1])
             print("%d items removed." % count)
 
     def cmd_setmeta():
         if len(args) < 2:
             raise SystemExit("requires at least 2 arguments: uri and zero or more meta tags")
         metadata = set(args[2:])
-        nameserver.set_metadata(args[1], metadata)
+        namesrv.set_metadata(args[1], metadata)
         if metadata:
             print("Metadata updated")
         else:
@@ -80,13 +76,13 @@ def handleCommand(nameserver, options, args):
         if len(args) < 2:
             raise SystemExit("requires at least one metadata tag argument")
         metadata = set(args[1:])
-        printListResult(nameserver.list(metadata_all=metadata, return_metadata=True), " - searched by metadata")
+        printListResult(namesrv.list(metadata_all=metadata, return_metadata=True), " - searched by metadata")
 
     def cmd_listmeta_any():
         if len(args) < 2:
             raise SystemExit("requires at least one metadata tag argument")
         metadata = set(args[1:])
-        printListResult(nameserver.list(metadata_any=metadata, return_metadata=True), " - searched by metadata")
+        printListResult(namesrv.list(metadata_any=metadata, return_metadata=True), " - searched by metadata")
 
     commands = {
         "ping": cmd_ping,
@@ -115,7 +111,6 @@ def main(args=None):
     parser.add_option("-p", "--port", dest="port", type="int",
                       help="port of the NS (or bc-port if host isn't specified)")
     parser.add_option("-u", "--unixsocket", help="Unix domain socket name of the NS")
-    parser.add_option("-k", "--key", help="the HMAC key to use")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose output")
     options, args = parser.parse_args(args)
     if not args or args[0] not in ("register", "remove", "removematching", "list", "listmatching", "lookup",
@@ -126,13 +121,13 @@ def main(args=None):
     if options.unixsocket:
         options.host = "./u:" + options.unixsocket
     try:
-        nameserver = naming.locateNS(options.host, options.port, hmac_key=options.key)
+        namesrv = nameserver.locateNS(options.host, options.port)
     except errors.PyroError as x:
         print("Error: %s" % x)
         return
     if options.verbose:
-        print("Name server found: %s" % nameserver._pyroUri)
-    handleCommand(nameserver, options, args)
+        print("Name server found: %s" % namesrv._pyroUri)
+    handleCommand(namesrv, options, args)
     if options.verbose:
         print("Done.")
 

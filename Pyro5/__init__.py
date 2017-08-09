@@ -4,12 +4,7 @@ Pyro package. Some generic init stuff to set up logging etc.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-import sys
-from Pyro5.constants import VERSION as __version__
-
-if sys.version_info < (2, 7):
-    import warnings
-    warnings.warn("This Pyro version is unsupported on Python versions older than 2.7", ImportWarning)
+from .constants import VERSION as __version__
 
 
 def _configLogging():
@@ -58,7 +53,6 @@ _configLogging()
 del _configLogging
 
 # import the required Pyro symbols into this package
-from Pyro5.configuration import config
-from Pyro5.core import URI, Proxy, Daemon, callback, batch, async, oneway, expose, behavior, current_context
-from Pyro5.core import _locateNS as locateNS, _resolve as resolve
-from Pyro5.futures import Future
+from .configuration import config
+from .core import URI, Proxy, Daemon, callback, batch, oneway, expose, behavior, current_context
+from .core import _locateNS as locateNS, _resolve as resolve

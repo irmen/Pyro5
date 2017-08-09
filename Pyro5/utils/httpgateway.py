@@ -28,26 +28,26 @@ import cgi
 import uuid
 from wsgiref.simple_server import make_server
 import traceback
-from Pyro5.util import json     # don't import stdlib json directly, we want to use the JSON_MODULE config item
-from Pyro5.configuration import config
-from Pyro5 import constants, errors, core, message, util, naming
+from .util import json     # don't import stdlib json directly, we want to use the JSON_MODULE config item
+from .configuration import config
+from . import constants, errors, core, message, util, naming
 
 
 __all__ = ["pyro_app", "main"]
 _nameserver = None
 
 
-def get_nameserver(hmac=None):
+def get_nameserver():
     global _nameserver
     if not _nameserver:
-        _nameserver = naming.locateNS(hmac_key=hmac)
+        _nameserver = naming.locateNS()
     try:
         _nameserver.ping()
         return _nameserver
     except errors.ConnectionClosedError:
         _nameserver = None
         print("Connection with nameserver lost, reconnecting...")
-        return get_nameserver(hmac)
+        return get_nameserver()
 
 
 def invalid_request(start_response):
@@ -153,7 +153,7 @@ Response: <pre id="pyro_response"> &nbsp; </pre>
 
 def return_homepage(environ, start_response):
     try:
-        nameserver = get_nameserver(hmac=pyro_app.hmac_key)
+        nameserver = get_nameserver()
     except errors.NamingError as x:
         print("Name server error:", x)
         start_response('500 Internal Server Error', [('Content-Type', 'text/plain')])
@@ -168,7 +168,6 @@ def return_homepage(environ, start_response):
             attributes = "-"
             try:
                 with core.Proxy(uri) as proxy:
-                    proxy._pyroHmacKey = pyro_app.hmac_key
                     proxy._pyroBind()
                     methods = " &nbsp; ".join(proxy._pyroMethods) or "-"
                     attributes = [
@@ -214,7 +213,7 @@ def process_pyro_request(environ, path, parameters, start_response):
         start_response('403 Forbidden', [('Content-Type', 'text/plain')])
         return [b"403 Forbidden - access to the requested object has been denied"]
     try:
-        nameserver = get_nameserver(hmac=pyro_app.hmac_key)
+        nameserver = get_nameserver()
         uri = nameserver.lookup(object_name)
         with core.Proxy(uri) as proxy:
             header_corr_id = environ.get("HTTP_X_PYRO_CORRELATION_ID", "")
@@ -222,7 +221,6 @@ def process_pyro_request(environ, path, parameters, start_response):
                 core.current_context.correlation_id = uuid.UUID(header_corr_id)  # use the correlation id from the request header
             else:
                 core.current_context.correlation_id = uuid.uuid4()  # set new correlation id
-            proxy._pyroHmacKey = pyro_app.hmac_key
             proxy._pyroGetMetadata()
             if "oneway" in pyro_options:
                 proxy._pyroOneway.add(method)
@@ -297,7 +295,6 @@ def singlyfy_parameters(parameters):
 
 
 pyro_app.ns_regex = r"http\."
-pyro_app.hmac_key = None
 pyro_app.gateway_key = None
 pyro_app.comm_timeout = config.COMMTIMEOUT
 
@@ -309,13 +306,11 @@ def main(args=None):
     parser.add_option("-H", "--host", default="localhost", help="hostname to bind server on (default=%default)")
     parser.add_option("-p", "--port", type="int", default=8080, help="port to bind server on (default=%default)")
     parser.add_option("-e", "--expose", default=pyro_app.ns_regex, help="a regex of object names to expose (default=%default)")
-    parser.add_option("-k", "--pyrokey", help="the HMAC key to use to connect with Pyro")
     parser.add_option("-g", "--gatewaykey", help="the api key to use to connect to the gateway itself")
     parser.add_option("-t", "--timeout", type="float", default=pyro_app.comm_timeout,
                       help="Pyro timeout value to use (COMMTIMEOUT setting, default=%default)")
 
     options, args = parser.parse_args(args)
-    pyro_app.hmac_key = (options.pyrokey or "").encode("utf-8")
     pyro_app.gateway_key = (options.gatewaykey or "").encode("utf-8")
     pyro_app.ns_regex = options.expose
     pyro_app.comm_timeout = config.COMMTIMEOUT = options.timeout
@@ -324,7 +319,7 @@ def main(args=None):
     else:
         print("Warning: exposing all objects (no expose regex set)")
     try:
-        ns = get_nameserver(hmac=pyro_app.hmac_key)
+        ns = get_nameserver()
     except errors.PyroError:
         print("Not yet connected to a name server.")
     else:

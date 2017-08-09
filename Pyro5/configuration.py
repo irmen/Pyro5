@@ -12,7 +12,7 @@ import os
 import platform
 import pickle
 import socket
-from Pyro5 import constants
+from . import constants
 
 
 class Configuration(object):

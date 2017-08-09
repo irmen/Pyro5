@@ -31,7 +31,7 @@ def pyroObjectToAutoProxy(obj):
 
 
 _private_dunder_methods = frozenset([
-    "__init__", "__call__", "__new__", "__del__", "__repr__", "__unicode__",
+    "__init__", "__call__", "__new__", "__del__", "__repr__",
     "__str__", "__format__", "__nonzero__", "__bool__", "__coerce__",
     "__cmp__", "__eq__", "__ne__", "__hash__",
     "__dir__", "__enter__", "__exit__", "__copy__", "__deepcopy__", "__sizeof__",

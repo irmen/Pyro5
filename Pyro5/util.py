@@ -15,8 +15,8 @@ import struct
 import datetime
 import decimal
 import numbers
-from Pyro5 import errors
-from Pyro5.configuration import config
+from . import errors
+from .configuration import config
 
 try:
     import copyreg
@@ -134,17 +134,11 @@ def formatTraceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
 
 
 all_exceptions = {}
-if sys.version_info < (3, 0):
-    import exceptions
-    for name, t in vars(exceptions).items():
-        if type(t) is type and issubclass(t, BaseException):
-            all_exceptions[name] = t
-else:
-    import builtins
-    for name, t in vars(builtins).items():
-        if type(t) is type and issubclass(t, BaseException):
-            all_exceptions[name] = t
-    buffer = bytearray
+import builtins
+for name, t in vars(builtins).items():
+    if type(t) is type and issubclass(t, BaseException):
+        all_exceptions[name] = t
+buffer = bytearray
 for name, t in vars(errors).items():
     if type(t) is type and issubclass(t, errors.PyroError):
         all_exceptions[name] = t
@@ -164,8 +158,6 @@ class SerializerBase(object):
     def deserializeData(self, data, compressed=False):
         """Deserializes the given data (bytes). Set compressed to True to decompress the data first."""
         if compressed:
-            if sys.version_info < (3, 0):
-                data = self._convertToBytes(data)
             data = zlib.decompress(data)
         return self.loads(data)
 
@@ -179,8 +171,6 @@ class SerializerBase(object):
         """Deserializes the given call data back to (object, method, vargs, kwargs) tuple.
         Set compressed to True to decompress the data first."""
         if compressed:
-            if sys.version_info < (3, 0):
-                data = self._convertToBytes(data)
             data = zlib.decompress(data)
         return self.loadsCall(data)
 
@@ -322,7 +312,7 @@ class SerializerBase(object):
         Only a fixed set of classes are recognized.
         Not used for the pickle serializer.
         """
-        from Pyro5 import core, futures  # XXX circular
+        from . import core   # XXX circular
         classname = data.get("__class__", "<unknown>")
         if isinstance(classname, bytes):
             classname = classname.decode("utf-8")
@@ -362,11 +352,11 @@ class SerializerBase(object):
             errortype = getattr(errors, classname.split('.', 2)[2])
             if issubclass(errortype, errors.PyroError):
                 return SerializerBase.make_exception(errortype, data)
-        elif classname == "Pyro5.futures._ExceptionWrapper":
+        elif classname == "Pyro5.core._ExceptionWrapper":
             ex = data["exception"]
             if isinstance(ex, dict) and "__class__" in ex:
                 ex = SerializerBase.dict_to_class(ex)
-            return futures._ExceptionWrapper(ex)
+            return core._ExceptionWrapper(ex)
         elif data.get("__exception__", False):
             if classname in all_exceptions:
                 return SerializerBase.make_exception(all_exceptions[classname], data)
@@ -375,14 +365,9 @@ class SerializerBase(object):
             # translate to the appropriate namespace...
             namespace, short_classname = classname.split('.', 1)
             if namespace in ("builtins", "exceptions"):
-                if sys.version_info < (3, 0):
-                    exceptiontype = getattr(exceptions, short_classname)
-                    if issubclass(exceptiontype, BaseException):
-                        return SerializerBase.make_exception(exceptiontype, data)
-                else:
-                    exceptiontype = getattr(builtins, short_classname)
-                    if issubclass(exceptiontype, BaseException):
-                        return SerializerBase.make_exception(exceptiontype, data)
+                exceptiontype = getattr(builtins, short_classname)
+                if issubclass(exceptiontype, BaseException):
+                    return SerializerBase.make_exception(exceptiontype, data)
             elif namespace == "sqlite3" and short_classname.endswith("Error"):
                 import sqlite3
                 exceptiontype = getattr(sqlite3, short_classname)
@@ -904,7 +889,7 @@ def set_exposed_property_value(obj, propname, value, only_exposed=True):
 
 
 _private_dunder_methods = frozenset([
-    "__init__", "__call__", "__new__", "__del__", "__repr__", "__unicode__",
+    "__init__", "__call__", "__new__", "__del__", "__repr__",
     "__str__", "__format__", "__nonzero__", "__bool__", "__coerce__",
     "__cmp__", "__eq__", "__ne__", "__hash__",
     "__dir__", "__enter__", "__exit__", "__copy__", "__deepcopy__", "__sizeof__",

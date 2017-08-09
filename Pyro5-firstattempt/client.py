@@ -28,7 +28,6 @@ class Proxy(object):
     .. automethod:: _pyroRelease
     .. automethod:: _pyroReconnect
     .. automethod:: _pyroBatch
-    .. automethod:: _pyroAsync
     .. automethod:: _pyroValidateHandshake
     .. autoattribute:: _pyroTimeout
     .. attribute:: _pyroMaxRetries
@@ -107,9 +106,6 @@ class Proxy(object):
             connected = "not connected"
         return "<%s.%s at 0x%x; %s; for %s>" % (self.__class__.__module__, self.__class__.__name__,
                                                 id(self), connected, self._pyroUri)
-
-    def __unicode__(self):
-        return str(self)
 
     def __getstate_for_dict__(self):
         # for backwards compatibility reasons we also put the timeout and maxretries into the state

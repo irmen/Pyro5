@@ -5,16 +5,15 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
 import hashlib
-import hmac
 import struct
 import logging
 import sys
 import zlib
-from Pyro5 import errors, constants
-from Pyro5.configuration import config
+from . import errors, constants
+from .configuration import config
 
 
-__all__ = ["Message", "secure_compare"]
+__all__ = ["Message"]
 
 log = logging.getLogger("Pyro5.message")
 
@@ -40,8 +39,7 @@ class Message(object):
     Wire messages contains of a fixed size header, an optional set of annotation chunks,
     and then the payload data. This class doesn't deal with the payload data:
     (de)serialization and handling of that data is done elsewhere.
-    Annotation chunks are only parsed, except the 'HMAC' chunk: that is created
-    and validated because it is used as a message digest.
+    Annotation chunks are only parsed.
 
     The header format is::
 
@@ -74,19 +72,17 @@ class Message(object):
     that we are dealing with an actual correct PYRO protocol header and not some random
     data that happens to start with the 'PYRO' protocol identifier.
 
-    Pyro now uses two annotation chunks that you should not touch yourself:
-    'HMAC'  contains the hmac digest of the message data bytes and
-    all of the annotation chunk data bytes (except those of the HMAC chunk itself).
+    Pyro now uses one annotation chunk that you should not touch yourself:
     'CORR'  contains the correlation id (guid bytes)
     Other chunk names are free to use for custom purposes, but Pyro has the right
     to reserve more of them for internal use in the future.
     """
-    __slots__ = ["type", "flags", "seq", "data", "data_size", "serializer_id", "annotations", "annotations_size", "hmac_key"]
+    __slots__ = ["type", "flags", "seq", "data", "data_size", "serializer_id", "annotations", "annotations_size"]
     header_format = '!4sHHHHiHHHH'
     header_size = struct.calcsize(header_format)
     checksum_magic = 0x34E9
 
-    def __init__(self, msgType, databytes, serializer_id, flags, seq, annotations=None, hmac_key=None):
+    def __init__(self, msgType, databytes, serializer_id, flags, seq, annotations=None):
         self.type = msgType
         self.flags = flags
         self.seq = seq
@@ -94,9 +90,6 @@ class Message(object):
         self.data_size = len(self.data)
         self.serializer_id = serializer_id
         self.annotations = dict(annotations or {})
-        self.hmac_key = hmac_key
-        if self.hmac_key:
-            self.annotations["HMAC"] = self.hmac()   # should be done last because it calculates hmac over other annotations
         self.annotations_size = sum([6 + len(v) for v in self.annotations.values()])
         if 0 < config.MAX_MESSAGE_SIZE < (self.data_size + self.annotations_size):
             raise errors.MessageTooLargeError("max message size exceeded (%d where max=%d)" %
@@ -124,8 +117,7 @@ class Message(object):
             for k, v in self.annotations.items():
                 if len(k) != 4:
                     raise errors.ProtocolError("annotation key must be of length 4")
-                if sys.version_info >= (3, 0):
-                    k = k.encode("ASCII")
+                k = k.encode()
                 a.append(struct.pack("!4sH", k, len(v)))
                 a.append(v)
             return b"".join(a)
@@ -158,15 +150,13 @@ class Message(object):
         return msg
 
     @classmethod
-    def recv(cls, connection, requiredMsgTypes=None, hmac_key=None):
+    def recv(cls, connection, requiredMsgTypes=None):
         """
         Receives a pyro message from a given connection.
         Accepts the given message types (None=any, or pass a sequence).
         Also reads annotation chunks and the actual payload data.
-        Validates a HMAC chunk if present.
         """
         msg = cls.from_header(connection.recv(cls.header_size))
-        msg.hmac_key = hmac_key
         if 0 < config.MAX_MESSAGE_SIZE < (msg.data_size + msg.annotations_size):
             errorMsg = "max message size exceeded (%d where max=%d)" % (msg.data_size + msg.annotations_size, config.MAX_MESSAGE_SIZE)
             log.error("connection " + str(connection) + ": " + errorMsg)
@@ -187,40 +177,19 @@ class Message(object):
             i = 0
             while i < msg.annotations_size:
                 anno, length = struct.unpack("!4sH", annotations_data[i:i + 6])
-                if sys.version_info >= (3, 0):
-                    anno = anno.decode("ASCII")
+                anno = anno.decode()
                 msg.annotations[anno] = annotations_data[i + 6:i + 6 + length]
                 if sys.platform == "cli":
                     msg.annotations[anno] = bytes(msg.annotations[anno])
                 i += 6 + length
         # read data
         msg.data = connection.recv(msg.data_size)
-        if "HMAC" in msg.annotations and hmac_key:
-            if not secure_compare(msg.annotations["HMAC"], msg.hmac()):
-                exc = errors.SecurityError("message hmac mismatch")
-                exc.pyroMsg = msg
-                raise exc
-        elif ("HMAC" in msg.annotations) != bool(hmac_key):
-            # Not allowed: message contains hmac but hmac_key is not set, or vice versa.
-            err = "hmac key config not symmetric"
-            log.warning(err)
-            exc = errors.SecurityError(err)
-            exc.pyroMsg = msg
-            raise exc
         return msg
 
-    def hmac(self):
-        """returns the hmac of the data and the annotation chunk values (except HMAC chunk itself)"""
-        mac = hmac.new(self.hmac_key, self.data, digestmod=hashlib.sha1)
-        for k, v in sorted(self.annotations.items()):    # note: sorted because we need fixed order to get the same hmac
-            if k != "HMAC":
-                mac.update(v)
-        return mac.digest() if sys.platform != "cli" else bytes(mac.digest())
-
     @staticmethod
-    def ping(pyroConnection, hmac_key=None):
+    def ping(pyroConnection):
         """Convenience method to send a 'ping' message and wait for the 'pong' response"""
-        ping = Message(MSG_PING, b"ping", 42, 0, 0, hmac_key=hmac_key)
+        ping = Message(MSG_PING, b"ping", 42, 0, 0)
         pyroConnection.send(ping.to_bytes())
         Message.recv(pyroConnection, [MSG_PING])
 
@@ -231,21 +200,3 @@ class Message(object):
             self.flags &= ~FLAGS_COMPRESSED
             self.data_size = len(self.data)
         return self
-
-
-try:
-    from hmac import compare_digest as secure_compare
-except ImportError:
-    # Python version doesn't have it natively, use a python fallback implementation
-    import operator
-    try:
-        reduce
-    except NameError:
-        from functools import reduce
-
-    def secure_compare(a, b):
-        if type(a) != type(b):
-            raise TypeError("arguments must both be same type")
-        if len(a) != len(b):
-            return False
-        return reduce(operator.and_, map(operator.eq, a, b), True)

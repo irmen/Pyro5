@@ -16,8 +16,8 @@ import sys
 import time
 import threading
 from optparse import OptionParser
-from Pyro5 import core, naming
-from Pyro5.configuration import config
+from .. import core, nameserver
+from ..configuration import config
 
 
 __all__ = ["EchoServer"]
@@ -118,23 +118,22 @@ class EchoServer(object):
 
 
 class NameServer(threading.Thread):
-    def __init__(self, hostname, hmac=None):
+    def __init__(self, hostname):
         super(NameServer, self).__init__()
         self.setDaemon(1)
         self.hostname = hostname
-        self.hmac = hmac
         self.started = threading.Event()
 
     def run(self):
-        self.uri, self.ns_daemon, self.bc_server = naming.startNS(self.hostname, hmac=self.hmac)
+        self.uri, self.ns_daemon, self.bc_server = nameserver.startNS(self.hostname)
         self.started.set()
         if self.bc_server:
             self.bc_server.runInThread()
         self.ns_daemon.requestLoop()
 
 
-def startNameServer(host, hmac=None):
-    ns = NameServer(host, hmac=hmac)
+def startNameServer(host):
+    ns = NameServer(host)
     ns.start()
     ns.started.wait()
     return ns
@@ -149,7 +148,6 @@ def main(args=None, returnWithoutLooping=False):
     parser.add_option("-N", "--nameserver", action="store_true", default=False, help="also start a nameserver")
     parser.add_option("-v", "--verbose", action="store_true", default=False, help="verbose output")
     parser.add_option("-q", "--quiet", action="store_true", default=False, help="don't output anything")
-    parser.add_option("-k", "--key", help="the HMAC key to use")
     options, args = parser.parse_args(args)
 
     if options.verbose:
@@ -158,18 +156,12 @@ def main(args=None, returnWithoutLooping=False):
         print("Starting Pyro's built-in test echo server.")
     config.SERVERTYPE = "multiplex"
 
-    hmac = (options.key or "").encode("utf-8")
-    if not hmac and not options.quiet:
-        print("Warning: HMAC key not set. Anyone can connect to this server!")
-
     nameserver = None
     if options.nameserver:
         options.naming = True
-        nameserver = startNameServer(options.host, hmac=hmac)
+        nameserver = startNameServer(options.host)
 
     d = core.Daemon(host=options.host, port=options.port, unixsocket=options.unixsocket)
-    if hmac:
-        d._pyroHmacKey = hmac
     echo = EchoServer()
     echo._verbose = options.verbose
     objectName = "test.echoserver"
@@ -178,7 +170,7 @@ def main(args=None, returnWithoutLooping=False):
         host, port = None, None
         if nameserver is not None:
             host, port = nameserver.uri.host, nameserver.uri.port
-        ns = naming.locateNS(host, port, hmac_key=hmac)
+        ns = nameserver.locateNS(host, port)
         ns.register(objectName, uri)
         if options.verbose:
             print("using name server at %s" % ns._pyroUri)

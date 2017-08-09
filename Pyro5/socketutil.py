@@ -14,8 +14,8 @@ try:
     import ssl
 except ImportError:
     ssl = None
-from Pyro5.configuration import config
-from Pyro5.errors import CommunicationError, TimeoutError, ConnectionClosedError
+from .configuration import config
+from .errors import CommunicationError, TimeoutError, ConnectionClosedError
 
 try:
     InterruptedError()  # new since Python 3.4
@@ -52,9 +52,6 @@ if hasattr(errno, "WSAEADDRNOTAVAIL"):
 ERRNO_EADDRINUSE = [errno.EADDRINUSE]
 if hasattr(errno, "WSAEADDRINUSE"):
     ERRNO_EADDRINUSE.append(errno.WSAEADDRINUSE)
-
-if sys.version_info >= (3, 0):
-    basestring = str
 
 
 def getIpVersion(hostnameOrAddress):
@@ -240,7 +237,7 @@ def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
     if bind and connect:
         raise ValueError("bind and connect cannot both be specified at the same time")
     forceIPv6 = ipv6 or (ipv6 is None and config.PREFER_IP_VERSION == 6)
-    if isinstance(bind, basestring) or isinstance(connect, basestring):
+    if isinstance(bind, str) or isinstance(connect, str):
         family = socket.AF_UNIX
     elif not bind and not connect:
         family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
@@ -568,9 +565,7 @@ def getSSLcontext(servercert="", serverkey="", clientcert="", clientkey="", cace
     if not ssl:
         raise ValueError("SSL requested but ssl module is not available")
     else:
-        if sys.version_info < (2, 7, 9):
-            raise RuntimeError("need Python 2.7.9 or newer to properly use SSL")
-        if (3, 0) < sys.version_info < (3, 4, 3):
+        if sys.version_info < (3, 4, 3):
             raise RuntimeError("need Python 3.4.3 or newer to properly use SSL")
     if servercert:
         if clientcert:

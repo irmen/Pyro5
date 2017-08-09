@@ -11,22 +11,13 @@ import sys
 import logging
 import os
 from collections import defaultdict
-from Pyro5 import socketutil, errors, util
-from Pyro5.configuration import config
-if sys.version_info >= (3, 5):
+from . import socketutil, errors, util
+from .configuration import config
+try:
+    # first try selectors2 as it has better semantics when dealing with interrupted system calls
+    import selectors2 as selectors
+except ImportError:
     import selectors
-else:
-    try:
-        # first try selectors2 as it has better semantics when dealing with interrupted system calls
-        import selectors2 as selectors
-    except ImportError:
-        if sys.version_info >= (3, 4):
-            import selectors
-        else:
-            try:
-                import selectors34 as selectors
-            except ImportError:
-                selectors = None
 
 log = logging.getLogger("Pyro5.multiplexserver")
 

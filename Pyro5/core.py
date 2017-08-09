@@ -13,21 +13,17 @@ import os
 import time
 import threading
 import uuid
-import base64
 import warnings
 import socket
 import random
-from Pyro5 import errors, socketutil, util, constants, message, futures
-from Pyro5.svr_threads import SocketServer_Threadpool
-from Pyro5.svr_multiplex import SocketServer_Multiplex
-from Pyro5.configuration import config
+from . import errors, socketutil, util, constants, message
+from .svr_threads import SocketServer_Threadpool
+from .svr_multiplex import SocketServer_Multiplex
+from .configuration import config
 
 
-__all__ = ["URI", "Proxy", "Daemon", "current_context", "callback", "batch", "async", "expose", "behavior",
+__all__ = ["URI", "Proxy", "Daemon", "current_context", "callback", "batch", "expose", "behavior",
            "oneway", "SerializedBlob", "_resolve", "_locateNS"]
-
-if sys.version_info >= (3, 0):
-    basestring = str
 
 log = logging.getLogger("Pyro5.core")
 
@@ -55,7 +51,7 @@ class URI(object):
             state = uri.__getstate__()
             self.__setstate__(state)
             return
-        if not isinstance(uri, basestring):
+        if not isinstance(uri, str):
             raise TypeError("uri parameter object is of wrong type")
         self.sockname = self.host = self.port = None
         match = self.uriRegEx.match(uri)
@@ -130,12 +126,6 @@ class URI(object):
         return result
 
     def __str__(self):
-        string = self.asString()
-        if sys.version_info < (3, 0) and type(string) is unicode:
-            return string.encode("ascii", "replace")
-        return string
-
-    def __unicode__(self):
         return self.asString()
 
     def __repr__(self):
@@ -169,6 +159,30 @@ class URI(object):
         self.__setstate__(state)
 
 
+class _ExceptionWrapper(object):
+    """Class that wraps a remote exception. If this is returned, Pyro will
+    re-throw the exception on the receiving side. Usually this is taken care of
+    by a special response message flag, but in the case of batched calls this
+    flag is useless and another mechanism was needed."""
+
+    def __init__(self, exception):
+        self.exception = exception
+
+    def raiseIt(self):
+        from .util import fixIronPythonExceptionForPickle  # XXX circular
+        if sys.platform == "cli":
+            fixIronPythonExceptionForPickle(self.exception, False)
+        raise self.exception
+
+    def __serialized_dict__(self):
+        """serialized form as a dictionary"""
+        from .util import SerializerBase  # XXX circular
+        return {
+            "__class__": "Pyro5.core._ExceptionWrapper",
+            "exception": SerializerBase.class_to_dict(self.exception)
+        }
+
+
 class _RemoteMethod(object):
     """method call abstraction"""
 
@@ -199,12 +213,10 @@ class Proxy(object):
     .. automethod:: _pyroRelease
     .. automethod:: _pyroReconnect
     .. automethod:: _pyroBatch
-    .. automethod:: _pyroAsync
     .. automethod:: _pyroAnnotations
     .. automethod:: _pyroResponseAnnotations
     .. automethod:: _pyroValidateHandshake
     .. autoattribute:: _pyroTimeout
-    .. autoattribute:: _pyroHmacKey
     .. attribute:: _pyroMaxRetries
 
         Number of retries to perform on communication calls by this proxy, allows you to override the default setting.
@@ -219,12 +231,12 @@ class Proxy(object):
     """
     __pyroAttributes = frozenset(
         ["__getnewargs__", "__getnewargs_ex__", "__getinitargs__", "_pyroConnection", "_pyroUri",
-         "_pyroOneway", "_pyroMethods", "_pyroAttrs", "_pyroTimeout", "_pyroSeq", "_pyroHmacKey",
-         "_pyroRawWireResponse", "_pyroHandshake", "_pyroMaxRetries", "_pyroSerializer", "_Proxy__async",
-         "_Proxy__pyroHmacKey", "_Proxy__pyroTimeout", "_Proxy__pyroConnLock"])
+         "_pyroOneway", "_pyroMethods", "_pyroAttrs", "_pyroTimeout", "_pyroSeq",
+         "_pyroRawWireResponse", "_pyroHandshake", "_pyroMaxRetries", "_pyroSerializer",
+         "_Proxy__pyroTimeout", "_Proxy__pyroConnLock"])
 
     def __init__(self, uri):
-        if isinstance(uri, basestring):
+        if isinstance(uri, str):
             uri = URI(uri)
         elif not isinstance(uri, URI):
             raise TypeError("expected Pyro URI")
@@ -238,26 +250,11 @@ class Proxy(object):
         self._pyroRawWireResponse = False  # internal switch to enable wire level responses
         self._pyroHandshake = "hello"  # the data object that should be sent in the initial connection handshake message
         self._pyroMaxRetries = config.MAX_RETRIES
-        self.__pyroHmacKey = None
         self.__pyroTimeout = config.COMMTIMEOUT
         self.__pyroConnLock = threading.RLock()
         util.get_serializer(config.SERIALIZER)  # assert that the configured serializer is available
-        self.__async = False
         current_context.annotations = {}
         current_context.response_annotations = {}
-        self._pyroAttrs
-
-    @property
-    def _pyroHmacKey(self):
-        """the HMAC key (bytes) that this proxy uses"""
-        return self.__pyroHmacKey
-
-    @_pyroHmacKey.setter
-    def _pyroHmacKey(self, value):
-        # if needed, convert the hmac value to bytes first
-        if value and sys.version_info >= (3, 0) and type(value) is not bytes:
-            value = value.encode("utf-8")  # convert to bytes
-        self.__pyroHmacKey = value
 
     def __del__(self):
         if hasattr(self, "_pyroConnection"):
@@ -276,8 +273,6 @@ class Proxy(object):
         if config.METADATA and name not in self._pyroMethods:
             # client side check if the requested attr actually exists
             raise AttributeError("remote object '%s' has no exposed attribute or method '%s'" % (self._pyroUri, name))
-        if self.__async:
-            return _AsyncRemoteMethod(self, name, self._pyroMaxRetries)
         return _RemoteMethod(self._pyroInvoke, name, self._pyroMaxRetries)
 
     def __setattr__(self, name, value):
@@ -303,51 +298,31 @@ class Proxy(object):
         return "<%s.%s at 0x%x; %s; for %s>" % (self.__class__.__module__, self.__class__.__name__,
                                                 id(self), connected, self._pyroUri)
 
-    def __unicode__(self):
-        return str(self)
-
     def __getstate_for_dict__(self):
-        encodedHmac = None
-        if self._pyroHmacKey is not None:
-            encodedHmac = "b64:" + (base64.b64encode(self._pyroHmacKey).decode("ascii"))
         # for backwards compatibility reasons we also put the timeout and maxretries into the state
         return self._pyroUri.asString(), tuple(self._pyroOneway), tuple(self._pyroMethods), tuple(self._pyroAttrs),\
-            self.__pyroTimeout, encodedHmac, self._pyroHandshake, self._pyroMaxRetries, self._pyroSerializer
+            self.__pyroTimeout, self._pyroHandshake, self._pyroMaxRetries, self._pyroSerializer
 
     def __setstate_from_dict__(self, state):
         uri = URI(state[0])
         oneway = set(state[1])
         methods = set(state[2])
         attrs = set(state[3])
-        timeout = state[4]
-        hmac_key = state[5]
-        handshake = state[6]
-        max_retries = state[7]
-        serializer = None if len(state) < 9 else state[8]
-        if hmac_key:
-            if hmac_key.startswith("b64:"):
-                hmac_key = base64.b64decode(hmac_key[4:].encode("ascii"))
-            else:
-                raise errors.ProtocolError("hmac encoding error")
-        self.__setstate__((uri, oneway, methods, attrs, timeout, hmac_key, handshake, max_retries, serializer))
+        handshake = state[4]
+        serializer = state[5]
+        self.__setstate__((uri, oneway, methods, attrs, handshake, serializer))
 
     def __getstate__(self):
-        # for backwards compatibility reasons we also put the timeout and maxretries into the state
-        return self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, self.__pyroTimeout, \
-            self._pyroHmacKey, self._pyroHandshake, self._pyroMaxRetries, self._pyroSerializer
+        return self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, self._pyroHandshake, self._pyroSerializer
 
     def __setstate__(self, state):
-        # Note that the timeout and maxretries are also part of the state (for backwards compatibility reasons),
-        # but we're not using them here. Instead we get the configured values from the 'local' config.
-        self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, _, self._pyroHmacKey, self._pyroHandshake = state[:7]
-        self._pyroSerializer = None if len(state) < 9 else state[8]
+        self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, self._pyroHandshake, self._pyroSerializer = state
         self.__pyroTimeout = config.COMMTIMEOUT
         self._pyroMaxRetries = config.MAX_RETRIES
         self._pyroConnection = None
         self._pyroSeq = 0
         self._pyroRawWireResponse = False
         self.__pyroConnLock = threading.RLock()
-        self.__async = False
 
     def __copy__(self):
         uriCopy = URI(self._pyroUri)
@@ -358,10 +333,8 @@ class Proxy(object):
         p._pyroSerializer = self._pyroSerializer
         p._pyroTimeout = self._pyroTimeout
         p._pyroHandshake = self._pyroHandshake
-        p._pyroHmacKey = self._pyroHmacKey
         p._pyroRawWireResponse = self._pyroRawWireResponse
         p._pyroMaxRetries = self._pyroMaxRetries
-        p.__async = self.__async
         return p
 
     def __enter__(self):
@@ -436,8 +409,7 @@ class Proxy(object):
             if methodname in self._pyroOneway:
                 flags |= message.FLAGS_ONEWAY
             self._pyroSeq = (self._pyroSeq + 1) & 0xffff
-            msg = message.Message(message.MSG_INVOKE, data, serializer.serializer_id, flags, self._pyroSeq,
-                                  annotations=annotations, hmac_key=self._pyroHmacKey)
+            msg = message.Message(message.MSG_INVOKE, data, serializer.serializer_id, flags, self._pyroSeq, annotations=annotations)
             if config.LOGWIRE:
                 _log_wiredata(log, "proxy wiredata sending", msg)
             try:
@@ -446,7 +418,7 @@ class Proxy(object):
                 if flags & message.FLAGS_ONEWAY:
                     return None  # oneway call, no response data
                 else:
-                    msg = message.Message.recv(self._pyroConnection, [message.MSG_RESULT], hmac_key=self._pyroHmacKey)
+                    msg = message.Message.recv(self._pyroConnection, [message.MSG_RESULT])
                     if config.LOGWIRE:
                         _log_wiredata(log, "proxy wiredata received", msg)
                     self.__pyroCheckSequence(msg.seq)
@@ -496,7 +468,7 @@ class Proxy(object):
         with self.__pyroConnLock:
             if self._pyroConnection is not None:
                 return False  # already connected
-            uri = _resolve(self._pyroUri, self._pyroHmacKey)
+            uri = _resolve(self._pyroUri)
             # socket connection (normal or Unix domain socket)
             conn = None
             log.debug("connecting to %s", uri)
@@ -531,11 +503,11 @@ class Proxy(object):
                 if compressed:
                     flags |= message.FLAGS_COMPRESSED
                 msg = message.Message(message.MSG_CONNECT, data, serializer.serializer_id, flags, self._pyroSeq,
-                                      annotations=self.__annotations(False), hmac_key=self._pyroHmacKey)
+                                      annotations=self.__annotations(False))
                 if config.LOGWIRE:
                     _log_wiredata(log, "proxy connect sending", msg)
                 conn.send(msg.to_bytes())
-                msg = message.Message.recv(conn, [message.MSG_CONNECTOK, message.MSG_CONNECTFAIL], hmac_key=self._pyroHmacKey)
+                msg = message.Message.recv(conn, [message.MSG_CONNECTOK, message.MSG_CONNECTFAIL])
                 if config.LOGWIRE:
                     _log_wiredata(log, "proxy connect response received", msg)
             except Exception as x:
@@ -546,20 +518,14 @@ class Proxy(object):
                 if isinstance(x, errors.CommunicationError):
                     raise
                 else:
-                    ce = errors.CommunicationError(err)
-                    if sys.version_info >= (3, 0):
-                        ce.__cause__ = x
-                    raise ce
+                    raise errors.CommunicationError(err) from x
             else:
                 handshake_response = "?"
                 if msg.data:
                     serializer = util.get_serializer_by_id(msg.serializer_id)
                     handshake_response = serializer.deserializeData(msg.data, compressed=msg.flags & message.FLAGS_COMPRESSED)
                 if msg.type == message.MSG_CONNECTFAIL:
-                    if sys.version_info < (3, 0):
-                        error = "connection to %s rejected: %s" % (connect_location, handshake_response.decode())
-                    else:
-                        error = "connection to %s rejected: %s" % (connect_location, handshake_response)
+                    error = "connection to %s rejected: %s" % (connect_location, handshake_response)
                     conn.close()
                     log.error(error)
                     raise errors.CommunicationError(error)
@@ -646,11 +612,6 @@ class Proxy(object):
         """returns a helper class that lets you create batched method calls on the proxy"""
         return _BatchProxyAdapter(self)
 
-    def _pyroAsync(self, async=True):
-        """turns the proxy into async mode so you can do asynchronous method calls,
-        or sets it back to normal sync mode if you set async=False."""
-        self.__async = async
-
     def _pyroInvokeBatch(self, calls, oneway=False):
         flags = message.FLAGS_BATCH
         if oneway:
@@ -667,7 +628,7 @@ class Proxy(object):
     def _pyroResponseAnnotations(self, annotations, msgtype):
         """
         Process any response annotations (dictionary set by the daemon).
-        Usually this contains the internal Pyro annotations such as hmac and correlation id,
+        Usually this contains the internal Pyro annotations such as correlation id,
         and if you override the annotations method in the daemon, can contain your own annotations as well.
         Code using Pyro 4.56 or newer can skip this and instead read the response_annotations directly from the context object.
         """
@@ -819,21 +780,16 @@ class _BatchProxyAdapter(object):
 
     def __resultsgenerator(self, results):
         for result in results:
-            if isinstance(result, futures._ExceptionWrapper):
+            if isinstance(result, _ExceptionWrapper):
                 result.raiseIt()  # re-raise the remote exception locally.
             else:
                 yield result  # it is a regular result object, yield that and continue.
 
-    def __call__(self, oneway=False, async=False):
-        if oneway and async:
-            raise errors.PyroError("async oneway calls make no sense")
-        if async:
-            return _AsyncRemoteMethod(self, "<asyncbatch>", self.__proxy._pyroMaxRetries)()
-        else:
-            results = self.__proxy._pyroInvokeBatch(self.__calls, oneway)
-            self.__calls = []  # clear for re-use
-            if not oneway:
-                return self.__resultsgenerator(results)
+    def __call__(self, oneway=False):
+        results = self.__proxy._pyroInvokeBatch(self.__calls, oneway)
+        self.__calls = []  # clear for re-use
+        if not oneway:
+            return self.__resultsgenerator(results)
 
     def _pyroInvoke(self, name, args, kwargs):
         # ignore all parameters, we just need to execute the batch
@@ -842,63 +798,9 @@ class _BatchProxyAdapter(object):
         return self.__resultsgenerator(results)
 
 
-class _AsyncRemoteMethod(object):
-    """async method call abstraction (call will run in a background thread)"""
-    def __init__(self, proxy, name, max_retries):
-        self.__proxy = proxy
-        self.__name = name
-        self.__max_retries = max_retries
-
-    def __getattr__(self, name):
-        return _AsyncRemoteMethod(self.__proxy, "%s.%s" % (self.__name, name), self.__max_retries)
-
-    def __call__(self, *args, **kwargs):
-        result = futures.FutureResult()
-        thread = threading.Thread(target=self.__asynccall, args=(result, args, kwargs))
-        thread.setDaemon(True)
-        thread.start()
-        return result
-
-    def __asynccall(self, asyncresult, args, kwargs):
-        for attempt in range(self.__max_retries + 1):
-            try:
-                # use a copy of the proxy otherwise calls would still be done in sequence,
-                # and use contextmanager to close the proxy after we're done
-                with self.__proxy.__copy__() as proxy:
-                    delay = 0.1 + random.random() / 5
-                    while not proxy._pyroConnection:
-                        try:
-                            proxy._pyroBind()
-                        except errors.CommunicationError as x:
-                            if "no free workers" not in str(x):
-                                raise
-                            time.sleep(delay)   # wait a bit until a worker might be available again
-                            delay += 0.4 + random.random() / 2
-                            if 0 < config.COMMTIMEOUT / 2 < delay:
-                                raise
-                    value = proxy._pyroInvoke(self.__name, args, kwargs)
-                asyncresult.value = value
-                return
-            except (errors.ConnectionClosedError, errors.TimeoutError) as x:
-                # only retry for recoverable network errors
-                if attempt >= self.__max_retries:
-                    # ignore any exceptions here, return them as part of the async result instead
-                    asyncresult.value = futures._ExceptionWrapper(x)
-                    return
-            except Exception as x:
-                # ignore any exceptions here, return them as part of the async result instead
-                asyncresult.value = futures._ExceptionWrapper(x)
-                return
-
-
 def batch(proxy):
     """convenience method to get a batch proxy adapter"""
     return proxy._pyroBatch()
-
-
-def async(proxy, async=True):
-    """convenience method to set proxy to async or sync mode."""
-    proxy._pyroAsync(async)
 
 
 def pyroObjectToAutoProxy(obj):
@@ -982,7 +884,7 @@ def behavior(instance_mode="session", instance_creator=None):
             raise TypeError("instance_creator must be a callable")
         clazz._pyroInstancing = (instance_mode, instance_creator)
         return clazz
-    if not isinstance(instance_mode, basestring):
+    if not isinstance(instance_mode, str):
         raise SyntaxError("behavior decorator is missing argument(s)")
     return _behavior
 
@@ -1094,22 +996,10 @@ class Daemon(object):
         self.__serializer_ids = {util.get_serializer(ser_name).serializer_id for ser_name in config.SERIALIZERS_ACCEPTED}
         log.debug("accepted serializers: %s" % config.SERIALIZERS_ACCEPTED)
         log.debug("pyro protocol version: %d  pickle version: %d" % (constants.PROTOCOL_VERSION, config.PICKLE_PROTOCOL_VERSION))
-        self.__pyroHmacKey = None
         self._pyroInstances = {}   # pyro objects for instance_mode=single (singletons, just one per daemon)
         self.streaming_responses = {}   # stream_id -> (client, creation_timestamp, linger_timestamp, stream)
         self.housekeeper_lock = threading.Lock()
         self.__mustshutdown.clear()
-
-    @property
-    def _pyroHmacKey(self):
-        return self.__pyroHmacKey
-
-    @_pyroHmacKey.setter
-    def _pyroHmacKey(self, value):
-        # if needed, convert the hmac value to bytes first
-        if value and sys.version_info >= (3, 0) and type(value) is not bytes:
-            value = value.encode("utf-8")  # convert to bytes
-        self.__pyroHmacKey = value
 
     @property
     def sock(self):
@@ -1206,7 +1096,7 @@ class Daemon(object):
         serializer_id = util.MarshalSerializer.serializer_id
         msg_seq = 0
         try:
-            msg = message.Message.recv(conn, [message.MSG_CONNECT], hmac_key=self._pyroHmacKey)
+            msg = message.Message.recv(conn, [message.MSG_CONNECT])
             msg_seq = msg.seq
             if denied_reason:
                 raise Exception(denied_reason)
@@ -1247,7 +1137,7 @@ class Daemon(object):
             flags = message.FLAGS_COMPRESSED if compressed else 0
         # We need a minimal amount of response data or the socket will remain blocked
         # on some systems... (messages smaller than 40 bytes)
-        msg = message.Message(msgtype, data, serializer_id, flags, msg_seq, annotations=self.__annotations(), hmac_key=self._pyroHmacKey)
+        msg = message.Message(msgtype, data, serializer_id, flags, msg_seq, annotations=self.__annotations())
         if config.LOGWIRE:
             _log_wiredata(log, "daemon handshake response", msg)
         conn.send(msg.to_bytes())
@@ -1280,7 +1170,7 @@ class Daemon(object):
         wasBatched = False
         isCallback = False
         try:
-            msg = message.Message.recv(conn, [message.MSG_INVOKE, message.MSG_PING], hmac_key=self._pyroHmacKey)
+            msg = message.Message.recv(conn, [message.MSG_INVOKE, message.MSG_PING])
         except errors.CommunicationError as x:
             # we couldn't even get data from the client, this is an immediate error
             # log.info("error receiving data from client %s: %s", conn.sock.getpeername(), x)
@@ -1295,7 +1185,7 @@ class Daemon(object):
             if msg.type == message.MSG_PING:
                 # return same seq, but ignore any data (it's a ping, not an echo). Nothing is deserialized.
                 msg = message.Message(message.MSG_PING, b"pong", msg.serializer_id, 0, msg.seq,
-                                      annotations=self.__annotations(), hmac_key=self._pyroHmacKey)
+                                      annotations=self.__annotations())
                 if config.LOGWIRE:
                     _log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.to_bytes())
@@ -1333,7 +1223,7 @@ class Daemon(object):
                             xv._pyroTraceback = util.formatTraceback(detailed=config.DETAILED_TRACEBACK)
                             if sys.platform == "cli":
                                 util.fixIronPythonExceptionForPickle(xv, True)  # piggyback attributes
-                            data.append(futures._ExceptionWrapper(xv))
+                            data.append(_ExceptionWrapper(xv))
                             break  # stop processing the rest of the batch
                         else:
                             data.append(result)    # note that we don't support streaming results in batch mode
@@ -1377,7 +1267,7 @@ class Daemon(object):
                 if wasBatched:
                     response_flags |= message.FLAGS_BATCH
                 msg = message.Message(message.MSG_RESULT, data, serializer.serializer_id, response_flags, request_seq,
-                                      annotations=self.__annotations(), hmac_key=self._pyroHmacKey)
+                                      annotations=self.__annotations())
                 current_context.response_annotations = {}
                 if config.LOGWIRE:
                     _log_wiredata(log, "daemon wiredata sending", msg)
@@ -1512,8 +1402,7 @@ class Daemon(object):
             flags |= message.FLAGS_COMPRESSED
         annotations = dict(annotations or {})
         annotations.update(self.annotations())
-        msg = message.Message(message.MSG_RESULT, data, serializer.serializer_id, flags, seq,
-                              annotations=annotations, hmac_key=self._pyroHmacKey)
+        msg = message.Message(message.MSG_RESULT, data, serializer.serializer_id, flags, seq, annotations=annotations)
         if config.LOGWIRE:
             _log_wiredata(log, "daemon wiredata sending (error response)", msg)
         connection.send(msg.to_bytes())
@@ -1531,7 +1420,7 @@ class Daemon(object):
         that single object for *all* remote calls.
         """
         if objectId:
-            if not isinstance(objectId, basestring):
+            if not isinstance(objectId, str):
                 raise TypeError("objectId must be a string or None")
         else:
             objectId = "obj_" + uuid.uuid4().hex  # generate a new objectId
@@ -1562,7 +1451,7 @@ class Daemon(object):
         """
         if objectOrId is None:
             raise ValueError("object or objectid argument expected")
-        if not isinstance(objectOrId, basestring):
+        if not isinstance(objectOrId, str):
             objectId = getattr(objectOrId, "_pyroId", None)
             if objectId is None:
                 raise errors.DaemonError("object isn't registered")
@@ -1589,7 +1478,7 @@ class Daemon(object):
         If nat is set to False, the configured NAT address (if any) is ignored and it will
         return an URI for the internal address.
         """
-        if not isinstance(objectOrId, basestring):
+        if not isinstance(objectOrId, str):
             objectOrId = getattr(objectOrId, "_pyroId", None)
             if objectOrId is None or objectOrId not in self.objectsById:
                 raise errors.DaemonError("object isn't registered in this daemon")
@@ -1686,10 +1575,7 @@ class Daemon(object):
     def __setstate_from_dict__(self, state):
         pass
 
-    if sys.version_info < (3, 0):
-        __lazy_dict_iterator_types = (type({}.iterkeys()), type({}.itervalues()), type({}.iteritems()))
-    else:
-        __lazy_dict_iterator_types = (type({}.keys()), type({}.values()), type({}.items()))
+    __lazy_dict_iterator_types = (type({}.keys()), type({}.values()), type({}.items()))
 
     def _streamResponse(self, data, client):
         if isinstance(data, collections.Iterator) or inspect.isgenerator(data):
@@ -1729,7 +1615,7 @@ try:
     serpent.register_class(URI, pyro_class_serpent_serializer)
     serpent.register_class(Proxy, pyro_class_serpent_serializer)
     serpent.register_class(Daemon, pyro_class_serpent_serializer)
-    serpent.register_class(futures._ExceptionWrapper, pyro_class_serpent_serializer)
+    serpent.register_class(_ExceptionWrapper, pyro_class_serpent_serializer)
 except ImportError:
     pass
 
@@ -1744,7 +1630,7 @@ def serialize_core_object_to_dict(obj):
 util.SerializerBase.register_class_to_dict(URI, serialize_core_object_to_dict, serpent_too=False)
 util.SerializerBase.register_class_to_dict(Proxy, serialize_core_object_to_dict, serpent_too=False)
 util.SerializerBase.register_class_to_dict(Daemon, serialize_core_object_to_dict, serpent_too=False)
-util.SerializerBase.register_class_to_dict(futures._ExceptionWrapper, futures._ExceptionWrapper.__serialized_dict__, serpent_too=False)
+util.SerializerBase.register_class_to_dict(_ExceptionWrapper, _ExceptionWrapper.__serialized_dict__, serpent_too=False)
 
 
 def _log_wiredata(logger, text, msg):
@@ -1804,7 +1690,7 @@ class _OnewayCallThread(threading.Thread):
 
 
 # name server utility function, here to avoid cyclic dependencies
-def _resolve(uri, hmac_key=None):
+def _resolve(uri):
     """
     Resolve a 'magic' uri (PYRONAME, PYROMETA) into the direct PYRO uri.
     It finds a name server, and use that to resolve a PYRONAME uri into the direct PYRO uri pointing to the named object.
@@ -1813,7 +1699,7 @@ def _resolve(uri, hmac_key=None):
     Note: if you need to resolve more than a few names, consider using the name server directly instead of repeatedly
     calling this function, to avoid the name server lookup overhead from each call.
     """
-    if isinstance(uri, basestring):
+    if isinstance(uri, str):
         uri = URI(uri)
     elif not isinstance(uri, URI):
         raise TypeError("can only resolve Pyro URIs")
@@ -1821,10 +1707,10 @@ def _resolve(uri, hmac_key=None):
         return uri
     log.debug("resolving %s", uri)
     if uri.protocol == "PYRONAME":
-        with _locateNS(uri.host, uri.port, hmac_key=hmac_key) as nameserver:
+        with _locateNS(uri.host, uri.port) as nameserver:
             return nameserver.lookup(uri.object)
     elif uri.protocol == "PYROMETA":
-        with _locateNS(uri.host, uri.port, hmac_key=hmac_key) as nameserver:
+        with _locateNS(uri.host, uri.port) as nameserver:
             candidates = nameserver.list(metadata_all=uri.object)
             if candidates:
                 candidate = random.choice(list(candidates.values()))
@@ -1836,7 +1722,7 @@ def _resolve(uri, hmac_key=None):
 
 
 # name server utility function, here to avoid cyclic dependencies
-def _locateNS(host=None, port=None, broadcast=True, hmac_key=None):
+def _locateNS(host=None, port=None, broadcast=True):
     """Get a proxy for a name server somewhere in the network."""
     if host is None:
         # first try localhost if we have a good chance of finding it there
@@ -1855,7 +1741,6 @@ def _locateNS(host=None, port=None, broadcast=True, hmac_key=None):
                 uristring = "PYRO:%s@%s:%d" % (constants.NAMESERVER_NAME, host, port or config.NS_PORT)
                 log.debug("locating the NS: %s", uristring)
                 proxy = Proxy(uristring)
-                proxy._pyroHmacKey = hmac_key
                 try:
                     proxy._pyroBind()
                     log.debug("located NS")
@@ -1882,11 +1767,9 @@ def _locateNS(host=None, port=None, broadcast=True, hmac_key=None):
                                 raise
                     data, _ = sock.recvfrom(100)
                     sock.close()
-                    if sys.version_info >= (3, 0):
-                        data = data.decode("iso-8859-1")
+                    data = data.decode("iso-8859-1")
                     log.debug("located NS: %s", data)
                     proxy = Proxy(data)
-                    proxy._pyroHmacKey = hmac_key
                     return proxy
                 except socket.timeout:
                     continue
@@ -1914,16 +1797,12 @@ def _locateNS(host=None, port=None, broadcast=True, hmac_key=None):
     uri = URI(uristring)
     log.debug("locating the NS: %s", uri)
     proxy = Proxy(uri)
-    proxy._pyroHmacKey = hmac_key
     try:
         proxy._pyroBind()
         log.debug("located NS")
         return proxy
     except errors.PyroError as x:
-        e = errors.NamingError("Failed to locate the nameserver")
-        if sys.version_info >= (3, 0):
-            e.__cause__ = x
-        raise e
+        raise errors.NamingError("Failed to locate the nameserver") from x
 
 
 class SerializedBlob(object):
