@@ -1,5 +1,4 @@
-Pyro5 - work in progress - use Pyro4 for now
-============================================
+# Pyro5 - work in progress - use Pyro4 for now
 
 *Remote objects communication library for Python 3, fifth incarnation*
 
@@ -7,42 +6,42 @@ Pyro5 - work in progress - use Pyro4 for now
 
 
 This may or may not become the next major Pyro version.
-It will only work on Python 3.5 or later (or perhaps 3.4 or later).
-Python 2.x is no longer supported!
+It will only work on Python 3.4 or later. Python 2.x is no longer supported!
+If you require compatibility with older Python versions, use Pyro4 instead.
 
-Pyro5 is an "overhauled" Pyro4: more secure, more efficent, simpler, streamlined and cleaned up.
+Pyro5 is an "overhauled" Pyro4: more efficient, simpler, streamlined, and cleaned up.
 
 
 
-** changes done based on original Pyro4 sources (release 4.62) **
+## changes done based on original Pyro4 sources (release 4.62)
 
-- the API is similar but not compatible:
-- - Pyro5 is the new package name (duh)
-- - restructured the submodules, renamed some submodules (naming -> nameserver)
-- - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
-- removed all __future__ imports and all sys.version_info checks because we're Python 3 only
+- the API is similar but incompatible:
+  - Pyro5 is the new package name (duh)
+  - restructured the submodules, renamed some submodules (naming -> nameserver)
+  - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
+  - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
+- removed all from future imports and all sys.version_info checks because we're Python 3 only
 - removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
 - moved test.echoserver to utils.echoserver (next to httpgateway)
-- moved threadpool module into same module as threadpool server
-- moved socketservers modules into main package
-- replaced all Pyro4 references by Pyro4 (imports, class names, loggers)
+- threadpool module is gone, threadpool is now part of the same module as threadpool-server
+- moved the multiplex and thread socketservers modules into main package
 - no custom futures module anymore (you should use Python's own concurrent.futures instead)
 - async proxy removed (may come back but probably not directly integrated into the Proxy class)
-- using relative imports
 - nameserver storage option 'dbm' removed (only memory and sql possible now)
+- naming_storage module merged into nameserver module
 - no Hmac key anymore, use SSL and 2-way certs if you want true security
 
 
 
-** changes done in earlier pyro5 version **
+## changes done in earlier pyro5 version
 
 It is based on the proven concepts of Pyro4 and a lot should be familiar, but there are some major differences:
 
 - the API is similar but not compatible:
-- - Pyro5 is the new package name (duh)
-- - restructuring of the submodules, other module names
-- - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
-- - instead of the global package namespace you should now use Pyro5.api if you want to have one place to access the most important things
+  - Pyro5 is the new package name (duh)
+  - restructuring of the submodules, other module names
+  - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
+  - instead of the global package namespace you should now use Pyro5.api if you want to have one place to access the most important things
 - no async proxy (may come back but probably not directly integrated into the Proxy class)
 - no custom futures module anymore (you should use Python's own concurrent.futures instead)
 - no Hmac key anymore, will probably be replaced by a different security mechanism
