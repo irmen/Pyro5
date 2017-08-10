@@ -1559,9 +1559,6 @@ class Daemon(object):
     def __deserializeBlobArgs(self, protocolmsg):
         import marshal
         blobinfo = protocolmsg.annotations["BLBI"]
-        if sys.platform == "cli" and type(blobinfo) is not str:
-            # Ironpython's marshal expects str...
-            blobinfo = str(blobinfo)
         blobinfo, objId, method = marshal.loads(blobinfo)
         blob = SerializedBlob(blobinfo, protocolmsg, is_blob=True)
         return objId, method, (blob,), {}  # object, method, vargs, kwargs
@@ -1621,19 +1618,7 @@ class _CallContext(threading.local):
         self.correlation_id = None
 
     def to_global(self):
-        if sys.platform != "cli":
-            return dict(self.__dict__)
-        # ironpython somehow has problems getting at the values, so do it manually:
-        return {
-            "client": self.client,
-            "seq": self.seq,
-            "msg_flags": self.msg_flags,
-            "serializer_id": self.serializer_id,
-            "annotations": self.annotations,
-            "response_annotations": self.response_annotations,
-            "correlation_id": self.correlation_id,
-            "client_sock_addr": self.client_sock_addr
-        }
+        return dict(self.__dict__)
 
     def from_global(self, values):
         self.client = values["client"]

@@ -8,7 +8,6 @@ import warnings
 import re
 import logging
 import socket
-import sys
 import time
 import threading
 from collections import MutableMapping
@@ -640,12 +639,6 @@ class BroadcastServer(object):
                 self.sock.sendto(responsedata, 0, addr)
         except socket.error:
             pass
-        except SystemError:
-            if sys.platform == "cli" and not self.running:
-                # ironpython throws these systemerrors when shutting down... we can ignore them.
-                pass
-            else:
-                raise
 
     def __enter__(self):
         return self

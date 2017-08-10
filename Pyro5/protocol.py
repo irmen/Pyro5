@@ -6,7 +6,6 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 import struct
 import logging
-import sys
 import zlib
 from . import config, errors
 
@@ -180,8 +179,6 @@ class Message(object):
                 anno, length = struct.unpack("!4sH", annotations_data[i:i + 6])
                 anno = anno.decode()
                 msg.annotations[anno] = annotations_data[i + 6:i + 6 + length]
-                if sys.platform == "cli":
-                    msg.annotations[anno] = bytes(msg.annotations[anno])
                 i += 6 + length
         # read data
         msg.data = connection.recv(msg.data_size)

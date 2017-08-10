@@ -4,7 +4,6 @@ The various serializers.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-import sys
 import zlib
 import uuid
 import logging
@@ -299,32 +298,16 @@ class MarshalSerializer(SerializerBase):
         except (ValueError, TypeError):
             return marshal.dumps(self.class_to_dict(data))
 
-    if sys.platform == "cli":
-        def loadsCall(self, data):
-            if type(data) is not str:
-                # Ironpython's marshal expects str...
-                data = str(data)
-            obj, method, vargs, kwargs = marshal.loads(data)
-            vargs = self.recreate_classes(vargs)
-            kwargs = self.recreate_classes(kwargs)
-            return obj, method, vargs, kwargs
+    def loadsCall(self, data):
+        data = self._convertToBytes(data)
+        obj, method, vargs, kwargs = marshal.loads(data)
+        vargs = self.recreate_classes(vargs)
+        kwargs = self.recreate_classes(kwargs)
+        return obj, method, vargs, kwargs
 
-        def loads(self, data):
-            if type(data) is not str:
-                # Ironpython's marshal expects str...
-                data = str(data)
-            return self.recreate_classes(marshal.loads(data))
-    else:
-        def loadsCall(self, data):
-            data = self._convertToBytes(data)
-            obj, method, vargs, kwargs = marshal.loads(data)
-            vargs = self.recreate_classes(vargs)
-            kwargs = self.recreate_classes(kwargs)
-            return obj, method, vargs, kwargs
-
-        def loads(self, data):
-            data = self._convertToBytes(data)
-            return self.recreate_classes(marshal.loads(data))
+    def loads(self, data):
+        data = self._convertToBytes(data)
+        return self.recreate_classes(marshal.loads(data))
 
     @classmethod
     def class_to_dict(cls, obj):

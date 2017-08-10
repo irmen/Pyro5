@@ -9,3 +9,4 @@
 /dist/
 /.cache/
 /.eggs/
+/.mypy_cache/
