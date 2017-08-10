@@ -25,7 +25,7 @@ changes done based on original Pyro4 sources (release 4.62)
   - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
 - Proxy moved from core to new client module
 - Daemon moved from core to new server module
-- no support for unsafe serializers AT ALL (pickle, dill, cloudpickle)
+- no support for unsafe serializers AT ALL (pickle, dill, cloudpickle) - only safe serializers (serpent, marshal, json, msgpack)
 - removed all from future imports and all sys.version_info checks because we're Python 3 only
 - removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
 - moved test.echoserver to utils.echoserver (next to httpgateway)
@@ -51,13 +51,8 @@ changes done based on original Pyro4 sources (release 4.62)
 - wire protocol changed: much larger annotations possible (2Gb instead of 64Kb), no more checksumming
 - a proxy doesn't have a thread lock anymore but can't be shared anymore across different threads.
   A thread is the "owner" of a proxy. Another thread can use _pyroClaimOwnership to take over.
-
-
-changes done in earlier pyro5 version
--------------------------------------
-
-It is based on the proven concepts of Pyro4 and a lot should be familiar, but there are some major differences:
-
+- simplified serializers by moving the task of compressing data to the protocol module instead (where it belongs)
+- optimized wire messages (less code, less data copying by  using memoryviews)
 
 
 This library is still largely untested and in development.

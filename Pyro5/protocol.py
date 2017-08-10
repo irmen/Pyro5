@@ -78,7 +78,7 @@ class SendingMessage:
         flags &= ~FLAGS_COMPRESSED
         if config.COMPRESSION and len(payload) > 100:
             payload = zlib.compress(payload, 4)
-            flags |= FLAGS_COMPRESSED       # @todo fix compression, serializer must not do it anymore
+            flags |= FLAGS_COMPRESSED
         self.flags = flags
         total_size = len(payload) + annotations_size
         if total_size > config.MAX_MESSAGE_SIZE:
