@@ -329,34 +329,30 @@ class Daemon(object):
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "daemon handshake received", msg)
             if "CORR" in msg.annotations:
-                core.current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"])
+                core.current_context.correlation_id = uuid.UUID(bytes=bytes(msg.annotations["CORR"]))
             else:
                 core.current_context.correlation_id = uuid.uuid4()
             serializer_id = msg.serializer_id
             serializer = serializers.serializers_by_id[serializer_id]
-            data = serializer.deserializeData(msg.data, msg.flags & protocol.FLAGS_COMPRESSED)
+            data = serializer.loads(msg.data)
             handshake_response = self.validateHandshake(conn, data["handshake"])
             handshake_response = {
                 "handshake": handshake_response,
                 "meta": self.objectsById[core.DAEMON_NAME].get_metadata(data["object"], as_lists=True)
             }
-            data, compressed = serializer.serializeData(handshake_response, config.COMPRESSION)
+            data = serializer.dumps(handshake_response)
             msgtype = protocol.MSG_CONNECTOK
-            flags = 0
-            if compressed:
-                flags = protocol.FLAGS_COMPRESSED
         except errors.ConnectionClosedError:
             log.debug("handshake failed, connection closed early")
             return False
         except Exception as x:
             log.debug("handshake failed, reason:", exc_info=True)
             serializer = serializers.serializers_by_id[serializer_id]
-            data, compressed = serializer.serializeData(str(x), False)
+            data = serializer.dumps(str(x))
             msgtype = protocol.MSG_CONNECTFAIL
-            flags = protocol.FLAGS_COMPRESSED if compressed else 0
         # We need a minimal amount of response data or the socket will remain blocked
         # on some systems... (messages smaller than 40 bytes)
-        msg = protocol.SendingMessage(msgtype, flags, msg_seq, serializer_id, data, annotations=self.__annotations())
+        msg = protocol.SendingMessage(msgtype, 0, msg_seq, serializer_id, data, annotations=self.__annotations())
         if config.LOGWIRE:
             protocol.log_wiredata(log, "daemon handshake response", msg)
         conn.send(msg.data)
@@ -398,7 +394,10 @@ class Daemon(object):
             request_flags = msg.flags
             request_seq = msg.seq
             request_serializer_id = msg.serializer_id
-            core.current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"]) if "CORR" in msg.annotations else uuid.uuid4()
+            if "CORR" in msg.annotations:
+                core.current_context.correlation_id = uuid.UUID(bytes=bytes(msg.annotations["CORR"]))
+            else:
+                core.current_context.correlation_id = uuid.uuid4()
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "daemon wiredata received", msg)
             if msg.type == protocol.MSG_PING:
@@ -414,7 +413,7 @@ class Daemon(object):
                 objId, method, vargs, kwargs = self.__deserializeBlobArgs(msg)
             else:
                 # normal deserialization of remote call arguments
-                objId, method, vargs, kwargs = serializer.deserializeCall(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
+                objId, method, vargs, kwargs = serializer.loadsCall(msg.data)
             core.current_context.client = conn
             core.current_context.client_sock_addr = conn.sock.getpeername()   # store, because on oneway calls, socket will be disconnected
             core.current_context.seq = msg.seq
@@ -473,10 +472,8 @@ class Daemon(object):
             if request_flags & protocol.FLAGS_ONEWAY:
                 return  # oneway call, don't send a response
             else:
-                data, compressed = serializer.serializeData(data, compress=config.COMPRESSION)
+                data = serializer.dumps(data)
                 response_flags = 0
-                if compressed:
-                    response_flags |= protocol.FLAGS_COMPRESSED
                 if wasBatched:
                     response_flags |= protocol.FLAGS_BATCH
                 msg = protocol.SendingMessage(protocol.MSG_RESULT, response_flags, request_seq, serializer.serializer_id, data,
@@ -597,17 +594,15 @@ class Daemon(object):
         exc_value._pyroTraceback = tbinfo
         serializer = serializers.serializers_by_id[serializer_id]
         try:
-            data, compressed = serializer.serializeData(exc_value)
+            data = serializer.dumps(exc_value)
         except:
             # the exception object couldn't be serialized, use a generic PyroError instead
             xt, xv, tb = sys.exc_info()
             msg = "Error serializing exception: %s. Original exception: %s: %s" % (str(xv), type(exc_value), str(exc_value))
             exc_value = errors.PyroError(msg)
             exc_value._pyroTraceback = tbinfo
-            data, compressed = serializer.serializeData(exc_value)
+            data = serializer.dumps(exc_value)
         flags |= protocol.FLAGS_EXCEPTION
-        if compressed:
-            flags |= protocol.FLAGS_COMPRESSED
         annotations = dict(annotations or {})
         annotations.update(self.annotations())
         msg = protocol.SendingMessage(protocol.MSG_RESULT, flags, seq, serializer.serializer_id, data, annotations=annotations)

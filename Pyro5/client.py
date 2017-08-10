@@ -209,12 +209,10 @@ class Proxy(object):
         annotations = self.__annotations()
         if vargs and isinstance(vargs[0], SerializedBlob):
             # special serialization of a 'blob' that stays serialized
-            data, compressed, flags = self.__serializeBlobArgs(vargs, kwargs, annotations, flags, objectId, methodname, serializer)
+            data, flags = self.__serializeBlobArgs(vargs, kwargs, annotations, flags, objectId, methodname, serializer)
         else:
             # normal serialization of the remote call
-            data, compressed = serializer.serializeCall(objectId, methodname, vargs, kwargs, compress=config.COMPRESSION)
-        if compressed:
-            flags |= protocol.FLAGS_COMPRESSED
+            data = serializer.dumpsCall(objectId, methodname, vargs, kwargs)
         if methodname in self._pyroOneway:
             flags |= protocol.FLAGS_ONEWAY
         self._pyroSeq = (self._pyroSeq + 1) & 0xffff
@@ -241,7 +239,7 @@ class Proxy(object):
                 if self._pyroRawWireResponse:
                     msg.decompress_if_needed()
                     return msg
-                data = serializer.deserializeData(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
+                data = serializer.loads(msg.data)
                 if msg.flags & protocol.FLAGS_ITEMSTREAMRESULT:
                     streamId = msg.annotations.get("STRM", b"").decode()
                     if not streamId:
@@ -299,11 +297,8 @@ class Proxy(object):
             # Do handshake.
             serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
             data = {"handshake": self._pyroHandshake, "object": uri.object}
-            data, compressed = serializer.serializeData(data, config.COMPRESSION)
-            flags = 0
-            if compressed:
-                flags = protocol.FLAGS_COMPRESSED
-            msg = protocol.SendingMessage(protocol.MSG_CONNECT, flags, self._pyroSeq, serializer.serializer_id,
+            data = serializer.dumps(data)
+            msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id,
                                           data, annotations=self.__annotations(False))
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "proxy connect sending", msg)
@@ -324,7 +319,7 @@ class Proxy(object):
             handshake_response = "?"
             if msg.data:
                 serializer = serializers.serializers_by_id[msg.serializer_id]
-                handshake_response = serializer.deserializeData(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
+                handshake_response = serializer.loads(msg.data)
             if msg.type == protocol.MSG_CONNECTFAIL:
                 error = "connection to %s rejected: %s" % (connect_location, handshake_response)
                 conn.close()
@@ -483,11 +478,10 @@ class Proxy(object):
         if blob._contains_blob:
             # directly pass through the already serialized msg data from within the blob
             protocol_msg = blob._data
-            data, compressed = protocol_msg.data, protocol_msg.flags & protocol.FLAGS_COMPRESSED
+            return protocol_msg.data, flags
         else:
             # replaces SerializedBlob argument with the data to be serialized
-            data, compressed = serializer.serializeCall(objectId, methodname, blob._data, kwargs, compress=config.COMPRESSION)
-        return data, compressed, flags
+            return serializer.dumpsCall(objectId, methodname, blob._data, kwargs), flags
 
     def __check_owner(self):
         if get_ident() != self.__pyroOwnerThread:
@@ -653,8 +647,7 @@ class SerializedBlob(object):
         if self._contains_blob:
             protocol_msg = self._data
             serializer = serializers.serializers_by_id[protocol_msg.serializer_id]
-            _, _, data, _ = serializer.deserializeData(protocol_msg.data, protocol_msg.flags & protocol.FLAGS_COMPRESSED)
-            return data
+            return serializer.loads(protocol_msg.data)
         else:
             return self._data
 

@@ -4,7 +4,6 @@ The various serializers.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-import zlib
 import builtins
 import uuid
 import logging
@@ -79,45 +78,12 @@ class SerializerBase(object):
     def register_type_replacement(cls, object_type, replacement_function):
         raise NotImplementedError("implement in subclass")
 
-    def serializeData(self, data, compress=False):
-        """Serialize the given data object, try to compress if told so.
-        Returns a tuple of the serialized data (bytes) and a bool indicating if it is compressed or not."""
-        data = self.dumps(data)
-        return self.__compressdata(data, compress)
-
-    def deserializeData(self, data, compressed=False):
-        """Deserializes the given data (bytes). Set compressed to True to decompress the data first."""
-        if compressed:
-            data = zlib.decompress(data)
-        return self.loads(data)
-
-    def serializeCall(self, obj, method, vargs, kwargs, compress=False):
-        """Serialize the given method call parameters, try to compress if told so.
-        Returns a tuple of the serialized data and a bool indicating if it is compressed or not."""
-        data = self.dumpsCall(obj, method, vargs, kwargs)
-        return self.__compressdata(data, compress)
-
-    def deserializeCall(self, data, compressed=False):
-        """Deserializes the given call data back to (object, method, vargs, kwargs) tuple.
-        Set compressed to True to decompress the data first."""
-        if compressed:
-            data = zlib.decompress(data)
-        return self.loadsCall(data)
-
     def _convertToBytes(self, data):
         if type(data) is bytearray:
             return bytes(data)
         if type(data) is memoryview:
             return data.tobytes()
         return data
-
-    def __compressdata(self, data, compress):
-        if not compress or len(data) < 200:
-            return data, False  # don't waste time compressing small messages
-        compressed = zlib.compress(data)
-        if len(compressed) < len(data):
-            return compressed, True
-        return data, False
 
     @classmethod
     def register_class_to_dict(cls, clazz, converter, serpent_too=True):
@@ -439,8 +405,7 @@ class MsgpackSerializer(SerializerBase):
         return msgpack.packb(data, use_bin_type=True, default=self.default)
 
     def loadsCall(self, data):
-        obj, method, vargs, kwargs = msgpack.unpackb(self._convertToBytes(data), encoding="utf-8", object_hook=self.object_hook)
-        return obj, method, vargs, kwargs
+        return msgpack.unpackb(self._convertToBytes(data), encoding="utf-8", object_hook=self.object_hook)
 
     def loads(self, data):
         return msgpack.unpackb(self._convertToBytes(data), encoding="utf-8", object_hook=self.object_hook, ext_hook=self.ext_hook)

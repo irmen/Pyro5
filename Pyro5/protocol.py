@@ -167,13 +167,13 @@ class ReceivingMessage:
 def log_wiredata(logger, text, msg):
     """logs all the given properties of the wire message in the given logger"""
     if hasattr(msg, "annotations"):
-        corr = str(uuid.UUID(bytes=msg.annotations["CORR"])) if "CORR" in msg.annotations else "?"
-        logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s\nannotations=%r\ndata=%r" %
-                     (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, msg.annotations, msg.data))
+        corr = str(uuid.UUID(bytes=bytes(msg.annotations["CORR"]))) if "CORR" in msg.annotations else "?"
+        num_anns = len(msg.annotations)
     else:
-        logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=?\ndata=%r" %
-                     (text, msg.type, msg.flags, msg.serializer_id, msg.seq, msg.data))
-        # @todo get corr from the header
+        corr = num_anns = "?"
+    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s num_annotations=%s\ndata=%r" %
+                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, num_anns, bytes(msg.data)))
+    # @todo get corr from the header
 
 
 def recv_stub(connection, accepted_msgtypes=None):  # XXX decouple i/o from actual protocol logic
