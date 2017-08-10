@@ -720,20 +720,19 @@ def type_meta(class_or_object, prefix="class:"):
 
 
 def main(args=None):
-    from optparse import OptionParser
-    parser = OptionParser()
-    parser.add_option("-n", "--host", dest="host", help="hostname to bind server on")
-    parser.add_option("-p", "--port", dest="port", type="int", help="port to bind server on (0=random)")
-    parser.add_option("-u", "--unixsocket", help="Unix domain socket name to bind server on")
-    parser.add_option("-s", "--storage", help="Storage system to use (memory, sql:file)", default="memory")
-    parser.add_option("", "--bchost", dest="bchost", help="hostname to bind broadcast server on (default is \"\")")
-    parser.add_option("", "--bcport", dest="bcport", type="int",
-                      help="port to bind broadcast server on (0=random)")
-    parser.add_option("", "--nathost", dest="nathost", help="external hostname in case of NAT")
-    parser.add_option("", "--natport", dest="natport", type="int", help="external port in case of NAT")
-    parser.add_option("-x", "--nobc", dest="enablebc", action="store_false", default=True,
-                      help="don't start a broadcast server")
-    options, args = parser.parse_args(args)
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description="Pyro name server command line launcher.")
+    parser.add_argument("-n", "--host", dest="host", help="hostname to bind server on")
+    parser.add_argument("-p", "--port", dest="port", type=int, help="port to bind server on (0=random)")
+    parser.add_argument("-u", "--unixsocket", help="Unix domain socket name to bind server on")
+    parser.add_argument("-s", "--storage", help="Storage system to use (memory, sql:file)", default="memory")
+    parser.add_argument("--bchost", dest="bchost", help="hostname to bind broadcast server on (default is \"\")")
+    parser.add_argument("--bcport", dest="bcport", type=int, help="port to bind broadcast server on (0=random)")
+    parser.add_argument("--nathost", dest="nathost", help="external hostname in case of NAT")
+    parser.add_argument("--natport", dest="natport", type=int, help="external port in case of NAT")
+    parser.add_argument("-x", "--nobc", dest="enablebc", action="store_false", default=True,
+                        help="don't start a broadcast server")
+    options = parser.parse_args(args)
     startNSloop(options.host, options.port, enableBroadcast=options.enablebc,
                 bchost=options.bchost, bcport=options.bcport, unixsocket=options.unixsocket,
                 nathost=options.nathost, natport=options.natport, storage=options.storage)

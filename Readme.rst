@@ -42,6 +42,7 @@ changes done based on original Pyro4 sources (release 4.62)
 - util traceback and excepthook functions moved to errors module
 - util methods regarding object/class inspection moved to new server module
 - rest of util module renamed to serializers module
+- replaced deprecated usages of optparse with argparse
 
 
 changes done in earlier pyro5 version

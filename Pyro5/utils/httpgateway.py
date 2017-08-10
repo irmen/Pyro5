@@ -28,6 +28,7 @@ import cgi
 import uuid
 import json
 from wsgiref.simple_server import make_server
+from argparse import ArgumentParser
 import traceback
 from .. import __version__, config, errors, core, protocol, serializers, nameserver
 
@@ -300,17 +301,15 @@ pyro_app.comm_timeout = config.COMMTIMEOUT
 
 
 def main(args=None):
-    from optparse import OptionParser
+    parser = ArgumentParser(description="Pyro http gateway command line launcher.")
+    parser.add_argument("-H", "--host", default="localhost", help="hostname to bind server on (default=%(default)s)")
+    parser.add_argument("-p", "--port", type=int, default=8080, help="port to bind server on (default=%(default)d)")
+    parser.add_argument("-e", "--expose", default=pyro_app.ns_regex, help="a regex of object names to expose (default=%(default)s)")
+    parser.add_argument("-g", "--gatewaykey", help="the api key to use to connect to the gateway itself")
+    parser.add_argument("-t", "--timeout", type=float, default=pyro_app.comm_timeout,
+                        help="Pyro timeout value to use (COMMTIMEOUT setting, default=%(default)f)")
 
-    parser = OptionParser()
-    parser.add_option("-H", "--host", default="localhost", help="hostname to bind server on (default=%default)")
-    parser.add_option("-p", "--port", type="int", default=8080, help="port to bind server on (default=%default)")
-    parser.add_option("-e", "--expose", default=pyro_app.ns_regex, help="a regex of object names to expose (default=%default)")
-    parser.add_option("-g", "--gatewaykey", help="the api key to use to connect to the gateway itself")
-    parser.add_option("-t", "--timeout", type="float", default=pyro_app.comm_timeout,
-                      help="Pyro timeout value to use (COMMTIMEOUT setting, default=%default)")
-
-    options, args = parser.parse_args(args)
+    options = parser.parse_args(args)
     pyro_app.gateway_key = (options.gatewaykey or "").encode("utf-8")
     pyro_app.ns_regex = options.expose
     pyro_app.comm_timeout = config.COMMTIMEOUT = options.timeout
