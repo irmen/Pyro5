@@ -64,41 +64,6 @@ _magic_number_bytes = _magic_number.to_bytes(2, "big")
 _protocol_version_bytes = PROTOCOL_VERSION.to_bytes(2, "big")
 
 
-class SendingMessage:
-    def __init__(self, msgtype, flags, seq, serializer_id, payload, annotations=None):
-        """
-        Creates a new wire protocol message to be sent.
-        """
-        self.type = msgtype
-        self.seq = seq
-        self.serializer_id = serializer_id
-        annotations = dict(annotations or {})
-        annotations_size = sum([8 + len(v) for v in annotations.values()])
-        flags &= ~FLAGS_COMPRESSED
-        if config.COMPRESSION and len(payload) > 100:
-            payload = zlib.compress(payload, 4)
-            flags |= FLAGS_COMPRESSED
-        self.flags = flags
-        total_size = len(payload) + annotations_size
-        if total_size > config.MAX_MESSAGE_SIZE:
-            raise errors.ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
-        header_data = struct.pack(_header_format, b"PYRO", PROTOCOL_VERSION, msgtype, flags, seq,
-                                  len(payload), serializer_id, annotations_size, 0, _magic_number)
-        annotation_data = []
-        for k, v in annotations.items():
-            if len(k) != 4:
-                raise errors.ProtocolError("annotation identifier must be 4 ascii characters")
-            annotation_data.append(struct.pack("!4si", k.encode("ascii"), len(v)))
-            if not isinstance(v, (bytes, bytearray)):
-                raise errors.ProtocolError("annotation data must be bytes")
-            annotation_data.append(v)
-        self.data = header_data + b"".join(annotation_data) + payload
-
-    def __repr__(self):
-        return "<{:s}.{:s} at 0x{:x}; type={:d} flags={:d} seq={:d} size={:d}>" \
-            .format(self.__module__, self.__class__.__name__, id(self), self.type, self.flags, self.seq, len(self.data))
-
-
 class ReceivingMessage:
     def __init__(self, header, payload=None):
         """Parses a message."""

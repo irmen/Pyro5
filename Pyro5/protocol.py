@@ -17,7 +17,7 @@ The header format is::
    B   1   serializer id
    H   2   message flags
    H   2   sequence number   (to identify proper request-reply sequencing)
-   I   4   data length   (hardcoded max 2 Gb)
+   I   4   data length   (max 4 Gb)
    H   2   annotations length (total of all chunks, 0 if no annotation chunks present)
    H   2   (reserved)
    H   2   magic number 0x4dc5
@@ -25,11 +25,13 @@ The header format is::
 After the header, zero or more annotation chunks may follow, of the format::
 
    4s  4   annotation id (4 ASCII letters)
-   I   4   chunk length  (hardcoded max 2 Gb)
+   I   4   chunk length  (max 4 Gb)
    B   x   annotation chunk databytes
 
 After that, the actual payload data bytes follow.
 """
+
+# @todo put correlation ID in the header itself rather than as an annotation
 
 import struct
 import logging
@@ -49,7 +51,7 @@ MSG_INVOKE = 4
 MSG_RESULT = 5
 MSG_PING = 6
 FLAGS_EXCEPTION = 1 << 0
-FLAGS_COMPRESSED = 1 << 1    # only the data, not the annotations  @todo also compress annotations
+FLAGS_COMPRESSED = 1 << 1    # compress the data, but not the annotations (if you need that, do it yourself)
 FLAGS_ONEWAY = 1 << 2
 FLAGS_BATCH = 1 << 3
 FLAGS_ITEMSTREAMRESULT = 1 << 4
@@ -62,7 +64,47 @@ _header_format = '!4sHBBHHIHHH'
 _header_size = struct.calcsize(_header_format)
 
 
-class Message(object):
+class SendingMessage:
+    """Wire protocol message that will be sent."""
+    def __init__(self, msgtype, flags, seq, serializer_id, payload, annotations=None):
+        self.type = msgtype
+        self.seq = seq
+        self.serializer_id = serializer_id
+        annotations = annotations or {}
+        annotations_size = sum([8 + len(v) for v in annotations.values()])
+        flags &= ~FLAGS_COMPRESSED
+        if config.COMPRESSION and len(payload) > 100:
+            payload = zlib.compress(payload, 4)
+            flags |= FLAGS_COMPRESSED       # @todo fix compression, serializer must not do it anymore
+        self.flags = flags
+        total_size = len(payload) + annotations_size
+        if total_size > config.MAX_MESSAGE_SIZE:
+            raise errors.ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
+        header_data = struct.pack(_header_format, b"PYRO", PROTOCOL_VERSION, msgtype, serializer_id, flags, seq,
+                                  len(payload), annotations_size, 0, _magic_number)
+        annotation_data = []
+        for k, v in annotations.items():
+            if len(k) != 4:
+                raise errors.ProtocolError("annotation identifier must be 4 ascii characters")
+            annotation_data.append(struct.pack("!4sI", k.encode("ascii"), len(v)))
+            if not isinstance(v, (bytes, bytearray)):
+                raise errors.ProtocolError("annotation data must be bytes")
+            annotation_data.append(v)    # note: annotations are not compressed by Pyro
+        self.data = header_data + b"".join(annotation_data) + payload
+
+    def __repr__(self):
+        return "<{:s}.{:s} at 0x{:x}; type={:d} flags={:d} seq={:d} size={:d}>" \
+            .format(self.__module__, self.__class__.__name__, id(self), self.type, self.flags, self.seq, len(self.data))
+
+    @staticmethod
+    def ping(pyroConnection):
+        """Convenience method to send a 'ping' message and wait for the 'pong' response"""
+        ping = SendingMessage(MSG_PING, 0, 0, 42, b"ping")
+        pyroConnection.send(ping.data)
+        MessageXXX.recv(pyroConnection, [MSG_PING])
+
+
+class MessageXXX(object):  # @todo split up in SendingMessage and ReceivingMessage
     """Pyro write protocol message."""
 
     def __init__(self, msgType, databytes, serializer_id, flags, seq, annotations=None):
@@ -123,7 +165,7 @@ class Message(object):
         tag, ver, msg_type, serializer_id, flags, seq, data_size, anns_size, _, magic = struct.unpack(_header_format, headerData)
         if tag != b"PYRO" or ver != PROTOCOL_VERSION or magic != _magic_number:
             raise errors.ProtocolError("invalid message or unsupported protocol version")
-        msg = Message(msg_type, b"", serializer_id, flags, seq)
+        msg = MessageXXX(msg_type, b"", serializer_id, flags, seq)
         msg.data_size = data_size
         msg.annotations_size = anns_size
         return msg
@@ -163,13 +205,6 @@ class Message(object):
         msg.data = connection.recv(msg.data_size)
         return msg
 
-    @staticmethod
-    def ping(pyroConnection):
-        """Convenience method to send a 'ping' message and wait for the 'pong' response"""
-        ping = Message(MSG_PING, b"ping", 42, 0, 0)
-        pyroConnection.send(ping.to_bytes())
-        Message.recv(pyroConnection, [MSG_PING])
-
     def decompress_if_needed(self):
         """Decompress the message data if it is compressed."""
         if self.flags & FLAGS_COMPRESSED:
@@ -181,6 +216,11 @@ class Message(object):
 
 def log_wiredata(logger, text, msg):
     """logs all the given properties of the wire message in the given logger"""
-    corr = str(uuid.UUID(bytes=msg.annotations["CORR"])) if "CORR" in msg.annotations else "?"
-    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s\nannotations=%r\ndata=%r" %
-                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, msg.annotations, msg.data))
+    if hasattr(msg, "annotations"):
+        corr = str(uuid.UUID(bytes=msg.annotations["CORR"])) if "CORR" in msg.annotations else "?"
+        logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s\nannotations=%r\ndata=%r" %
+                     (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, msg.annotations, msg.data))
+    else:
+        logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=?\ndata=%r" %
+                     (text, msg.type, msg.flags, msg.serializer_id, msg.seq, msg.data))
+        # @todo get corr from the header

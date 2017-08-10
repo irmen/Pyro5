@@ -218,16 +218,16 @@ class Proxy(object):
         if methodname in self._pyroOneway:
             flags |= protocol.FLAGS_ONEWAY
         self._pyroSeq = (self._pyroSeq + 1) & 0xffff
-        msg = protocol.Message(protocol.MSG_INVOKE, data, serializer.serializer_id, flags, self._pyroSeq, annotations=annotations)
+        msg = protocol.SendingMessage(protocol.MSG_INVOKE, flags, self._pyroSeq, serializer.serializer_id, data, annotations=annotations)
         if config.LOGWIRE:
             protocol.log_wiredata(log, "proxy wiredata sending", msg)
         try:
-            self._pyroConnection.send(msg.to_bytes())
+            self._pyroConnection.send(msg.data)
             del msg  # invite GC to collect the object, don't wait for out-of-scope
             if flags & protocol.FLAGS_ONEWAY:
                 return None  # oneway call, no response data
             else:
-                msg = protocol.Message.recv(self._pyroConnection, [protocol.MSG_RESULT])
+                msg = protocol.MessageXXX.recv(self._pyroConnection, [protocol.MSG_RESULT])
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "proxy wiredata received", msg)
                 self.__pyroCheckSequence(msg.seq)
@@ -303,12 +303,12 @@ class Proxy(object):
             flags = 0
             if compressed:
                 flags = protocol.FLAGS_COMPRESSED
-            msg = protocol.Message(protocol.MSG_CONNECT, data, serializer.serializer_id, flags, self._pyroSeq,
-                                   annotations=self.__annotations(False))
+            msg = protocol.SendingMessage(protocol.MSG_CONNECT, flags, self._pyroSeq, serializer.serializer_id,
+                                          data, annotations=self.__annotations(False))
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "proxy connect sending", msg)
-            conn.send(msg.to_bytes())
-            msg = protocol.Message.recv(conn, [protocol.MSG_CONNECTOK, protocol.MSG_CONNECTFAIL])
+            conn.send(msg.data)
+            msg = protocol.MessageXXX.recv(conn, [protocol.MSG_CONNECTOK, protocol.MSG_CONNECTFAIL])
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "proxy connect response received", msg)
         except Exception as x:

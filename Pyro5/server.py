@@ -322,7 +322,7 @@ class Daemon(object):
         serializer_id = serializers.MarshalSerializer.serializer_id
         msg_seq = 0
         try:
-            msg = protocol.Message.recv(conn, [protocol.MSG_CONNECT])
+            msg = protocol.MessageXXX.recv(conn, [protocol.MSG_CONNECT])
             msg_seq = msg.seq
             if denied_reason:
                 raise Exception(denied_reason)
@@ -356,10 +356,10 @@ class Daemon(object):
             flags = protocol.FLAGS_COMPRESSED if compressed else 0
         # We need a minimal amount of response data or the socket will remain blocked
         # on some systems... (messages smaller than 40 bytes)
-        msg = protocol.Message(msgtype, data, serializer_id, flags, msg_seq, annotations=self.__annotations())
+        msg = protocol.SendingMessage(msgtype, flags, msg_seq, serializer_id, data, annotations=self.__annotations())
         if config.LOGWIRE:
             protocol.log_wiredata(log, "daemon handshake response", msg)
-        conn.send(msg.to_bytes())
+        conn.send(msg.data)
         return msg.type == protocol.MSG_CONNECTOK
 
     def validateHandshake(self, conn, data):
@@ -389,7 +389,7 @@ class Daemon(object):
         wasBatched = False
         isCallback = False
         try:
-            msg = protocol.Message.recv(conn, [protocol.MSG_INVOKE, protocol.MSG_PING])
+            msg = protocol.MessageXXX.recv(conn, [protocol.MSG_INVOKE, protocol.MSG_PING])
         except errors.CommunicationError as x:
             # we couldn't even get data from the client, this is an immediate error
             # log.info("error receiving data from client %s: %s", conn.sock.getpeername(), x)
@@ -403,11 +403,10 @@ class Daemon(object):
                 protocol.log_wiredata(log, "daemon wiredata received", msg)
             if msg.type == protocol.MSG_PING:
                 # return same seq, but ignore any data (it's a ping, not an echo). Nothing is deserialized.
-                msg = protocol.Message(protocol.MSG_PING, b"pong", msg.serializer_id, 0, msg.seq,
-                                       annotations=self.__annotations())
+                msg = protocol.SendingMessage(protocol.MSG_PING, 0, msg.seq, msg.serializer_id, b"pong", annotations=self.__annotations())
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "daemon wiredata sending", msg)
-                conn.send(msg.to_bytes())
+                conn.send(msg.data)
                 return
             serializer = serializers.serializers_by_id[msg.serializer_id]
             if request_flags & protocol.FLAGS_KEEPSERIALIZED:
@@ -480,12 +479,12 @@ class Daemon(object):
                     response_flags |= protocol.FLAGS_COMPRESSED
                 if wasBatched:
                     response_flags |= protocol.FLAGS_BATCH
-                msg = protocol.Message(protocol.MSG_RESULT, data, serializer.serializer_id, response_flags, request_seq,
-                                       annotations=self.__annotations())
+                msg = protocol.SendingMessage(protocol.MSG_RESULT, response_flags, request_seq, serializer.serializer_id, data,
+                                              annotations=self.__annotations())
                 core.current_context.response_annotations = {}
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "daemon wiredata sending", msg)
-                conn.send(msg.to_bytes())
+                conn.send(msg.data)
         except Exception as xv:
             msg = getattr(xv, "pyroMsg", None)
             if msg:
@@ -611,10 +610,10 @@ class Daemon(object):
             flags |= protocol.FLAGS_COMPRESSED
         annotations = dict(annotations or {})
         annotations.update(self.annotations())
-        msg = protocol.Message(protocol.MSG_RESULT, data, serializer.serializer_id, flags, seq, annotations=annotations)
+        msg = protocol.SendingMessage(protocol.MSG_RESULT, flags, seq, serializer.serializer_id, data, annotations=annotations)
         if config.LOGWIRE:
             protocol.log_wiredata(log, "daemon wiredata sending (error response)", msg)
-        connection.send(msg.to_bytes())
+        connection.send(msg.data)
 
     def register(self, obj_or_class, objectId=None, force=False):
         """
