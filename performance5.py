@@ -1,14 +1,19 @@
-import time
+import timeit
 import Pyro5.api
 
+num_iterations = 3000
+num_tries = 10
+
 ns = Pyro5.api.locate_ns()
+ns._pyroBind()
 
-iterations = 20000
-print("PYRO 5 running", iterations, "calls...")
 
-start = time.time()
-for _ in range(iterations):
+def test():
     ns.list("Pyro.NameServer", return_metadata=True)
 
-duration = time.time()-start
-print("done! calls/sec: {:.0f}".format(iterations/duration))
+
+print("running %d tries..." % num_tries)
+timer = timeit.Timer("test()", "from __main__ import test")
+result = timer.repeat(num_tries, num_iterations)
+best = min(result)
+print("Best of %d tries: %.0f calls/sec" % (num_tries, num_iterations/best))
