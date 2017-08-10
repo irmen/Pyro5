@@ -10,7 +10,7 @@ This may or may not become the next major Pyro version.
 It will only work on Python 3.4 or later. Python 2.x is no longer supported!
 If you require compatibility with older Python versions, use Pyro4 instead.
 
-Pyro5 is an "overhauled" Pyro4: more efficient, simpler, streamlined, and cleaned up.
+Pyro5 is an "overhauled and updated" Pyro4: more efficient, simpler, streamlined, and cleaned up.
 
 
 
@@ -23,8 +23,8 @@ changes done based on original Pyro4 sources (release 4.62)
     message -> protocol, util -> serializers)
   - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
   - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
-- Proxy moved from core to new client package
-- Daemon moved from core to new server package
+- Proxy moved from core to new client module
+- Daemon moved from core to new server module
 - no support for unsafe serializers AT ALL (pickle, dill, cloudpickle)
 - removed all from future imports and all sys.version_info checks because we're Python 3 only
 - removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
@@ -60,7 +60,7 @@ It is based on the proven concepts of Pyro4 and a lot should be familiar, but th
   A thread is the "owner" of a proxy. Another thread can use _pyroClaimOwnership to take over.
 
 
-This package is still largely untested and in development.
+This library is still largely untested and in development.
 
 You should use Pyro4 instead for now: https://github.com/irmen/Pyro4
 

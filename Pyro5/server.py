@@ -336,20 +336,15 @@ class Daemon(object):
             serializer = serializers.serializers_by_id[serializer_id]
             data = serializer.deserializeData(msg.data, msg.flags & protocol.FLAGS_COMPRESSED)
             handshake_response = self.validateHandshake(conn, data["handshake"])
-            if msg.flags & protocol.FLAGS_META_ON_CONNECT:
-                # Usually this flag will be enabled, which results in including the object metadata
-                # in the handshake response. This avoids a separate remote call to get_metadata.
-                flags = protocol.FLAGS_META_ON_CONNECT
-                handshake_response = {
-                    "handshake": handshake_response,
-                    "meta": self.objectsById[core.DAEMON_NAME].get_metadata(data["object"], as_lists=True)
-                }
-            else:
-                flags = 0
+            handshake_response = {
+                "handshake": handshake_response,
+                "meta": self.objectsById[core.DAEMON_NAME].get_metadata(data["object"], as_lists=True)
+            }
             data, compressed = serializer.serializeData(handshake_response, config.COMPRESSION)
             msgtype = protocol.MSG_CONNECTOK
+            flags = 0
             if compressed:
-                flags |= protocol.FLAGS_COMPRESSED
+                flags = protocol.FLAGS_COMPRESSED
         except errors.ConnectionClosedError:
             log.debug("handshake failed, connection closed early")
             return False

@@ -300,14 +300,11 @@ class Proxy(object):
                 conn = socketutil.SocketConnection(sock, uri.object)
                 # Do handshake.
                 serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
-                data = {"handshake": self._pyroHandshake}
-                # the object id is only used/needed when piggybacking the metadata on the connection response
-                # make sure to pass the resolved object id instead of the logical id
-                data["object"] = uri.object
-                flags = protocol.FLAGS_META_ON_CONNECT
+                data = {"handshake": self._pyroHandshake, "object": uri.object}
                 data, compressed = serializer.serializeData(data, config.COMPRESSION)
+                flags = 0
                 if compressed:
-                    flags |= protocol.FLAGS_COMPRESSED
+                    flags = protocol.FLAGS_COMPRESSED
                 msg = protocol.Message(protocol.MSG_CONNECT, data, serializer.serializer_id, flags, self._pyroSeq,
                                        annotations=self.__annotations(False))
                 if config.LOGWIRE:
@@ -336,9 +333,8 @@ class Proxy(object):
                     log.error(error)
                     raise errors.CommunicationError(error)
                 elif msg.type == protocol.MSG_CONNECTOK:
-                    if msg.flags & protocol.FLAGS_META_ON_CONNECT:
-                        self.__processMetadata(handshake_response["meta"])
-                        handshake_response = handshake_response["handshake"]
+                    self.__processMetadata(handshake_response["meta"])
+                    handshake_response = handshake_response["handshake"]
                     self._pyroConnection = conn
                     if replaceUri:
                         self._pyroUri = uri

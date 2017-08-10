@@ -166,7 +166,6 @@ class _ExceptionWrapper(object):
 
     def __serialized_dict__(self):
         """serialized form as a dictionary"""
-        from .serializers import SerializerBase  # XXX circular
         return {
             "__class__": "Pyro5.core._ExceptionWrapper",
             "exception": SerializerBase.class_to_dict(self.exception)

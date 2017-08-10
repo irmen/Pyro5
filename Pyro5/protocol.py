@@ -22,12 +22,11 @@ MSG_INVOKE = 4
 MSG_RESULT = 5
 MSG_PING = 6
 FLAGS_EXCEPTION = 1 << 0
-FLAGS_COMPRESSED = 1 << 1
+FLAGS_COMPRESSED = 1 << 1    # only the data, not the annotations  @todo also compress annotations
 FLAGS_ONEWAY = 1 << 2
 FLAGS_BATCH = 1 << 3
-FLAGS_META_ON_CONNECT = 1 << 4          # @todo remove
-FLAGS_ITEMSTREAMRESULT = 1 << 5
-FLAGS_KEEPSERIALIZED = 1 << 6
+FLAGS_ITEMSTREAMRESULT = 1 << 4
+FLAGS_KEEPSERIALIZED = 1 << 5
 
 # wire protocol version. Note that if this gets updated, Pyrolite might need an update too.
 PROTOCOL_VERSION = 501
