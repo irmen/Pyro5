@@ -445,8 +445,7 @@ class Daemon(object):
                         method = get_attribute(obj, method)
                         try:
                             result = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
-                        except Exception:
-                            xt, xv = sys.exc_info()[0:2]
+                        except Exception as xv:
                             log.debug("Exception occurred while handling batched request: %s", xv)
                             xv._pyroTraceback = errors.formatTraceback(detailed=config.DETAILED_TRACEBACK)
                             data.append(core._ExceptionWrapper(xv))

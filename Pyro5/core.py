@@ -1192,8 +1192,7 @@ class Daemon(object):
                         method = server.getAttribute(obj, method)
                         try:
                             result = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
-                        except Exception:
-                            xt, xv = sys.exc_info()[0:2]
+                        except Exception as xv:
                             log.debug("Exception occurred while handling batched request: %s", xv)
                             xv._pyroTraceback = errors.formatTraceback(detailed=config.DETAILED_TRACEBACK)
                             data.append(_ExceptionWrapper(xv))
@@ -1245,14 +1244,13 @@ class Daemon(object):
                 if config.LOGWIRE:
                     _log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.to_bytes())
-        except Exception:
-            xt, xv = sys.exc_info()[0:2]
+        except Exception as xv:
             msg = getattr(xv, "pyroMsg", None)
             if msg:
                 request_seq = msg.seq
                 request_serializer_id = msg.serializer_id
-            if xt is not errors.ConnectionClosedError:
-                if xt not in (StopIteration, GeneratorExit):
+            if not isinstance(xv, errors.ConnectionClosedError):
+                if not isinstance(xv, (StopIteration, GeneratorExit)):
                     log.debug("Exception occurred while handling request: %r", xv)
                 if not request_flags & protocol.FLAGS_ONEWAY:
                     if isinstance(xv, errors.SerializeError) or not isinstance(xv, errors.CommunicationError):
