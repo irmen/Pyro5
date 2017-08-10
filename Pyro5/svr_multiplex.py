@@ -11,7 +11,7 @@ import sys
 import logging
 import os
 from collections import defaultdict
-from . import config, socketutil, errors, util
+from . import config, socketutil, errors
 try:
     # first try selectors2 as it has better semantics when dealing with interrupted system calls
     import selectors2 as selectors
@@ -125,7 +125,7 @@ class SocketServer_Multiplex(object):
             conn.close()
         except:  # catch all errors, otherwise the event loop could terminate
             ex_t, ex_v, ex_tb = sys.exc_info()
-            tb = util.formatTraceback(ex_t, ex_v, ex_tb)
+            tb = errors.formatTraceback(ex_t, ex_v, ex_tb)
             log.warning("error during connect/handshake: %s; %s", ex_v, "\n".join(tb))
             try:
                 csock.shutdown(socket.SHUT_RDWR)
@@ -189,7 +189,7 @@ class SocketServer_Multiplex(object):
         except:
             # other error occurred, close the connection, but also log a warning
             ex_t, ex_v, ex_tb = sys.exc_info()
-            tb = util.formatTraceback(ex_t, ex_v, ex_tb)
+            tb = errors.formatTraceback(ex_t, ex_v, ex_tb)
             msg = "error during handleRequest: %s; %s" % (ex_v, "".join(tb))
             log.warning(msg)
             return False

@@ -61,11 +61,13 @@ def _config_items():
     return {item for item in globals() if not item.startswith("_") and item not in {"os", "copy", "dump", "reset"}}
 
 
+__correct_configitems = set(_config_items())
+
+
 def _check_configitems():
-    wrong = _config_items() - _check_configitems.correct_items
+    wrong = _config_items() - __correct_configitems
     if wrong:
         raise RuntimeError("invalid Pyro config item(s) set: "+", ".join(wrong))
-_check_configitems.correct_items = set(_config_items())
 
 
 # store a copy of the config values as defaults

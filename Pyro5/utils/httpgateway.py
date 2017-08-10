@@ -29,7 +29,7 @@ import uuid
 import json
 from wsgiref.simple_server import make_server
 import traceback
-from .. import __version__, config, errors, core, message, util, nameserver
+from .. import __version__, config, errors, core, protocol, serializers, nameserver
 
 
 __all__ = ["pyro_app", "main"]
@@ -244,7 +244,7 @@ def process_pyro_request(environ, path, parameters, start_response):
                     start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8'),
                                               ('X-Pyro-Correlation-Id', str(core.current_context.correlation_id))])
                     return []
-                elif msg.flags & message.FLAGS_EXCEPTION:
+                elif msg.flags & protocol.FLAGS_EXCEPTION:
                     # got an exception response so send a 500 status
                     start_response('500 Internal Server Error', [('Content-Type', 'application/json; charset=utf-8')])
                     return [msg.data]
@@ -258,7 +258,7 @@ def process_pyro_request(environ, path, parameters, start_response):
         print("ERROR handling {0} with params {1}:".format(path, parameters), file=stderr)
         traceback.print_exc(file=stderr)
         start_response('500 Internal Server Error', [('Content-Type', 'application/json; charset=utf-8')])
-        reply = json.dumps(util.SerializerBase.class_to_dict(x)).encode("utf-8")
+        reply = json.dumps(serializers.SerializerBase.class_to_dict(x)).encode("utf-8")
         return [reply]
 
 

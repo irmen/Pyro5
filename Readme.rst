@@ -19,7 +19,8 @@ changes done based on original Pyro4 sources (release 4.62)
 
 - the API is similar but incompatible:
   - Pyro5 is the new package name (duh)
-  - restructured the submodules, renamed some submodules (naming -> nameserver, configuration -> config)
+  - restructured the submodules, renamed some submodules (naming -> nameserver, configuration -> config,
+    message -> protocol, util -> serializers)
   - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
   - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
 - no support for unsafe serializers AT ALL (pickle, dill, cloudpickle)
@@ -38,6 +39,9 @@ changes done based on original Pyro4 sources (release 4.62)
 - now prefers ipv6 over ipv4 if your os supports it
 - autoproxy always enabled for now (but this feature may be removed completely though)
 - values from constants module scattered to various other more relevant modules
+- util traceback and excepthook functions moved to errors module
+- util methods regarding object/class inspection moved to new server module
+- rest of util module renamed to serializers module
 
 
 changes done in earlier pyro5 version

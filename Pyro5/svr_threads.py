@@ -12,7 +12,7 @@ import sys
 import time
 import threading
 import os
-from . import config, socketutil, errors, util
+from . import config, socketutil, errors, serializers
 
 log = logging.getLogger("Pyro5.threadpoolserver")
 _client_disconnect_lock = threading.Lock()
@@ -49,7 +49,7 @@ class ClientConnectionJob(object):
                     except:
                         # other errors log a warning, break this loop and close the client connection
                         ex_t, ex_v, ex_tb = sys.exc_info()
-                        tb = util.formatTraceback(ex_t, ex_v, ex_tb)
+                        tb = serializers.formatTraceback(ex_t, ex_v, ex_tb)
                         msg = "error during handleRequest: %s; %s" % (ex_v, "".join(tb))
                         log.warning(msg)
                         break
@@ -69,7 +69,7 @@ class ClientConnectionJob(object):
             self.csock.close()
         except:
             ex_t, ex_v, ex_tb = sys.exc_info()
-            tb = util.formatTraceback(ex_t, ex_v, ex_tb)
+            tb = serializers.formatTraceback(ex_t, ex_v, ex_tb)
             log.warning("error during connect/handshake: %s; %s", ex_v, "\n".join(tb))
             self.csock.close()
         return False
