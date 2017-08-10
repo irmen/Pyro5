@@ -18,11 +18,13 @@ changes done based on original Pyro4 sources (release 4.62)
 -----------------------------------------------------------
 
 - the API is similar but incompatible:
+
   - Pyro5 is the new package name (duh)
   - restructured the submodules, renamed some submodules (naming -> nameserver, configuration -> config,
     message -> protocol, util -> serializers)
   - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
   - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
+
 - Proxy moved from core to new client module
 - Daemon moved from core to new server module
 - no support for unsafe serializers AT ALL (pickle, dill, cloudpickle) - only safe serializers (serpent, marshal, json, msgpack)
