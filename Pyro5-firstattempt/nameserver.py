@@ -456,7 +456,7 @@ class NameServerDaemon(server.Daemon):
             log.debug("number of existing entries in storage: %d", existing_count)
         super().__init__(host, port, unixsocket, nathost=nathost, natport=natport)
         self.register(self.nameserver, core.NAMESERVER_NAME)
-        metadata = {"class:Pyro5.naming.NameServer"}
+        metadata = {"class:Pyro5.nameserver.NameServer"}
         self.nameserver.register(core.NAMESERVER_NAME, self.uriFor(self.nameserver), metadata=metadata)
         if config.NS_AUTOCLEAN > 0:
             if not AutoCleaner.override_autoclean_min and config.NS_AUTOCLEAN < AutoCleaner.min_autoclean_value:

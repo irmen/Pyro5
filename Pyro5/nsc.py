@@ -75,12 +75,12 @@ def handleCommand(namesrv, cmd, args):
     def cmd_yplookup_all():
         if len(args) < 1:
             raise SystemExit("requires at least one metadata tag argument")
-        printListResult(namesrv.list(metadata_all=args, return_metadata=True), " - searched by metadata")
+        printListResult(namesrv.yplookup(meta_all=args, return_metadata=True), " - searched by metadata")
 
     def cmd_yplookup_any():
         if len(args) < 1:
             raise SystemExit("requires at least one metadata tag argument")
-        printListResult(namesrv.list(metadata_any=args, return_metadata=True), " - searched by metadata")
+        printListResult(namesrv.yplookup(meta_any=args, return_metadata=True), " - searched by metadata")
 
     commands = {
         "ping": cmd_ping,
