@@ -26,11 +26,10 @@ import sys
 import re
 import cgi
 import uuid
+import json
 from wsgiref.simple_server import make_server
 import traceback
-from .util import json     # don't import stdlib json directly, we want to use the JSON_MODULE config item
-from .configuration import config
-from . import constants, errors, core, message, util, naming
+from .. import __version__, config, errors, core, message, util, nameserver
 
 
 __all__ = ["pyro_app", "main"]
@@ -40,7 +39,7 @@ _nameserver = None
 def get_nameserver():
     global _nameserver
     if not _nameserver:
-        _nameserver = naming.locateNS()
+        _nameserver = nameserver.locateNS()
     try:
         _nameserver.ping()
         return _nameserver
@@ -73,6 +72,7 @@ index_page_template = """<!DOCTYPE html>
 <head>
     <title>Pyro HTTP gateway</title>
     <style type="text/css">
+    html {{ color: #202020; background-color: white; }}
     body {{ margin: 1em; }}
     table, th, td {{border: 1px solid #bbf; padding: 4px;}}
     table {{border-collapse: collapse;}}
@@ -106,12 +106,12 @@ index_page_template = """<!DOCTYPE html>
         }});
     }}
     </script>
-<div id="title-logo"><img src="http://pyro4.readthedocs.io/en/stable/_static/pyro.png"></div>
+<div id="title-logo"><img src="http://pyro5.readthedocs.io/en/stable/_static/pyro.png"></div>
 <div id="title-text">
 <h1>Pyro HTTP gateway</h1>
 <p>
     Use http+json to talk to Pyro objects.
-    <a href="http://pyro4.readthedocs.io/en/stable/tipstricks.html#pyro-via-http-and-json">Docs.</a>
+    <a href="http://pyro5.readthedocs.io/en/stable/tipstricks.html#pyro-via-http-and-json">Docs.</a>
 </p>
 </div>
 <p><em>Note: performance isn't maxed; it is stateless. Does a name lookup and uses a new Pyro proxy for each request.</em></p>
@@ -188,7 +188,7 @@ def return_homepage(environ, start_response):
     nslist.append("</table>")
     index_page = index_page_template.format(ns_regex=pyro_app.ns_regex,
                                             name_server_contents_list="".join(nslist),
-                                            pyro_version=constants.VERSION,
+                                            pyro_version=__version__,
                                             hostname=environ["SERVER_NAME"])
     return [index_page.encode("utf-8")]
 

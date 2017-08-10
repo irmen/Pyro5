@@ -16,16 +16,21 @@ import uuid
 import warnings
 import socket
 import random
-from . import errors, socketutil, util, constants, message
+from . import config, errors, socketutil, util, core, message, protocol
 from .svr_threads import SocketServer_Threadpool
 from .svr_multiplex import SocketServer_Multiplex
-from .configuration import config
 
 
 __all__ = ["URI", "Proxy", "Daemon", "current_context", "callback", "batch", "expose", "behavior",
            "oneway", "SerializedBlob", "_resolve", "_locateNS"]
 
 log = logging.getLogger("Pyro5.core")
+
+# standard object name for the Daemon object
+DAEMON_NAME = "Pyro.Daemon"
+
+# standard name for the Name server itself
+NAMESERVER_NAME = "Pyro.NameServer"
 
 
 class URI(object):
@@ -143,9 +148,6 @@ class URI(object):
     def __hash__(self):
         return hash((self.protocol, str(self.object), self.sockname, self.host, self.port))
 
-    # note: getstate/setstate are not needed if we use pickle protocol 2,
-    # but this way it helps pickle to make the representation smaller by omitting all attribute names.
-
     def __getstate__(self):
         return self.protocol, self.object, self.sockname, self.host, self.port
 
@@ -169,9 +171,6 @@ class _ExceptionWrapper(object):
         self.exception = exception
 
     def raiseIt(self):
-        from .util import fixIronPythonExceptionForPickle  # XXX circular
-        if sys.platform == "cli":
-            fixIronPythonExceptionForPickle(self.exception, False)
         raise self.exception
 
     def __serialized_dict__(self):
@@ -264,13 +263,12 @@ class Proxy(object):
         if name in Proxy.__pyroAttributes:
             # allows it to be safely pickled
             raise AttributeError(name)
-        if config.METADATA:
-            # get metadata if it's not there yet
-            if not self._pyroMethods and not self._pyroAttrs:
-                self._pyroGetMetadata()
+        # get metadata if it's not there yet
+        if not self._pyroMethods and not self._pyroAttrs:
+            self._pyroGetMetadata()
         if name in self._pyroAttrs:
             return self._pyroInvoke("__getattr__", (name,), None)
-        if config.METADATA and name not in self._pyroMethods:
+        if name not in self._pyroMethods:
             # client side check if the requested attr actually exists
             raise AttributeError("remote object '%s' has no exposed attribute or method '%s'" % (self._pyroUri, name))
         return _RemoteMethod(self._pyroInvoke, name, self._pyroMaxRetries)
@@ -278,17 +276,13 @@ class Proxy(object):
     def __setattr__(self, name, value):
         if name in Proxy.__pyroAttributes:
             return super(Proxy, self).__setattr__(name, value)  # one of the special pyro attributes
-        if config.METADATA:
-            # get metadata if it's not there yet
-            if not self._pyroMethods and not self._pyroAttrs:
-                self._pyroGetMetadata()
+        # get metadata if it's not there yet
+        if not self._pyroMethods and not self._pyroAttrs:
+            self._pyroGetMetadata()
         if name in self._pyroAttrs:
             return self._pyroInvoke("__setattr__", (name, value), None)  # remote attribute
-        if config.METADATA:
-            # client side validation if the requested attr actually exists
-            raise AttributeError("remote object '%s' has no exposed attribute '%s'" % (self._pyroUri, name))
-        # metadata disabled, just treat it as a local attribute on the proxy:
-        return super(Proxy, self).__setattr__(name, value)
+        # client side validation if the requested attr actually exists
+        raise AttributeError("remote object '%s' has no exposed attribute '%s'" % (self._pyroUri, name))
 
     def __repr__(self):
         if self._pyroConnection:
@@ -439,8 +433,6 @@ class Proxy(object):
                             raise errors.ProtocolError("result of call is an iterator, but the server is not configured to allow streaming")
                         return _StreamResultIterator(streamId, self)
                     if msg.flags & message.FLAGS_EXCEPTION:
-                        if sys.platform == "cli":
-                            util.fixIronPythonExceptionForPickle(data, False)
                         raise data
                     else:
                         return data
@@ -492,13 +484,10 @@ class Proxy(object):
                 # Do handshake.
                 serializer = util.get_serializer(self._pyroSerializer or config.SERIALIZER)
                 data = {"handshake": self._pyroHandshake}
-                if config.METADATA:
-                    # the object id is only used/needed when piggybacking the metadata on the connection response
-                    # make sure to pass the resolved object id instead of the logical id
-                    data["object"] = uri.object
-                    flags = message.FLAGS_META_ON_CONNECT
-                else:
-                    flags = 0
+                # the object id is only used/needed when piggybacking the metadata on the connection response
+                # make sure to pass the resolved object id instead of the logical id
+                data["object"] = uri.object
+                flags = message.FLAGS_META_ON_CONNECT
                 data, compressed = serializer.serializeData(data, config.COMPRESSION)
                 if compressed:
                     flags |= message.FLAGS_COMPRESSED
@@ -545,12 +534,11 @@ class Proxy(object):
                     err = "cannot connect to %s: invalid msg type %d received" % (connect_location, msg.type)
                     log.error(err)
                     raise errors.ProtocolError(err)
-            if config.METADATA:
-                # obtain metadata if this feature is enabled, and the metadata is not known yet
-                if self._pyroMethods or self._pyroAttrs:
-                    log.debug("reusing existing metadata")
-                else:
-                    self._pyroGetMetadata(uri.object)
+            # obtain metadata if this feature is enabled, and the metadata is not known yet
+            if self._pyroMethods or self._pyroAttrs:
+                log.debug("reusing existing metadata")
+            else:
+                self._pyroGetMetadata(uri.object)
             return True
 
     def _pyroGetMetadata(self, objectId=None, known_metadata=None):
@@ -571,7 +559,7 @@ class Proxy(object):
                 return  # metadata has already been retrieved as part of creating the connection
         try:
             # invoke the get_metadata method on the daemon
-            result = known_metadata or self._pyroInvoke("get_metadata", [objectId], {}, objectId=constants.DAEMON_NAME)
+            result = known_metadata or self._pyroInvoke("get_metadata", [objectId], {}, objectId=core.DAEMON_NAME)
             self.__processMetadata(result)
         except errors.PyroError:
             log.exception("problem getting metadata")
@@ -708,7 +696,7 @@ class _StreamResultIterator(object):
             raise errors.ConnectionClosedError("the proxy for this stream result has been closed")
         self.pyroseq += 1
         try:
-            return self.proxy._pyroInvoke("get_next_stream_item", [self.streamId], {}, objectId=constants.DAEMON_NAME)
+            return self.proxy._pyroInvoke("get_next_stream_item", [self.streamId], {}, objectId=core.DAEMON_NAME)
         except (StopIteration, GeneratorExit):
             # when the iterator is exhausted, the proxy is removed to avoid unneeded close_stream calls later
             # (the server has closed its part of the stream by itself already)
@@ -723,7 +711,7 @@ class _StreamResultIterator(object):
             if self.pyroseq == self.proxy._pyroSeq:
                 # we're still in sync, it's okay to use the same proxy to close this stream
                 self.proxy._pyroInvoke("close_stream", [self.streamId], {},
-                                       flags=message.FLAGS_ONEWAY, objectId=constants.DAEMON_NAME)
+                                       flags=message.FLAGS_ONEWAY, objectId=core.DAEMON_NAME)
             else:
                 # The proxy's sequence number has diverged.
                 # One of the reasons this can happen is because this call is being done from python's GC where
@@ -733,7 +721,7 @@ class _StreamResultIterator(object):
                 try:
                     with self.proxy.__copy__() as closingProxy:
                         closingProxy._pyroInvoke("close_stream", [self.streamId], {},
-                                                 flags=message.FLAGS_ONEWAY, objectId=constants.DAEMON_NAME)
+                                                 flags=message.FLAGS_ONEWAY, objectId=core.DAEMON_NAME)
                 except errors.CommunicationError:
                     pass
         self.proxy = None
@@ -805,11 +793,10 @@ def batch(proxy):
 
 def pyroObjectToAutoProxy(obj):
     """reduce function that automatically replaces Pyro objects by a Proxy"""
-    if config.AUTOPROXY:
-        daemon = getattr(obj, "_pyroDaemon", None)
-        if daemon:
-            # only return a proxy if the object is a registered pyro object
-            return daemon.proxyFor(obj)
+    daemon = getattr(obj, "_pyroDaemon", None)
+    if daemon:
+        # only return a proxy if the object is a registered pyro object
+        return daemon.proxyFor(obj)
     return obj
 
 
@@ -835,7 +822,7 @@ def oneway(method):
 
 def expose(method_or_class):
     """
-    Decorator to mark a method or class to be exposed for remote calls (relevant when REQUIRE_EXPOSE=True)
+    Decorator to mark a method or class to be exposed for remote calls.
     You can apply it to a method or a class as a whole.
     If you need to change the default instance mode or instance creator, also use a @behavior decorator.
     """
@@ -907,23 +894,18 @@ class DaemonObject(object):
     def info(self):
         """return some descriptive information about the daemon"""
         return "%s bound on %s, NAT %s, %d objects registered. Servertype: %s" % (
-            constants.DAEMON_NAME, self.daemon.locationStr, self.daemon.natLocationStr,
+            core.DAEMON_NAME, self.daemon.locationStr, self.daemon.natLocationStr,
             len(self.daemon.objectsById), self.daemon.transportServer)
 
     def get_metadata(self, objectId, as_lists=False):
         """
         Get metadata for the given object (exposed methods, oneways, attributes).
-        If you get an error in your proxy saying that 'DaemonObject' has no attribute 'get_metadata',
-        you're probably connecting to an older Pyro version (4.26 or earlier).
-        Either upgrade the Pyro version or set METADATA config item to False in your client code.
         """
         obj = self.daemon.objectsById.get(objectId)
         if obj is not None:
-            metadata = util.get_exposed_members(obj, only_exposed=config.REQUIRE_EXPOSE, as_lists=as_lists)
-            if config.REQUIRE_EXPOSE and not metadata["methods"] and not metadata["attrs"]:
+            metadata = util.get_exposed_members(obj, as_lists=as_lists)
+            if not metadata["methods"] and not metadata["attrs"]:
                 # Something seems wrong: nothing is remotely exposed.
-                # Possibly because older code not using @expose is now running with a more recent Pyro version
-                # where @expose is mandatory in the default configuration. Give a hint to the user.
                 warnings.warn("Class %r doesn't expose any methods or attributes. Did you forget setting @expose on them?" % type(obj))
             return metadata
         else:
@@ -989,13 +971,10 @@ class Daemon(object):
         if self.natLocationStr:
             log.debug("NAT address is %s", self.natLocationStr)
         pyroObject = interface(self)
-        pyroObject._pyroId = constants.DAEMON_NAME
+        pyroObject._pyroId = core.DAEMON_NAME
         #: Dictionary from Pyro object id to the actual Pyro object registered by this id
         self.objectsById = {pyroObject._pyroId: pyroObject}
-        # assert that the configured serializers are available, and remember their ids:
-        self.__serializer_ids = {util.get_serializer(ser_name).serializer_id for ser_name in config.SERIALIZERS_ACCEPTED}
-        log.debug("accepted serializers: %s" % config.SERIALIZERS_ACCEPTED)
-        log.debug("pyro protocol version: %d  pickle version: %d" % (constants.PROTOCOL_VERSION, config.PICKLE_PROTOCOL_VERSION))
+        log.debug("pyro protocol version: %d" % protocol.PROTOCOL_VERSION)
         self._pyroInstances = {}   # pyro objects for instance_mode=single (singletons, just one per daemon)
         self.streaming_responses = {}   # stream_id -> (client, creation_timestamp, linger_timestamp, stream)
         self.housekeeper_lock = threading.Lock()
@@ -1102,8 +1081,6 @@ class Daemon(object):
                 raise Exception(denied_reason)
             if config.LOGWIRE:
                 _log_wiredata(log, "daemon handshake received", msg)
-            if msg.serializer_id not in self.__serializer_ids:
-                raise errors.SerializeError("message used serializer that is not accepted: %d" % msg.serializer_id)
             if "CORR" in msg.annotations:
                 current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"])
             else:
@@ -1118,7 +1095,7 @@ class Daemon(object):
                 flags = message.FLAGS_META_ON_CONNECT
                 handshake_response = {
                     "handshake": handshake_response,
-                    "meta": self.objectsById[constants.DAEMON_NAME].get_metadata(data["object"], as_lists=True)
+                    "meta": self.objectsById[core.DAEMON_NAME].get_metadata(data["object"], as_lists=True)
                 }
             else:
                 flags = 0
@@ -1190,8 +1167,6 @@ class Daemon(object):
                     _log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.to_bytes())
                 return
-            if msg.serializer_id not in self.__serializer_ids:
-                raise errors.SerializeError("message used serializer that is not accepted: %d" % msg.serializer_id)
             serializer = util.get_serializer_by_id(msg.serializer_id)
             if request_flags & message.FLAGS_KEEPSERIALIZED:
                 # pass on the wire protocol message blob unchanged
@@ -1221,8 +1196,6 @@ class Daemon(object):
                             xt, xv = sys.exc_info()[0:2]
                             log.debug("Exception occurred while handling batched request: %s", xv)
                             xv._pyroTraceback = util.formatTraceback(detailed=config.DETAILED_TRACEBACK)
-                            if sys.platform == "cli":
-                                util.fixIronPythonExceptionForPickle(xv, True)  # piggyback attributes
                             data.append(_ExceptionWrapper(xv))
                             break  # stop processing the rest of the batch
                         else:
@@ -1232,10 +1205,10 @@ class Daemon(object):
                     # normal single method call
                     if method == "__getattr__":
                         # special case for direct attribute access (only exposed @properties are accessible)
-                        data = util.get_exposed_property_value(obj, vargs[0], only_exposed=config.REQUIRE_EXPOSE)
+                        data = util.get_exposed_property_value(obj, vargs[0])
                     elif method == "__setattr__":
                         # special case for direct attribute access (only exposed @properties are accessible)
-                        data = util.set_exposed_property_value(obj, vargs[0], vargs[1], only_exposed=config.REQUIRE_EXPOSE)
+                        data = util.set_exposed_property_value(obj, vargs[0], vargs[1])
                     else:
                         method = util.getAttribute(obj, method)
                         if request_flags & message.FLAGS_ONEWAY and config.ONEWAY_THREADED:
@@ -1383,8 +1356,6 @@ class Daemon(object):
     def _sendExceptionResponse(self, connection, seq, serializer_id, exc_value, tbinfo, flags=0, annotations=None):
         """send an exception back including the local traceback info"""
         exc_value._pyroTraceback = tbinfo
-        if sys.platform == "cli":
-            util.fixIronPythonExceptionForPickle(exc_value, True)  # piggyback attributes
         serializer = util.get_serializer_by_id(serializer_id)
         try:
             data, compressed = serializer.serializeData(exc_value)
@@ -1394,8 +1365,6 @@ class Daemon(object):
             msg = "Error serializing exception: %s. Original exception: %s: %s" % (str(xv), type(exc_value), str(exc_value))
             exc_value = errors.PyroError(msg)
             exc_value._pyroTraceback = tbinfo
-            if sys.platform == "cli":
-                util.fixIronPythonExceptionForPickle(exc_value, True)  # piggyback attributes
             data, compressed = serializer.serializeData(exc_value)
         flags |= message.FLAGS_EXCEPTION
         if compressed:
@@ -1435,11 +1404,10 @@ class Daemon(object):
         # set some pyro attributes
         obj_or_class._pyroId = objectId
         obj_or_class._pyroDaemon = self
-        if config.AUTOPROXY:
-            # register a custom serializer for the type to automatically return proxies
-            # we need to do this for all known serializers
-            for ser in util._serializers.values():
-                ser.register_type_replacement(type(obj_or_class), pyroObjectToAutoProxy)
+        # register a custom serializer for the type to automatically return proxies
+        # we need to do this for all known serializers
+        for ser in util._serializers.values():
+            ser.register_type_replacement(type(obj_or_class), pyroObjectToAutoProxy)
         # register the object/class in the mapping
         self.objectsById[obj_or_class._pyroId] = obj_or_class
         return self.uriFor(objectId)
@@ -1458,7 +1426,7 @@ class Daemon(object):
         else:
             objectId = objectOrId
             objectOrId = None
-        if objectId == constants.DAEMON_NAME:
+        if objectId == core.DAEMON_NAME:
             return
         if objectId in self.objectsById:
             del self.objectsById[objectId]
@@ -1496,8 +1464,8 @@ class Daemon(object):
         if uri.object in self.objectsById:
             registered_object = self.objectsById[uri.object]
             # Clear cache regardless of how it is accessed
-            util.reset_exposed_members(registered_object, config.REQUIRE_EXPOSE, as_lists=True)
-            util.reset_exposed_members(registered_object, config.REQUIRE_EXPOSE, as_lists=False)
+            util.reset_exposed_members(registered_object, as_lists=True)
+            util.reset_exposed_members(registered_object, as_lists=False)
 
     def proxyFor(self, objectOrId, nat=True):
         """
@@ -1512,7 +1480,7 @@ class Daemon(object):
             registered_object = self.objectsById[uri.object]
         except KeyError:
             raise errors.DaemonError("object isn't registered in this daemon")
-        meta = util.get_exposed_members(registered_object, only_exposed=config.REQUIRE_EXPOSE)
+        meta = util.get_exposed_members(registered_object)
         proxy._pyroGetMetadata(known_metadata=meta)
         return proxy
 
@@ -1738,7 +1706,7 @@ def _locateNS(host=None, port=None, broadcast=True):
                 except socket.error:
                     hosts = [config.NS_HOST]
             for host in hosts:
-                uristring = "PYRO:%s@%s:%d" % (constants.NAMESERVER_NAME, host, port or config.NS_PORT)
+                uristring = "PYRO:%s@%s:%d" % (core.NAMESERVER_NAME, host, port or config.NS_PORT)
                 log.debug("locating the NS: %s", uristring)
                 proxy = Proxy(uristring)
                 try:
@@ -1757,7 +1725,7 @@ def _locateNS(host=None, port=None, broadcast=True):
             sock = socketutil.createBroadcastSocket(reuseaddr=config.SOCK_REUSE, timeout=0.7)
             for _ in range(3):
                 try:
-                    for bcaddr in config.parseAddressesString(config.BROADCAST_ADDRS):
+                    for bcaddr in config.BROADCAST_ADDRS:
                         try:
                             sock.sendto(b"GET_NSURI", 0, (bcaddr, port))
                         except socket.error as x:
@@ -1788,12 +1756,12 @@ def _locateNS(host=None, port=None, broadcast=True):
     if not port:
         port = config.NS_PORT
     if URI.isUnixsockLocation(host):
-        uristring = "PYRO:%s@%s" % (constants.NAMESERVER_NAME, host)
+        uristring = "PYRO:%s@%s" % (core.NAMESERVER_NAME, host)
     else:
         # if not a unix socket, check for ipv6
         if ":" in host:
             host = "[%s]" % host
-        uristring = "PYRO:%s@%s:%d" % (constants.NAMESERVER_NAME, host, port)
+        uristring = "PYRO:%s@%s:%d" % (core.NAMESERVER_NAME, host, port)
     uri = URI(uristring)
     log.debug("locating the NS: %s", uri)
     proxy = Proxy(uri)

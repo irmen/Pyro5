@@ -12,8 +12,7 @@ import sys
 import time
 import threading
 import os
-from . import socketutil, errors, util
-from .configuration import config
+from . import config, socketutil, errors, util
 
 log = logging.getLogger("Pyro5.threadpoolserver")
 _client_disconnect_lock = threading.Lock()

@@ -13,35 +13,45 @@ from . import _pyro_logfile, _pyro_loglevel
 # DO NOT EDIT THESE HERE! They are the system defaults!
 # Instead, override them later in your own code or via environment variables.
 
-HOST = "localhost"  # don't expose Pyro servers to the outside world by default
-NS_HOST = HOST
-NS_PORT = 9090  # tcp
-NS_BCPORT = 9091  # udp
+HOST = "localhost"
+NS_HOST = "localhost"
+NS_PORT = 9090
+NS_BCPORT = 9091
 NS_BCHOST = None
 NS_AUTOCLEAN = 0.0
 NATHOST = None
 NATPORT = 0
 COMPRESSION = False
 SERVERTYPE = "thread"
-COMMTIMEOUT = 0.0
+COMMTIMEOUT = 0.0  # seconds
 POLLTIMEOUT = 2.0  # seconds
 MAX_RETRIES = 0
 SOCK_REUSE = True  # so_reuseaddr on server sockets?
 SOCK_NODELAY = False  # tcp_nodelay on socket?
 ONEWAY_THREADED = True  # oneway calls run in their own thread
 DETAILED_TRACEBACK = False
-THREADPOOL_SIZE = 40   # XXX
-THREADPOOL_SIZE_MIN = 4   # XXX
+THREADPOOL_SIZE = 40        # XXX
+THREADPOOL_SIZE_MIN = 4     # XXX
 MAX_MESSAGE_SIZE = 1024 * 1024 * 1024  # 1 gigabyte
-BROADCAST_ADDRS = ["<broadcast>", "0.0.0.0"]  # list of broadcast addresses to try, in this order
+BROADCAST_ADDRS = ["<broadcast>", "0.0.0.0"]
 PREFER_IP_VERSION = 0  # 4, 6 or 0 (let OS choose according to RFC 3484)
 SERIALIZER = "serpent"
-LOGWIRE = False  # log wire-level messages
+LOGWIRE = False
 ITER_STREAMING = True
 ITER_STREAM_LIFETIME = 0.0
 ITER_STREAM_LINGER = 30.0
 LOGFILE = _pyro_logfile
 LOGLEVEL = _pyro_loglevel
+SSL = False
+SSL_SERVERCERT = ""
+SSL_SERVERKEY = ""
+SSL_SERVERKEYPASSWD = ""
+SSL_REQUIRECLIENTCERT = False
+SSL_CLIENTCERT = ""
+SSL_CLIENTKEY = ""
+SSL_CLIENTKEYPASSWD = ""
+SSL_CACERTS = ""
+
 
 del _pyro_logfile
 del _pyro_loglevel
@@ -66,7 +76,7 @@ def _save_defaults():
         defaults[key] = copy.copy(g[key])
     return defaults
 __defaults = _save_defaults()
-assert len(__defaults) == 29
+assert len(__defaults) == 38
 del _save_defaults
 
 

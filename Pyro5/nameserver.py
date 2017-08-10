@@ -17,9 +17,8 @@ try:
 except ImportError:
     sqlite3 = None
 
+from . import config, core, socketutil
 from .errors import NamingError, PyroError, ProtocolError
-from . import core, socketutil, constants
-from .configuration import config
 from .core import _locateNS as locateNS, _resolve as resolve    # API compatibility with older versions
 
 
@@ -341,20 +340,20 @@ class NameServer(object):
 
     def remove(self, name=None, prefix=None, regex=None):
         """Remove a registration. returns the number of items removed."""
-        if name and name in self.storage and name != constants.NAMESERVER_NAME:
+        if name and name in self.storage and name != core.NAMESERVER_NAME:
             with self.lock:
                 del self.storage[name]
             return 1
         if prefix:
             items = list(self.list(prefix=prefix).keys())
-            if constants.NAMESERVER_NAME in items:
-                items.remove(constants.NAMESERVER_NAME)
+            if core.NAMESERVER_NAME in items:
+                items.remove(core.NAMESERVER_NAME)
             self.storage.remove_items(items)
             return len(items)
         if regex:
             items = list(self.list(regex=regex).keys())
-            if constants.NAMESERVER_NAME in items:
-                items.remove(constants.NAMESERVER_NAME)
+            if core.NAMESERVER_NAME in items:
+                items.remove(core.NAMESERVER_NAME)
             self.storage.remove_items(items)
             return len(items)
         return 0
@@ -463,9 +462,9 @@ class NameServerDaemon(core.Daemon):
         if existing_count > 0:
             log.debug("number of existing entries in storage: %d", existing_count)
         super(NameServerDaemon, self).__init__(host, port, unixsocket, nathost=nathost, natport=natport)
-        self.register(self.nameserver, constants.NAMESERVER_NAME)
+        self.register(self.nameserver, core.NAMESERVER_NAME)
         metadata = {"class:Pyro5.naming.NameServer"}
-        self.nameserver.register(constants.NAMESERVER_NAME, self.uriFor(self.nameserver), metadata=metadata)
+        self.nameserver.register(core.NAMESERVER_NAME, self.uriFor(self.nameserver), metadata=metadata)
         if config.NS_AUTOCLEAN > 0:
             if not AutoCleaner.override_autoclean_min and config.NS_AUTOCLEAN < AutoCleaner.min_autoclean_value:
                 raise ValueError("NS_AUTOCLEAN cannot be smaller than " + str(AutoCleaner.min_autoclean_value))
@@ -541,7 +540,7 @@ class AutoCleaner(threading.Thread):
             if time_since_last_autoclean < config.NS_AUTOCLEAN:
                 continue
             for name, uri in self.nameserver.list().items():
-                if name in (constants.DAEMON_NAME, constants.NAMESERVER_NAME):
+                if name in (core.DAEMON_NAME, core.NAMESERVER_NAME):
                     continue
                 try:
                     uri_obj = core.URI(uri)

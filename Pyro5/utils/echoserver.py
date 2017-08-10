@@ -16,8 +16,7 @@ import sys
 import time
 import threading
 from optparse import OptionParser
-from .. import core, nameserver
-from ..configuration import config
+from .. import config, core, nameserver
 
 
 __all__ = ["EchoServer"]
@@ -156,10 +155,10 @@ def main(args=None, returnWithoutLooping=False):
         print("Starting Pyro's built-in test echo server.")
     config.SERVERTYPE = "multiplex"
 
-    nameserver = None
+    namesvr = None
     if options.nameserver:
         options.naming = True
-        nameserver = startNameServer(options.host)
+        namesvr = startNameServer(options.host)
 
     d = core.Daemon(host=options.host, port=options.port, unixsocket=options.unixsocket)
     echo = EchoServer()
@@ -168,15 +167,15 @@ def main(args=None, returnWithoutLooping=False):
     uri = d.register(echo, objectName)
     if options.naming:
         host, port = None, None
-        if nameserver is not None:
-            host, port = nameserver.uri.host, nameserver.uri.port
+        if namesvr is not None:
+            host, port = namesvr.uri.host, namesvr.uri.port
         ns = nameserver.locateNS(host, port)
         ns.register(objectName, uri)
         if options.verbose:
             print("using name server at %s" % ns._pyroUri)
-            if nameserver is not None:
-                if nameserver.bc_server:
-                    print("broadcast server running at %s" % nameserver.bc_server.locationStr)
+            if namesvr is not None:
+                if namesvr.bc_server:
+                    print("broadcast server running at %s" % namesvr.bc_server.locationStr)
                 else:
                     print("not using a broadcast server")
     else:

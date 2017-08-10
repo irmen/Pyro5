@@ -4,13 +4,11 @@ The pyro wire protocol message.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-import hashlib
 import struct
 import logging
 import sys
 import zlib
-from . import errors, constants
-from .configuration import config
+from . import config, errors, protocol
 
 
 __all__ = ["Message"]
@@ -27,7 +25,7 @@ FLAGS_EXCEPTION = 1 << 0
 FLAGS_COMPRESSED = 1 << 1
 FLAGS_ONEWAY = 1 << 2
 FLAGS_BATCH = 1 << 3
-FLAGS_META_ON_CONNECT = 1 << 4
+FLAGS_META_ON_CONNECT = 1 << 4          # @todo remove
 FLAGS_ITEMSTREAMRESULT = 1 << 5
 FLAGS_KEEPSERIALIZED = 1 << 6
 
@@ -106,9 +104,9 @@ class Message(object):
     def __header_bytes(self):
         if not (0 <= self.data_size <= 0x7fffffff):
             raise ValueError("invalid message size (outside range 0..2Gb)")
-        checksum = (self.type + constants.PROTOCOL_VERSION + self.data_size + self.annotations_size +
+        checksum = (self.type + protocol.PROTOCOL_VERSION + self.data_size + self.annotations_size +
                     self.serializer_id + self.flags + self.seq + self.checksum_magic) & 0xffff
-        return struct.pack(self.header_format, b"PYRO", constants.PROTOCOL_VERSION, self.type, self.flags,
+        return struct.pack(self.header_format, b"PYRO", protocol.PROTOCOL_VERSION, self.type, self.flags,
                            self.seq, self.data_size, self.serializer_id, self.annotations_size, 0, checksum)
 
     def __annotations_bytes(self):
@@ -140,7 +138,7 @@ class Message(object):
         if not headerData or len(headerData) != cls.header_size:
             raise errors.ProtocolError("header data size mismatch")
         tag, ver, msg_type, flags, seq, data_size, serializer_id, anns_size, _, checksum = struct.unpack(cls.header_format, headerData)
-        if tag != b"PYRO" or ver != constants.PROTOCOL_VERSION:
+        if tag != b"PYRO" or ver != protocol.PROTOCOL_VERSION:
             raise errors.ProtocolError("invalid data or unsupported protocol version")
         if checksum != (msg_type + ver + data_size + anns_size + flags + serializer_id + seq + cls.checksum_magic) & 0xffff:
             raise errors.ProtocolError("header checksum mismatch")

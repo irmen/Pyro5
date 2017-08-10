@@ -15,8 +15,7 @@ import struct
 import datetime
 import decimal
 import numbers
-from . import errors
-from .configuration import config
+from . import config, errors
 
 try:
     import copyreg
@@ -243,8 +242,6 @@ class SerializerBase(object):
         """
         Registers a custom converter function that creates objects from a dict with the given classname tag in it.
         The function is called with two parameters: the classname and the dictionary to convert to an instance of the class.
-
-        This mechanism is not used for the pickle serializer.
         """
         cls.__custom_dict_to_class_registry[classname] = converter
 
@@ -253,8 +250,6 @@ class SerializerBase(object):
         """
         Removes the converter registered for the given classname. Dicts with that classname tag
         will be deserialized by the default mechanism again.
-
-        This mechanism is not used for the pickle serializer.
         """
         if classname in cls.__custom_dict_to_class_registry:
             del cls.__custom_dict_to_class_registry[classname]
@@ -263,7 +258,6 @@ class SerializerBase(object):
     def class_to_dict(cls, obj):
         """
         Convert a non-serializable object to a dict. Partly borrowed from serpent.
-        Not used for the pickle serializer.
         """
         for clazz in cls.__custom_class_to_dict_registry:
             if isinstance(obj, clazz):
@@ -310,7 +304,6 @@ class SerializerBase(object):
         """
         Recreate an object out of a dict containing the class name and the attributes.
         Only a fixed set of classes are recognized.
-        Not used for the pickle serializer.
         """
         from . import core   # XXX circular
         classname = data.get("__class__", "<unknown>")
@@ -338,16 +331,12 @@ class SerializerBase(object):
         elif classname.startswith("Pyro5.util."):
             if classname == "Pyro5.util.SerpentSerializer":
                 return SerpentSerializer()
-            elif classname == "Pyro5.util.PickleSerializer":
-                return PickleSerializer()
             elif classname == "Pyro5.util.MarshalSerializer":
                 return MarshalSerializer()
             elif classname == "Pyro5.util.JsonSerializer":
                 return JsonSerializer()
             elif classname == "Pyro5.util.MsgpackSerializer":
                 return MsgpackSerializer()
-            elif classname == "Pyro5.util.DillSerializer":
-                return DillSerializer()
         elif classname.startswith("Pyro5.errors."):
             errortype = getattr(errors, classname.split('.', 2)[2])
             if issubclass(errortype, errors.PyroError):
@@ -410,68 +399,6 @@ class SerializerBase(object):
         return not self.__eq__(other)
 
     __hash__ = object.__hash__
-
-
-class PickleSerializer(SerializerBase):
-    """
-    A (de)serializer that wraps the Pickle serialization protocol.
-    It can optionally compress the serialized data, and is thread safe.
-    """
-    serializer_id = 4  # never change this
-
-    def dumpsCall(self, obj, method, vargs, kwargs):
-        return pickle.dumps((obj, method, vargs, kwargs), config.PICKLE_PROTOCOL_VERSION)
-
-    def dumps(self, data):
-        return pickle.dumps(data, config.PICKLE_PROTOCOL_VERSION)
-
-    def loadsCall(self, data):
-        data = self._convertToBytes(data)
-        return pickle.loads(data)
-
-    def loads(self, data):
-        data = self._convertToBytes(data)
-        return pickle.loads(data)
-
-    @classmethod
-    def register_type_replacement(cls, object_type, replacement_function):
-        def copyreg_function(obj):
-            return replacement_function(obj).__reduce__()
-
-        try:
-            copyreg.pickle(object_type, copyreg_function)
-        except TypeError:
-            pass
-
-
-class DillSerializer(SerializerBase):
-    """
-    A (de)serializer that wraps the Dill serialization protocol.
-    It can optionally compress the serialized data, and is thread safe.
-    """
-    serializer_id = 5  # never change this
-
-    def dumpsCall(self, obj, method, vargs, kwargs):
-        return dill.dumps((obj, method, vargs, kwargs), config.DILL_PROTOCOL_VERSION)
-
-    def dumps(self, data):
-        return dill.dumps(data, config.DILL_PROTOCOL_VERSION)
-
-    def loadsCall(self, data):
-        return dill.loads(data)
-
-    def loads(self, data):
-        return dill.loads(data)
-
-    @classmethod
-    def register_type_replacement(cls, object_type, replacement_function):
-        def copyreg_function(obj):
-            return replacement_function(obj).__reduce__()
-
-        try:
-            copyreg.pickle(object_type, copyreg_function)
-        except TypeError:
-            pass
 
 
 class MarshalSerializer(SerializerBase):
@@ -693,31 +620,12 @@ def get_serializer_by_id(sid):
         raise errors.SerializeError("no serializer available for id %d" % sid)
 
 # determine the serializers that are supported
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-assert config.PICKLE_PROTOCOL_VERSION >= 2, "pickle protocol needs to be 2 or higher"
-_ser = PickleSerializer()
-_serializers["pickle"] = _ser
-_serializers_by_id[_ser.serializer_id] = _ser
 import marshal
 _ser = MarshalSerializer()
 _serializers["marshal"] = _ser
 _serializers_by_id[_ser.serializer_id] = _ser
 try:
-    import dill
-    _ser = DillSerializer()
-    _serializers["dill"] = _ser
-    _serializers_by_id[_ser.serializer_id] = _ser
-except ImportError:
-    pass
-try:
-    try:
-        import importlib
-        json = importlib.import_module(config.JSON_MODULE)
-    except ImportError:
-        json = __import__(config.JSON_MODULE)
+    import json
     _ser = JsonSerializer()
     _serializers["json"] = _ser
     _serializers_by_id[_ser.serializer_id] = _ser
@@ -759,7 +667,7 @@ def getAttribute(obj, attr):
         raise AttributeError("attempt to access private attribute '%s'" % attr)
     else:
         obj = getattr(obj, attr)
-    if not config.REQUIRE_EXPOSE or getattr(obj, "_pyroExposed", False):
+    if getattr(obj, "_pyroExposed", False):
         return obj
     raise AttributeError("attempt to access unexposed attribute '%s'" % attr)
 
@@ -768,30 +676,6 @@ def excepthook(ex_type, ex_value, ex_tb):
     """An exception hook you can use for ``sys.excepthook``, to automatically print remote Pyro tracebacks"""
     traceback = "".join(getPyroTraceback(ex_type, ex_value, ex_tb))
     sys.stderr.write(traceback)
-
-
-def fixIronPythonExceptionForPickle(exceptionObject, addAttributes):
-    """
-    Function to hack around a bug in IronPython where it doesn't pickle
-    exception attributes. We piggyback them into the exception's args.
-    Bug report is at https://github.com/IronLanguages/main/issues/943
-    Bug is still present in Ironpython 2.7.7
-    """
-    if hasattr(exceptionObject, "args"):
-        if addAttributes:
-            # piggyback the attributes on the exception args instead.
-            ironpythonArgs = vars(exceptionObject)
-            ironpythonArgs["__ironpythonargs__"] = True
-            exceptionObject.args += (ironpythonArgs,)
-        else:
-            # check if there is a piggybacked object in the args
-            # if there is, extract the exception attributes from it.
-            if len(exceptionObject.args) > 0:
-                piggyback = exceptionObject.args[-1]
-                if type(piggyback) is dict and piggyback.get("__ironpythonargs__"):
-                    del piggyback["__ironpythonargs__"]
-                    exceptionObject.args = exceptionObject.args[:-1]
-                    exceptionObject.__dict__.update(piggyback)
 
 
 __exposed_member_cache = {}
@@ -846,8 +730,8 @@ def get_exposed_members(obj, only_exposed=True, as_lists=False, use_cache=True):
         # to give them a _pyroExposed tag either.
         # The way to expose attributes is by using properties for them.
         # This automatically solves the protection/security issue: you have to
-        # explicitly decide to make an attribute into a @property (and to @expose it
-        # if REQUIRE_EXPOSED=True) before it is remotely accessible.
+        # explicitly decide to make an attribute into a @property (and to @expose it)
+        # before it becomes remotely accessible.
     if as_lists:
         methods = list(methods)
         oneway = list(oneway)

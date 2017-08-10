@@ -1,5 +1,4 @@
-from . import __version__
-from . import config
+from . import __version__, config
 from .core import URI
 from .nameserver import locateNS, resolve, type_meta
 from .core import Proxy, _BatchProxyAdapter, SerializedBlob

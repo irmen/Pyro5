@@ -11,8 +11,7 @@ import sys
 import logging
 import os
 from collections import defaultdict
-from . import socketutil, errors, util
-from .configuration import config
+from . import config, socketutil, errors, util
 try:
     # first try selectors2 as it has better semantics when dealing with interrupted system calls
     import selectors2 as selectors

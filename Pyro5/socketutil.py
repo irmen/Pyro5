@@ -5,6 +5,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
 import os
+import platform
 import socket
 import errno
 import time
@@ -14,7 +15,7 @@ try:
     import ssl
 except ImportError:
     ssl = None
-from .configuration import config
+from . import config
 from .errors import CommunicationError, TimeoutError, ConnectionClosedError
 
 try:
@@ -22,6 +23,9 @@ try:
 except NameError:
     class InterruptedError(Exception):
         pass
+
+
+# XXX todo: use ipaddress module
 
 
 # Note: other interesting errnos are EPERM, ENOBUFS, EMFILE
@@ -52,6 +56,8 @@ if hasattr(errno, "WSAEADDRNOTAVAIL"):
 ERRNO_EADDRINUSE = [errno.EADDRINUSE]
 if hasattr(errno, "WSAEADDRINUSE"):
     ERRNO_EADDRINUSE.append(errno.WSAEADDRINUSE)
+
+USE_MSG_WAITALL = hasattr(socket, "MSG_WAITALL") and platform.system() != "Windows"  # waitall is not reliable on windows
 
 
 def getIpVersion(hostnameOrAddress):
@@ -134,7 +140,7 @@ def receiveData(sock, size):
         retrydelay = 0.0
         msglen = 0
         chunks = []
-        if config.USE_MSG_WAITALL and not hasattr(sock, "getpeercert"):
+        if USE_MSG_WAITALL and not hasattr(sock, "getpeercert"):
             # waitall is very convenient and if a socket error occurs,
             # we can assume the receive has failed. No need for a loop,
             # unless it is a retryable error.
