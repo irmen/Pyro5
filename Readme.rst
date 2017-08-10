@@ -49,6 +49,8 @@ changes done based on original Pyro4 sources (release 4.62)
 - @expose and other decorators moved from core to new server module
 - moved metadata search in the name server to a separate yplookup method (instead of using list as well)
 - wire protocol changed: much larger annotations possible (2Gb instead of 64Kb), no more checksumming
+- a proxy doesn't have a thread lock anymore but can't be shared anymore across different threads.
+  A thread is the "owner" of a proxy. Another thread can use _pyroClaimOwnership to take over.
 
 
 changes done in earlier pyro5 version
@@ -56,8 +58,6 @@ changes done in earlier pyro5 version
 
 It is based on the proven concepts of Pyro4 and a lot should be familiar, but there are some major differences:
 
-- a proxy doesn't have a thread lock anymore but can't be shared anymore across different threads.
-  A thread is the "owner" of a proxy. Another thread can use _pyroClaimOwnership to take over.
 
 
 This library is still largely untested and in development.
