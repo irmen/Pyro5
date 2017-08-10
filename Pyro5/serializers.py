@@ -5,23 +5,38 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
 import zlib
+import builtins
 import uuid
 import logging
 import struct
 import datetime
 import decimal
 import numbers
+import marshal
+import json
+import serpent
+import msgpack
 from . import errors
+
+__all__ = ["SerializerBase", "SerpentSerializer", "JsonSerializer", "MarshalSerializer", "MsgpackSerializer",
+           "serializers", "serializers_by_id"]
 
 log = logging.getLogger("Pyro5.serializers")
 
 
+if '-' in serpent.__version__:
+    ver = serpent.__version__.split('-', 1)[0]
+else:
+    ver = serpent.__version__
+ver = tuple(map(int, ver.split(".")))
+if ver < (1, 23):
+    raise RuntimeError("requires serpent 1.23 or better")
+
+
 all_exceptions = {}
-import builtins
 for name, t in vars(builtins).items():
     if type(t) is type and issubclass(t, BaseException):
         all_exceptions[name] = t
-buffer = bytearray
 for name, t in vars(errors).items():
     if type(t) is type and issubclass(t, errors.PyroError):
         all_exceptions[name] = t
@@ -31,6 +46,22 @@ class SerializerBase(object):
     """Base class for (de)serializer implementations (which must be thread safe)"""
     __custom_class_to_dict_registry = {}
     __custom_dict_to_class_registry = {}
+
+    def loads(self, data):
+        raise NotImplementedError("implement in subclass")
+
+    def loadsCall(self, data):
+        raise NotImplementedError("implement in subclass")
+
+    def dumps(self, data):
+        raise NotImplementedError("implement in subclass")
+
+    def dumpsCall(self, obj, method, vargs, kwargs):
+        raise NotImplementedError("implement in subclass")
+
+    @classmethod
+    def register_type_replacement(cls, object_type, replacement_function):
+        raise NotImplementedError("implement in subclass")
 
     def serializeData(self, data, compress=False):
         """Serialize the given data object, try to compress if told so.
@@ -57,25 +88,11 @@ class SerializerBase(object):
             data = zlib.decompress(data)
         return self.loadsCall(data)
 
-    def loads(self, data):
-        raise NotImplementedError("implement in subclass")
-
-    def loadsCall(self, data):
-        raise NotImplementedError("implement in subclass")
-
-    def dumps(self, data):
-        raise NotImplementedError("implement in subclass")
-
-    def dumpsCall(self, obj, method, vargs, kwargs):
-        raise NotImplementedError("implement in subclass")
-
     def _convertToBytes(self, data):
-        t = type(data)
-        if t is not bytes:
-            if t in (bytearray, buffer):
-                return bytes(data)
-            if t is memoryview:
-                return data.tobytes()
+        if type(data) is bytearray:
+            return bytes(data)
+        if type(data) is memoryview:
+            return data.tobytes()
         return data
 
     def __compressdata(self, data, compress):
@@ -87,19 +104,12 @@ class SerializerBase(object):
         return data, False
 
     @classmethod
-    def register_type_replacement(cls, object_type, replacement_function):
-        raise NotImplementedError("implement in subclass")
-
-    @classmethod
     def register_class_to_dict(cls, clazz, converter, serpent_too=True):
         """Registers a custom function that returns a dict representation of objects of the given class.
         The function is called with a single parameter; the object to be converted to a dict."""
         cls.__custom_class_to_dict_registry[clazz] = converter
         if serpent_too:
             try:
-                get_serializer_by_id(SerpentSerializer.serializer_id)
-                import serpent
-
                 def serpent_converter(obj, serializer, stream, level):
                     d = converter(obj)
                     serializer.ser_builtins_dict(d, stream, level)
@@ -115,8 +125,6 @@ class SerializerBase(object):
         if clazz in cls.__custom_class_to_dict_registry:
             del cls.__custom_class_to_dict_registry[clazz]
         try:
-            get_serializer_by_id(SerpentSerializer.serializer_id)
-            import serpent
             serpent.unregister_class(clazz)
         except errors.ProtocolError:
             pass
@@ -285,41 +293,6 @@ class SerializerBase(object):
     __hash__ = object.__hash__
 
 
-class MarshalSerializer(SerializerBase):
-    """(de)serializer that wraps the marshal serialization protocol."""
-    serializer_id = 3  # never change this
-
-    def dumpsCall(self, obj, method, vargs, kwargs):
-        return marshal.dumps((obj, method, vargs, kwargs))
-
-    def dumps(self, data):
-        try:
-            return marshal.dumps(data)
-        except (ValueError, TypeError):
-            return marshal.dumps(self.class_to_dict(data))
-
-    def loadsCall(self, data):
-        data = self._convertToBytes(data)
-        obj, method, vargs, kwargs = marshal.loads(data)
-        vargs = self.recreate_classes(vargs)
-        kwargs = self.recreate_classes(kwargs)
-        return obj, method, vargs, kwargs
-
-    def loads(self, data):
-        data = self._convertToBytes(data)
-        return self.recreate_classes(marshal.loads(data))
-
-    @classmethod
-    def class_to_dict(cls, obj):
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        return super(MarshalSerializer, cls).class_to_dict(obj)
-
-    @classmethod
-    def register_type_replacement(cls, object_type, replacement_function):
-        pass  # marshal serializer doesn't support per-type hooks
-
-
 class SerpentSerializer(SerializerBase):
     """(de)serializer that wraps the serpent serialization protocol."""
     serializer_id = 1  # never change this
@@ -357,9 +330,44 @@ class SerpentSerializer(SerializerBase):
         return super(SerpentSerializer, cls).dict_to_class(data)
 
 
+class MarshalSerializer(SerializerBase):
+    """(de)serializer that wraps the marshal serialization protocol."""
+    serializer_id = 2  # never change this
+
+    def dumpsCall(self, obj, method, vargs, kwargs):
+        return marshal.dumps((obj, method, vargs, kwargs))
+
+    def dumps(self, data):
+        try:
+            return marshal.dumps(data)
+        except (ValueError, TypeError):
+            return marshal.dumps(self.class_to_dict(data))
+
+    def loadsCall(self, data):
+        data = self._convertToBytes(data)
+        obj, method, vargs, kwargs = marshal.loads(data)
+        vargs = self.recreate_classes(vargs)
+        kwargs = self.recreate_classes(kwargs)
+        return obj, method, vargs, kwargs
+
+    def loads(self, data):
+        data = self._convertToBytes(data)
+        return self.recreate_classes(marshal.loads(data))
+
+    @classmethod
+    def class_to_dict(cls, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        return super(MarshalSerializer, cls).class_to_dict(obj)
+
+    @classmethod
+    def register_type_replacement(cls, object_type, replacement_function):
+        pass  # marshal serializer doesn't support per-type hooks
+
+
 class JsonSerializer(SerializerBase):
     """(de)serializer that wraps the json serialization protocol."""
-    serializer_id = 2  # never change this
+    serializer_id = 3  # never change this
 
     __type_replacements = {}
 
@@ -404,7 +412,7 @@ class JsonSerializer(SerializerBase):
 
 class MsgpackSerializer(SerializerBase):
     """(de)serializer that wraps the msgpack serialization protocol."""
-    serializer_id = 6  # never change this
+    serializer_id = 4  # never change this
 
     __type_replacements = {}
 
@@ -415,13 +423,11 @@ class MsgpackSerializer(SerializerBase):
         return msgpack.packb(data, use_bin_type=True, default=self.default)
 
     def loadsCall(self, data):
-        data = self._convertToBytes(data)
-        obj, method, vargs, kwargs = msgpack.unpackb(data, encoding="utf-8", object_hook=self.object_hook)
+        obj, method, vargs, kwargs = msgpack.unpackb(self._convertToBytes(data), encoding="utf-8", object_hook=self.object_hook)
         return obj, method, vargs, kwargs
 
     def loads(self, data):
-        data = self._convertToBytes(data)
-        return msgpack.unpackb(data, encoding="utf-8", object_hook=self.object_hook, ext_hook=self.ext_hook)
+        return msgpack.unpackb(self._convertToBytes(data), encoding="utf-8", object_hook=self.object_hook, ext_hook=self.ext_hook)
 
     def default(self, obj):
         replacer = self.__type_replacements.get(type(obj), None)
@@ -470,55 +476,12 @@ class MsgpackSerializer(SerializerBase):
 
 
 """The various serializers that are supported"""
-_serializers = {}
-_serializers_by_id = {}
+serializers = {
+    "serpent": SerpentSerializer(),
+    "marshal": MarshalSerializer(),
+    "json": JsonSerializer(),
+    "msgpack": MsgpackSerializer()
+}
 
-
-def get_serializer(name):
-    try:
-        return _serializers[name]
-    except KeyError:
-        raise errors.SerializeError("serializer '%s' is unknown or not available" % name)
-
-
-def get_serializer_by_id(sid):
-    try:
-        return _serializers_by_id[sid]
-    except KeyError:
-        raise errors.SerializeError("no serializer available for id %d" % sid)
-
-# determine the serializers that are supported
-import marshal
-_ser = MarshalSerializer()
-_serializers["marshal"] = _ser
-_serializers_by_id[_ser.serializer_id] = _ser
-try:
-    import json
-    _ser = JsonSerializer()
-    _serializers["json"] = _ser
-    _serializers_by_id[_ser.serializer_id] = _ser
-except ImportError:
-    pass
-try:
-    import serpent
-    if '-' in serpent.__version__:
-        ver = serpent.__version__.split('-', 1)[0]
-    else:
-        ver = serpent.__version__
-    ver = tuple(map(int, ver.split(".")))
-    if ver < (1, 23):  # serpent 1.23 required
-        raise RuntimeError("requires serpent 1.23 or better")
-    _ser = SerpentSerializer()
-    _serializers["serpent"] = _ser
-    _serializers_by_id[_ser.serializer_id] = _ser
-except ImportError:
-    log.warning("serpent serializer is not available")
-    pass
-try:
-    import msgpack
-    _ser = MsgpackSerializer()
-    _serializers["msgpack"] = _ser
-    _serializers_by_id[_ser.serializer_id] = _ser
-except ImportError:
-    pass
-del _ser
+"""The available serializers by their internal id"""
+serializers_by_id = {ser.serializer_id: ser for ser in serializers.values()}

@@ -251,7 +251,8 @@ class Proxy(object):
         self._pyroMaxRetries = config.MAX_RETRIES
         self.__pyroTimeout = config.COMMTIMEOUT
         self.__pyroConnLock = threading.RLock()
-        serializers.get_serializer(config.SERIALIZER)  # assert that the configured serializer is available
+        if config.SERIALIZER not in serializers.serializers:
+            raise ValueError("unknown serializer configured")
         current_context.annotations = {}
         current_context.response_annotations = {}
 
@@ -389,7 +390,7 @@ class Proxy(object):
         with self.__pyroConnLock:
             if self._pyroConnection is None:
                 self.__pyroCreateConnection()
-            serializer = serializers.get_serializer(self._pyroSerializer or config.SERIALIZER)
+            serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
             objectId = objectId or self._pyroConnection.objectId
             annotations = self.__annotations()
             if vargs and isinstance(vargs[0], SerializedBlob):
@@ -482,7 +483,7 @@ class Proxy(object):
                                                sslContext=sslContext)
                 conn = socketutil.SocketConnection(sock, uri.object)
                 # Do handshake.
-                serializer = serializers.get_serializer(self._pyroSerializer or config.SERIALIZER)
+                serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
                 data = {"handshake": self._pyroHandshake}
                 # the object id is only used/needed when piggybacking the metadata on the connection response
                 # make sure to pass the resolved object id instead of the logical id
@@ -511,7 +512,7 @@ class Proxy(object):
             else:
                 handshake_response = "?"
                 if msg.data:
-                    serializer = serializers.get_serializer_by_id(msg.serializer_id)
+                    serializer = serializers.serializers_by_id[msg.serializer_id]
                     handshake_response = serializer.deserializeData(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
                 if msg.type == protocol.MSG_CONNECTFAIL:
                     error = "connection to %s rejected: %s" % (connect_location, handshake_response)
@@ -1086,7 +1087,7 @@ class Daemon(object):
             else:
                 current_context.correlation_id = uuid.uuid4()
             serializer_id = msg.serializer_id
-            serializer = serializers.get_serializer_by_id(serializer_id)
+            serializer = serializers.serializers_by_id[serializer_id]
             data = serializer.deserializeData(msg.data, msg.flags & protocol.FLAGS_COMPRESSED)
             handshake_response = self.validateHandshake(conn, data["handshake"])
             if msg.flags & protocol.FLAGS_META_ON_CONNECT:
@@ -1108,7 +1109,7 @@ class Daemon(object):
             return False
         except Exception as x:
             log.debug("handshake failed, reason:", exc_info=True)
-            serializer = serializers.get_serializer_by_id(serializer_id)
+            serializer = serializers.serializers_by_id[serializer_id]
             data, compressed = serializer.serializeData(str(x), False)
             msgtype = protocol.MSG_CONNECTFAIL
             flags = protocol.FLAGS_COMPRESSED if compressed else 0
@@ -1167,7 +1168,7 @@ class Daemon(object):
                     _log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.to_bytes())
                 return
-            serializer = serializers.get_serializer_by_id(msg.serializer_id)
+            serializer = serializers.serializers_by_id[msg.serializer_id]
             if request_flags & protocol.FLAGS_KEEPSERIALIZED:
                 # pass on the wire protocol message blob unchanged
                 objId, method, vargs, kwargs = self.__deserializeBlobArgs(msg)
@@ -1354,7 +1355,7 @@ class Daemon(object):
     def _sendExceptionResponse(self, connection, seq, serializer_id, exc_value, tbinfo, flags=0, annotations=None):
         """send an exception back including the local traceback info"""
         exc_value._pyroTraceback = tbinfo
-        serializer = serializers.get_serializer_by_id(serializer_id)
+        serializer = serializers.serializers_by_id[serializer_id]
         try:
             data, compressed = serializer.serializeData(exc_value)
         except:
@@ -1404,7 +1405,7 @@ class Daemon(object):
         obj_or_class._pyroDaemon = self
         # register a custom serializer for the type to automatically return proxies
         # we need to do this for all known serializers
-        for ser in serializers._serializers.values():
+        for ser in serializers.serializers.values():
             ser.register_type_replacement(type(obj_or_class), pyroObjectToAutoProxy)
         # register the object/class in the mapping
         self.objectsById[obj_or_class._pyroId] = obj_or_class
@@ -1777,7 +1778,7 @@ class SerializedBlob(object):
         """Retrieves the client data stored in this blob. Deserializes the data automatically if required."""
         if self._contains_blob:
             protocol_msg = self._data
-            serializer = serializers.get_serializer_by_id(protocol_msg.serializer_id)
+            serializer = serializers.serializers_by_id[protocol_msg.serializer_id]
             _, _, data, _ = serializer.deserializeData(protocol_msg.data, protocol_msg.flags & protocol.FLAGS_COMPRESSED)
             return data
         else:
