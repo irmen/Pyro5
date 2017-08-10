@@ -15,13 +15,11 @@ try:
     import sqlite3
 except ImportError:
     sqlite3 = None
-
-from . import config, core, socketutil
+from . import config, core, socketutil, server
 from .errors import NamingError, PyroError, ProtocolError
-from .core import _locateNS as locateNS, _resolve as resolve    # API compatibility with older versions
 
 
-__all__ = ["locateNS", "resolve", "type_meta", "startNSloop", "startNS"]
+__all__ = ["startNSloop", "startNS"]
 
 log = logging.getLogger("Pyro5.naming")
 
@@ -269,7 +267,7 @@ class SqlStorage(MutableMapping):
         pass
 
 
-@core.expose
+@server.expose
 class NameServer(object):
     """
     Pyro name server. Provides a simple flat name space to map logical object names to Pyro URIs.
@@ -435,7 +433,7 @@ class NameServer(object):
         pass
 
 
-class NameServerDaemon(core.Daemon):
+class NameServerDaemon(server.Daemon):
     """Daemon that contains the Name Server."""
 
     def __init__(self, host=None, port=None, unixsocket=None, nathost=None, natport=None, storage=None):
@@ -707,16 +705,6 @@ def startNS(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None
             internalUri = daemon.uriFor(daemon.nameserver, nat=False)
             bcserver = BroadcastServer(internalUri, bchost, bcport, ipv6=daemon.sock.family == socket.AF_INET6)
     return nsUri, daemon, bcserver
-
-
-def type_meta(class_or_object, prefix="class:"):
-    """extracts type metadata from the given class or object, can be used as Name server metadata."""
-    if hasattr(class_or_object, "__mro__"):
-        return {prefix + c.__module__ + "." + c.__name__
-                for c in class_or_object.__mro__ if c.__module__ not in ("builtins", "__builtin__")}
-    if hasattr(class_or_object, "__class__"):
-        return type_meta(class_or_object.__class__)
-    return frozenset()
 
 
 def main(args=None):

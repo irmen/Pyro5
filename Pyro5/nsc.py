@@ -4,7 +4,7 @@ Name server control tool.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-from . import errors, nameserver
+from . import errors, core
 
 
 def handleCommand(namesrv, cmd, args):
@@ -116,7 +116,7 @@ def main(args=None):
     if options.unixsocket:
         options.host = "./u:" + options.unixsocket
     try:
-        namesrv = nameserver.locateNS(options.host, options.port)
+        namesrv = core.locate_ns(options.host, options.port)
     except errors.PyroError as x:
         print("Error:", x)
         return

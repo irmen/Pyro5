@@ -16,13 +16,13 @@ import sys
 import time
 import threading
 from argparse import ArgumentParser
-from .. import config, core, nameserver
+from .. import config, core, server, nameserver
 
 
 __all__ = ["EchoServer"]
 
 
-@core.expose
+@server.expose
 class EchoServer(object):
     """
     The echo server object that is provided as a Pyro object by this module.
@@ -50,7 +50,7 @@ class EchoServer(object):
             print("%s - error: generating exception" % time.asctime())
         raise ValueError("the message of the error")
 
-    @core.oneway
+    @server.oneway
     def oneway_echo(self, message):
         """just like echo, but oneway; the client won't wait for response"""
         if self._verbose:
@@ -79,7 +79,7 @@ class EchoServer(object):
     def inf(self):
         return float("inf")
 
-    @core.oneway
+    @server.oneway
     def oneway_slow(self):
         """prints a message after a certain delay, and returns; but the client won't wait for it"""
         if self._verbose:
@@ -160,7 +160,7 @@ def main(args=None, returnWithoutLooping=False):
         args.naming = True
         namesvr = startNameServer(args.host)
 
-    d = core.Daemon(host=args.host, port=args.port, unixsocket=args.unixsocket)
+    d = server.Daemon(host=args.host, port=args.port, unixsocket=args.unixsocket)
     echo = EchoServer()
     echo._verbose = args.verbose
     objectName = "test.echoserver"
@@ -169,7 +169,7 @@ def main(args=None, returnWithoutLooping=False):
         host, port = None, None
         if namesvr is not None:
             host, port = namesvr.uri.host, namesvr.uri.port
-        ns = nameserver.locateNS(host, port)
+        ns = core.locate_ns(host, port)
         ns.register(objectName, uri)
         if args.verbose:
             print("using name server at %s" % ns._pyroUri)

@@ -213,7 +213,7 @@ class SerializerBase(object):
         Recreate an object out of a dict containing the class name and the attributes.
         Only a fixed set of classes are recognized.
         """
-        from . import core   # XXX circular
+        from . import core, client, server  # XXX circular
         classname = data.get("__class__", "<unknown>")
         if isinstance(classname, bytes):
             classname = classname.decode("utf-8")
@@ -228,14 +228,14 @@ class SerializerBase(object):
                 uri = core.URI.__new__(core.URI)
                 uri.__setstate_from_dict__(data["state"])
                 return uri
-            elif classname == "Pyro5.core.Proxy":
-                proxy = core.Proxy.__new__(core.Proxy)
-                proxy.__setstate_from_dict__(data["state"])
-                return proxy
-            elif classname == "Pyro5.core.Daemon":
-                daemon = core.Daemon.__new__(core.Daemon)
-                daemon.__setstate_from_dict__(data["state"])
-                return daemon
+        elif classname == "Pyro5.client.Proxy":
+            proxy = client.Proxy.__new__(client.Proxy)
+            proxy.__setstate_from_dict__(data["state"])
+            return proxy
+        elif classname == "Pyro5.server.Daemon":
+            daemon = server.Daemon.__new__(server.Daemon)
+            daemon.__setstate_from_dict__(data["state"])
+            return daemon
         elif classname.startswith("Pyro5.util."):
             if classname == "Pyro5.util.SerpentSerializer":
                 return SerpentSerializer()

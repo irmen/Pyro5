@@ -277,7 +277,7 @@ class Proxy(object):
         with self.__pyroConnLock:
             if self._pyroConnection is not None:
                 return False  # already connected
-            uri = core._resolve(self._pyroUri)
+            uri = core.resolve(self._pyroUri)
             # socket connection (normal or Unix domain socket)
             conn = None
             log.debug("connecting to %s", uri)

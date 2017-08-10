@@ -30,7 +30,7 @@ import json
 from wsgiref.simple_server import make_server
 from argparse import ArgumentParser
 import traceback
-from .. import __version__, config, errors, core, protocol, serializers, nameserver
+from .. import __version__, config, errors, client, core, protocol, serializers
 
 
 __all__ = ["pyro_app", "main"]
@@ -40,7 +40,7 @@ _nameserver = None
 def get_nameserver():
     global _nameserver
     if not _nameserver:
-        _nameserver = nameserver.locateNS()
+        _nameserver = core.locate_ns()
     try:
         _nameserver.ping()
         return _nameserver
@@ -162,13 +162,13 @@ def return_homepage(environ, start_response):
     start_response('200 OK', [('Content-Type', 'text/html')])
     nslist = ["<table><tr><th>Name</th><th>methods</th><th>attributes (zero-param methods)</th></tr>"]
     names = sorted(list(nameserver.list(regex=pyro_app.ns_regex).keys())[:10])
-    with core.batch(nameserver) as nsbatch:
+    with client.BatchProxy(nameserver) as nsbatch:
         for name in names:
             nsbatch.lookup(name)
         for name, uri in zip(names, nsbatch()):
             attributes = "-"
             try:
-                with core.Proxy(uri) as proxy:
+                with client.Proxy(uri) as proxy:
                     proxy._pyroBind()
                     methods = " &nbsp; ".join(proxy._pyroMethods) or "-"
                     attributes = [
@@ -216,7 +216,7 @@ def process_pyro_request(environ, path, parameters, start_response):
     try:
         nameserver = get_nameserver()
         uri = nameserver.lookup(object_name)
-        with core.Proxy(uri) as proxy:
+        with client.Proxy(uri) as proxy:
             header_corr_id = environ.get("HTTP_X_PYRO_CORRELATION_ID", "")
             if header_corr_id:
                 core.current_context.correlation_id = uuid.UUID(header_corr_id)  # use the correlation id from the request header

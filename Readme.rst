@@ -23,6 +23,8 @@ changes done based on original Pyro4 sources (release 4.62)
     message -> protocol, util -> serializers)
   - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
   - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
+- Proxy moved from core to new client package
+- Daemon moved from core to new server package
 - no support for unsafe serializers AT ALL (pickle, dill, cloudpickle)
 - removed all from future imports and all sys.version_info checks because we're Python 3 only
 - removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
@@ -44,6 +46,7 @@ changes done based on original Pyro4 sources (release 4.62)
 - util methods regarding object/class inspection moved to new server module
 - rest of util module renamed to serializers module
 - replaced deprecated usages of optparse with argparse
+- @expose and other decorators moved from core to new server module
 
 
 changes done in earlier pyro5 version

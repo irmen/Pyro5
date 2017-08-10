@@ -1,7 +1,7 @@
 import time
 import Pyro5.api
 
-ns = Pyro5.api.locateNS()
+ns = Pyro5.api.locate_ns()
 
 iterations = 20000
 print("PYRO 5 running", iterations, "calls...")
