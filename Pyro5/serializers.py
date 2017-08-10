@@ -42,8 +42,24 @@ for name, t in vars(errors).items():
         all_exceptions[name] = t
 
 
+def pyro_class_serpent_serializer(obj, serializer, stream, level):
+    # Override the default way that a Pyro URI/proxy/daemon is serialized.
+    # Because it defines a __getstate__ it would otherwise just become a tuple,
+    # and not be deserialized as a class.
+    d = SerializerBase.class_to_dict(obj)
+    serializer.ser_builtins_dict(d, stream, level)
+
+
+def serialize_pyro_object_to_dict(obj):
+    return {
+        "__class__": "{:s}.{:s}".format(obj.__module__, obj.__class__.__name__),
+        "state": obj.__getstate_for_dict__()
+    }
+
+
 class SerializerBase(object):
     """Base class for (de)serializer implementations (which must be thread safe)"""
+    serializer_id = 0  # define uniquely in subclass
     __custom_class_to_dict_registry = {}
     __custom_dict_to_class_registry = {}
 

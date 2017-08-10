@@ -7,6 +7,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 import struct
 import logging
 import zlib
+import uuid
 from . import config, errors
 
 
@@ -198,3 +199,10 @@ class Message(object):
             self.flags &= ~FLAGS_COMPRESSED
             self.data_size = len(self.data)
         return self
+
+
+def log_wiredata(logger, text, msg):
+    """logs all the given properties of the wire message in the given logger"""
+    corr = str(uuid.UUID(bytes=msg.annotations["CORR"])) if "CORR" in msg.annotations else "?"
+    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s\nannotations=%r\ndata=%r" %
+                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, msg.annotations, msg.data))

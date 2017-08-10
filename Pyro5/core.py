@@ -16,7 +16,8 @@ import uuid
 import warnings
 import socket
 import random
-from . import config, errors, socketutil, serializers, protocol, server
+import serpent
+from . import config, errors, socketutil, serializers, protocol, client, server
 from .svr_threads import SocketServer_Threadpool
 from .svr_multiplex import SocketServer_Multiplex
 
@@ -180,616 +181,6 @@ class _ExceptionWrapper(object):
             "__class__": "Pyro5.core._ExceptionWrapper",
             "exception": SerializerBase.class_to_dict(self.exception)
         }
-
-
-class _RemoteMethod(object):
-    """method call abstraction"""
-
-    def __init__(self, send, name, max_retries):
-        self.__send = send
-        self.__name = name
-        self.__max_retries = max_retries
-
-    def __getattr__(self, name):
-        return _RemoteMethod(self.__send, "%s.%s" % (self.__name, name), self.__max_retries)
-
-    def __call__(self, *args, **kwargs):
-        for attempt in range(self.__max_retries + 1):
-            try:
-                return self.__send(self.__name, args, kwargs)
-            except (errors.ConnectionClosedError, errors.TimeoutError):
-                # only retry for recoverable network errors
-                if attempt >= self.__max_retries:
-                    # last attempt, raise the exception
-                    raise
-
-
-class Proxy(object):
-    """
-    Pyro proxy for a remote object. Intercepts method calls and dispatches them to the remote object.
-
-    .. automethod:: _pyroBind
-    .. automethod:: _pyroRelease
-    .. automethod:: _pyroReconnect
-    .. automethod:: _pyroBatch
-    .. automethod:: _pyroAnnotations
-    .. automethod:: _pyroResponseAnnotations
-    .. automethod:: _pyroValidateHandshake
-    .. autoattribute:: _pyroTimeout
-    .. attribute:: _pyroMaxRetries
-
-        Number of retries to perform on communication calls by this proxy, allows you to override the default setting.
-
-    .. attribute:: _pyroSerializer
-
-        Name of the serializer to use by this proxy, allows you to override the default setting.
-
-    .. attribute:: _pyroHandshake
-
-        The data object that should be sent in the initial connection handshake message. Can be any serializable object.
-    """
-    __pyroAttributes = frozenset(
-        ["__getnewargs__", "__getnewargs_ex__", "__getinitargs__", "_pyroConnection", "_pyroUri",
-         "_pyroOneway", "_pyroMethods", "_pyroAttrs", "_pyroTimeout", "_pyroSeq",
-         "_pyroRawWireResponse", "_pyroHandshake", "_pyroMaxRetries", "_pyroSerializer",
-         "_Proxy__pyroTimeout", "_Proxy__pyroConnLock"])
-
-    def __init__(self, uri):
-        if isinstance(uri, str):
-            uri = URI(uri)
-        elif not isinstance(uri, URI):
-            raise TypeError("expected Pyro URI")
-        self._pyroUri = uri
-        self._pyroConnection = None
-        self._pyroSerializer = None  # can be set to the name of a serializer to override the global one per-proxy
-        self._pyroMethods = set()  # all methods of the remote object, gotten from meta-data
-        self._pyroAttrs = set()  # attributes of the remote object, gotten from meta-data
-        self._pyroOneway = set()  # oneway-methods of the remote object, gotten from meta-data
-        self._pyroSeq = 0  # message sequence number
-        self._pyroRawWireResponse = False  # internal switch to enable wire level responses
-        self._pyroHandshake = "hello"  # the data object that should be sent in the initial connection handshake message
-        self._pyroMaxRetries = config.MAX_RETRIES
-        self.__pyroTimeout = config.COMMTIMEOUT
-        self.__pyroConnLock = threading.RLock()
-        if config.SERIALIZER not in serializers.serializers:
-            raise ValueError("unknown serializer configured")
-        current_context.annotations = {}
-        current_context.response_annotations = {}
-
-    def __del__(self):
-        if hasattr(self, "_pyroConnection"):
-            self._pyroRelease()
-
-    def __getattr__(self, name):
-        if name in Proxy.__pyroAttributes:
-            # allows it to be safely pickled
-            raise AttributeError(name)
-        # get metadata if it's not there yet
-        if not self._pyroMethods and not self._pyroAttrs:
-            self._pyroGetMetadata()
-        if name in self._pyroAttrs:
-            return self._pyroInvoke("__getattr__", (name,), None)
-        if name not in self._pyroMethods:
-            # client side check if the requested attr actually exists
-            raise AttributeError("remote object '%s' has no exposed attribute or method '%s'" % (self._pyroUri, name))
-        return _RemoteMethod(self._pyroInvoke, name, self._pyroMaxRetries)
-
-    def __setattr__(self, name, value):
-        if name in Proxy.__pyroAttributes:
-            return super(Proxy, self).__setattr__(name, value)  # one of the special pyro attributes
-        # get metadata if it's not there yet
-        if not self._pyroMethods and not self._pyroAttrs:
-            self._pyroGetMetadata()
-        if name in self._pyroAttrs:
-            return self._pyroInvoke("__setattr__", (name, value), None)  # remote attribute
-        # client side validation if the requested attr actually exists
-        raise AttributeError("remote object '%s' has no exposed attribute '%s'" % (self._pyroUri, name))
-
-    def __repr__(self):
-        if self._pyroConnection:
-            connected = "connected " + self._pyroConnection.family()
-        else:
-            connected = "not connected"
-        return "<%s.%s at 0x%x; %s; for %s>" % (self.__class__.__module__, self.__class__.__name__,
-                                                id(self), connected, self._pyroUri)
-
-    def __getstate_for_dict__(self):
-        # for backwards compatibility reasons we also put the timeout and maxretries into the state
-        return self._pyroUri.asString(), tuple(self._pyroOneway), tuple(self._pyroMethods), tuple(self._pyroAttrs),\
-            self.__pyroTimeout, self._pyroHandshake, self._pyroMaxRetries, self._pyroSerializer
-
-    def __setstate_from_dict__(self, state):
-        uri = URI(state[0])
-        oneway = set(state[1])
-        methods = set(state[2])
-        attrs = set(state[3])
-        handshake = state[4]
-        serializer = state[5]
-        self.__setstate__((uri, oneway, methods, attrs, handshake, serializer))
-
-    def __getstate__(self):
-        return self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, self._pyroHandshake, self._pyroSerializer
-
-    def __setstate__(self, state):
-        self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, self._pyroHandshake, self._pyroSerializer = state
-        self.__pyroTimeout = config.COMMTIMEOUT
-        self._pyroMaxRetries = config.MAX_RETRIES
-        self._pyroConnection = None
-        self._pyroSeq = 0
-        self._pyroRawWireResponse = False
-        self.__pyroConnLock = threading.RLock()
-
-    def __copy__(self):
-        uriCopy = URI(self._pyroUri)
-        p = type(self)(uriCopy)
-        p._pyroOneway = set(self._pyroOneway)
-        p._pyroMethods = set(self._pyroMethods)
-        p._pyroAttrs = set(self._pyroAttrs)
-        p._pyroSerializer = self._pyroSerializer
-        p._pyroTimeout = self._pyroTimeout
-        p._pyroHandshake = self._pyroHandshake
-        p._pyroRawWireResponse = self._pyroRawWireResponse
-        p._pyroMaxRetries = self._pyroMaxRetries
-        return p
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._pyroRelease()
-
-    def __eq__(self, other):
-        if other is self:
-            return True
-        return isinstance(other, Proxy) and other._pyroUri == self._pyroUri
-
-    def __ne__(self, other):
-        if other and isinstance(other, Proxy):
-            return other._pyroUri != self._pyroUri
-        return True
-
-    def __hash__(self):
-        return hash(self._pyroUri)
-
-    def __dir__(self):
-        result = dir(self.__class__) + list(self.__dict__.keys())
-        return sorted(set(result) | self._pyroMethods | self._pyroAttrs)
-
-    def _pyroRelease(self):
-        """release the connection to the pyro daemon"""
-        with self.__pyroConnLock:
-            if self._pyroConnection is not None:
-                self._pyroConnection.close()
-                self._pyroConnection = None
-                log.debug("connection released")
-
-    def _pyroBind(self):
-        """
-        Bind this proxy to the exact object from the uri. That means that the proxy's uri
-        will be updated with a direct PYRO uri, if it isn't one yet.
-        If the proxy is already bound, it will not bind again.
-        """
-        return self.__pyroCreateConnection(True)
-
-    def __pyroGetTimeout(self):
-        return self.__pyroTimeout
-
-    def __pyroSetTimeout(self, timeout):
-        self.__pyroTimeout = timeout
-        if self._pyroConnection is not None:
-            self._pyroConnection.timeout = timeout
-
-    _pyroTimeout = property(__pyroGetTimeout, __pyroSetTimeout, doc="""
-        The timeout in seconds for calls on this proxy. Defaults to ``None``.
-        If the timeout expires before the remote method call returns,
-        Pyro will raise a :exc:`Pyro5.errors.TimeoutError`""")
-
-    def _pyroInvoke(self, methodname, vargs, kwargs, flags=0, objectId=None):
-        """perform the remote method call communication"""
-        current_context.response_annotations = {}
-        with self.__pyroConnLock:
-            if self._pyroConnection is None:
-                self.__pyroCreateConnection()
-            serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
-            objectId = objectId or self._pyroConnection.objectId
-            annotations = self.__annotations()
-            if vargs and isinstance(vargs[0], SerializedBlob):
-                # special serialization of a 'blob' that stays serialized
-                data, compressed, flags = self.__serializeBlobArgs(vargs, kwargs, annotations, flags, objectId, methodname, serializer)
-            else:
-                # normal serialization of the remote call
-                data, compressed = serializer.serializeCall(objectId, methodname, vargs, kwargs, compress=config.COMPRESSION)
-            if compressed:
-                flags |= protocol.FLAGS_COMPRESSED
-            if methodname in self._pyroOneway:
-                flags |= protocol.FLAGS_ONEWAY
-            self._pyroSeq = (self._pyroSeq + 1) & 0xffff
-            msg = protocol.Message(protocol.MSG_INVOKE, data, serializer.serializer_id, flags, self._pyroSeq, annotations=annotations)
-            if config.LOGWIRE:
-                _log_wiredata(log, "proxy wiredata sending", msg)
-            try:
-                self._pyroConnection.send(msg.to_bytes())
-                del msg  # invite GC to collect the object, don't wait for out-of-scope
-                if flags & protocol.FLAGS_ONEWAY:
-                    return None  # oneway call, no response data
-                else:
-                    msg = protocol.Message.recv(self._pyroConnection, [protocol.MSG_RESULT])
-                    if config.LOGWIRE:
-                        _log_wiredata(log, "proxy wiredata received", msg)
-                    self.__pyroCheckSequence(msg.seq)
-                    if msg.serializer_id != serializer.serializer_id:
-                        error = "invalid serializer in response: %d" % msg.serializer_id
-                        log.error(error)
-                        raise errors.SerializeError(error)
-                    if msg.annotations:
-                        current_context.response_annotations = msg.annotations
-                        self._pyroResponseAnnotations(msg.annotations, msg.type)
-                    if self._pyroRawWireResponse:
-                        msg.decompress_if_needed()
-                        return msg
-                    data = serializer.deserializeData(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
-                    if msg.flags & protocol.FLAGS_ITEMSTREAMRESULT:
-                        streamId = msg.annotations.get("STRM", b"").decode()
-                        if not streamId:
-                            raise errors.ProtocolError("result of call is an iterator, but the server is not configured to allow streaming")
-                        return _StreamResultIterator(streamId, self)
-                    if msg.flags & protocol.FLAGS_EXCEPTION:
-                        raise data
-                    else:
-                        return data
-            except (errors.CommunicationError, KeyboardInterrupt):
-                # Communication error during read. To avoid corrupt transfers, we close the connection.
-                # Otherwise we might receive the previous reply as a result of a new method call!
-                # Special case for keyboardinterrupt: people pressing ^C to abort the client
-                # may be catching the keyboardinterrupt in their code. We should probably be on the
-                # safe side and release the proxy connection in this case too, because they might
-                # be reusing the proxy object after catching the exception...
-                self._pyroRelease()
-                raise
-
-    def __pyroCheckSequence(self, seq):
-        if seq != self._pyroSeq:
-            err = "invoke: reply sequence out of sync, got %d expected %d" % (seq, self._pyroSeq)
-            log.error(err)
-            raise errors.ProtocolError(err)
-
-    def __pyroCreateConnection(self, replaceUri=False):
-        """
-        Connects this proxy to the remote Pyro daemon. Does connection handshake.
-        Returns true if a new connection was made, false if an existing one was already present.
-        """
-        with self.__pyroConnLock:
-            if self._pyroConnection is not None:
-                return False  # already connected
-            uri = _resolve(self._pyroUri)
-            # socket connection (normal or Unix domain socket)
-            conn = None
-            log.debug("connecting to %s", uri)
-            connect_location = uri.sockname or (uri.host, uri.port)
-            try:
-                if self._pyroConnection is not None:
-                    return False  # already connected
-                if config.SSL:
-                    sslContext = socketutil.getSSLcontext(clientcert=config.SSL_CLIENTCERT,
-                                                          clientkey=config.SSL_CLIENTKEY,
-                                                          keypassword=config.SSL_CLIENTKEYPASSWD,
-                                                          cacerts=config.SSL_CACERTS)
-                else:
-                    sslContext = None
-                sock = socketutil.createSocket(connect=connect_location,
-                                               reuseaddr=config.SOCK_REUSE,
-                                               timeout=self.__pyroTimeout,
-                                               nodelay=config.SOCK_NODELAY,
-                                               sslContext=sslContext)
-                conn = socketutil.SocketConnection(sock, uri.object)
-                # Do handshake.
-                serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
-                data = {"handshake": self._pyroHandshake}
-                # the object id is only used/needed when piggybacking the metadata on the connection response
-                # make sure to pass the resolved object id instead of the logical id
-                data["object"] = uri.object
-                flags = protocol.FLAGS_META_ON_CONNECT
-                data, compressed = serializer.serializeData(data, config.COMPRESSION)
-                if compressed:
-                    flags |= protocol.FLAGS_COMPRESSED
-                msg = protocol.Message(protocol.MSG_CONNECT, data, serializer.serializer_id, flags, self._pyroSeq,
-                                       annotations=self.__annotations(False))
-                if config.LOGWIRE:
-                    _log_wiredata(log, "proxy connect sending", msg)
-                conn.send(msg.to_bytes())
-                msg = protocol.Message.recv(conn, [protocol.MSG_CONNECTOK, protocol.MSG_CONNECTFAIL])
-                if config.LOGWIRE:
-                    _log_wiredata(log, "proxy connect response received", msg)
-            except Exception as x:
-                if conn:
-                    conn.close()
-                err = "cannot connect to %s: %s" % (connect_location, x)
-                log.error(err)
-                if isinstance(x, errors.CommunicationError):
-                    raise
-                else:
-                    raise errors.CommunicationError(err) from x
-            else:
-                handshake_response = "?"
-                if msg.data:
-                    serializer = serializers.serializers_by_id[msg.serializer_id]
-                    handshake_response = serializer.deserializeData(msg.data, compressed=msg.flags & protocol.FLAGS_COMPRESSED)
-                if msg.type == protocol.MSG_CONNECTFAIL:
-                    error = "connection to %s rejected: %s" % (connect_location, handshake_response)
-                    conn.close()
-                    log.error(error)
-                    raise errors.CommunicationError(error)
-                elif msg.type == protocol.MSG_CONNECTOK:
-                    if msg.flags & protocol.FLAGS_META_ON_CONNECT:
-                        self.__processMetadata(handshake_response["meta"])
-                        handshake_response = handshake_response["handshake"]
-                    self._pyroConnection = conn
-                    if replaceUri:
-                        self._pyroUri = uri
-                    self._pyroValidateHandshake(handshake_response)
-                    log.debug("connected to %s - %s - %s", self._pyroUri, conn.family(), "SSL" if sslContext else "unencrypted")
-                    if msg.annotations:
-                        self._pyroResponseAnnotations(msg.annotations, msg.type)
-                else:
-                    conn.close()
-                    err = "cannot connect to %s: invalid msg type %d received" % (connect_location, msg.type)
-                    log.error(err)
-                    raise errors.ProtocolError(err)
-            # obtain metadata if this feature is enabled, and the metadata is not known yet
-            if self._pyroMethods or self._pyroAttrs:
-                log.debug("reusing existing metadata")
-            else:
-                self._pyroGetMetadata(uri.object)
-            return True
-
-    def _pyroGetMetadata(self, objectId=None, known_metadata=None):
-        """
-        Get metadata from server (methods, attrs, oneway, ...) and remember them in some attributes of the proxy.
-        Usually this will already be known due to the default behavior of the connect handshake, where the
-        connect response also includes the metadata.
-        """
-        objectId = objectId or self._pyroUri.object
-        log.debug("getting metadata for object %s", objectId)
-        if self._pyroConnection is None and not known_metadata:
-            try:
-                self.__pyroCreateConnection()
-            except errors.PyroError:
-                log.error("problem getting metadata: cannot connect")
-                raise
-            if self._pyroMethods or self._pyroAttrs:
-                return  # metadata has already been retrieved as part of creating the connection
-        try:
-            # invoke the get_metadata method on the daemon
-            result = known_metadata or self._pyroInvoke("get_metadata", [objectId], {}, objectId=DAEMON_NAME)
-            self.__processMetadata(result)
-        except errors.PyroError:
-            log.exception("problem getting metadata")
-            raise
-
-    def __processMetadata(self, metadata):
-        if not metadata:
-            return
-        self._pyroOneway = set(metadata["oneway"])
-        self._pyroMethods = set(metadata["methods"])
-        self._pyroAttrs = set(metadata["attrs"])
-        if log.isEnabledFor(logging.DEBUG):
-            log.debug("from meta: methods=%s, oneway methods=%s, attributes=%s",
-                      sorted(self._pyroMethods), sorted(self._pyroOneway), sorted(self._pyroAttrs))
-        if not self._pyroMethods and not self._pyroAttrs:
-            raise errors.PyroError("remote object doesn't expose any methods or attributes. Did you forget setting @expose on them?")
-
-    def _pyroReconnect(self, tries=100000000):
-        """
-        (Re)connect the proxy to the daemon containing the pyro object which the proxy is for.
-        In contrast to the _pyroBind method, this one first releases the connection (if the proxy is still connected)
-        and retries making a new connection until it succeeds or the given amount of tries ran out.
-        """
-        self._pyroRelease()
-        while tries:
-            try:
-                self.__pyroCreateConnection()
-                return
-            except errors.CommunicationError:
-                tries -= 1
-                if tries:
-                    time.sleep(2)
-        msg = "failed to reconnect"
-        log.error(msg)
-        raise errors.ConnectionClosedError(msg)
-
-    def _pyroBatch(self):
-        """returns a helper class that lets you create batched method calls on the proxy"""
-        return _BatchProxyAdapter(self)
-
-    def _pyroInvokeBatch(self, calls, oneway=False):
-        flags = protocol.FLAGS_BATCH
-        if oneway:
-            flags |= protocol.FLAGS_ONEWAY
-        return self._pyroInvoke("<batch>", calls, None, flags)
-
-    def _pyroAnnotations(self):
-        """
-        Override to return a dict with custom user annotations to be sent with each request message.
-        Code using Pyro 4.56 or newer can skip this and instead set the annotations directly on the context object.
-        """
-        return {}
-
-    def _pyroResponseAnnotations(self, annotations, msgtype):
-        """
-        Process any response annotations (dictionary set by the daemon).
-        Usually this contains the internal Pyro annotations such as correlation id,
-        and if you override the annotations method in the daemon, can contain your own annotations as well.
-        Code using Pyro 4.56 or newer can skip this and instead read the response_annotations directly from the context object.
-        """
-        pass
-
-    def _pyroValidateHandshake(self, response):
-        """
-        Process and validate the initial connection handshake response data received from the daemon.
-        Simply return without error if everything is ok.
-        Raise an exception if something is wrong and the connection should not be made.
-        """
-        return
-
-    def __annotations(self, clear=True):
-        annotations = current_context.annotations
-        if current_context.correlation_id:
-            annotations["CORR"] = current_context.correlation_id.bytes
-        else:
-            annotations.pop("CORR", None)
-        annotations.update(self._pyroAnnotations())
-        if clear:
-            current_context.annotations = {}
-        return annotations
-
-    def __serializeBlobArgs(self, vargs, kwargs, annotations, flags, objectId, methodname, serializer):
-        """
-        Special handling of a "blob" argument that has to stay serialized until explicitly deserialized in client code.
-        This makes efficient, transparent gateways or dispatchers and such possible:
-        they don't have to de/reserialize the message and are independent from the serialized class definitions.
-        Annotations are passed in because some blob metadata is added. They're not part of the blob itself.
-        """
-        if len(vargs) > 1 or kwargs:
-            raise errors.SerializeError("if SerializedBlob is used, it must be the only argument")
-        blob = vargs[0]
-        flags |= protocol.FLAGS_KEEPSERIALIZED
-        # Pass the objectId and methodname separately in an annotation because currently,
-        # they are embedded inside the serialized message data. And we're not deserializing that,
-        # so we have to have another means of knowing the object and method it is meant for...
-        # A better solution is perhaps to split the actual remote method arguments from the
-        # control data (object + methodname) but that requires a major protocol change.
-        # The code below is not as nice but it works without any protocol change and doesn't
-        # require a hack either - so it's actually not bad like this.
-        import marshal
-        annotations["BLBI"] = marshal.dumps((blob.info, objectId, methodname))
-        if blob._contains_blob:
-            # directly pass through the already serialized msg data from within the blob
-            protocol_msg = blob._data
-            data, compressed = protocol_msg.data, protocol_msg.flags & protocol.FLAGS_COMPRESSED
-        else:
-            # replaces SerializedBlob argument with the data to be serialized
-            data, compressed = serializer.serializeCall(objectId, methodname, blob._data, kwargs, compress=config.COMPRESSION)
-        return data, compressed, flags
-
-
-class _StreamResultIterator(object):
-    """
-    Pyro returns this as a result of a remote call which returns an iterator or generator.
-    It is a normal iterable and produces elements on demand from the remote iterator.
-    You can simply use it in for loops, list comprehensions etc.
-    """
-    def __init__(self, streamId, proxy):
-        self.streamId = streamId
-        self.proxy = proxy
-        self.pyroseq = proxy._pyroSeq
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        # python 2.x support
-        return self.__next__()
-
-    def __next__(self):
-        if self.proxy is None:
-            raise StopIteration
-        if self.proxy._pyroConnection is None:
-            raise errors.ConnectionClosedError("the proxy for this stream result has been closed")
-        self.pyroseq += 1
-        try:
-            return self.proxy._pyroInvoke("get_next_stream_item", [self.streamId], {}, objectId=DAEMON_NAME)
-        except (StopIteration, GeneratorExit):
-            # when the iterator is exhausted, the proxy is removed to avoid unneeded close_stream calls later
-            # (the server has closed its part of the stream by itself already)
-            self.proxy = None
-            raise
-
-    def __del__(self):
-        self.close()
-
-    def close(self):
-        if self.proxy and self.proxy._pyroConnection is not None:
-            if self.pyroseq == self.proxy._pyroSeq:
-                # we're still in sync, it's okay to use the same proxy to close this stream
-                self.proxy._pyroInvoke("close_stream", [self.streamId], {},
-                                       flags=protocol.FLAGS_ONEWAY, objectId=DAEMON_NAME)
-            else:
-                # The proxy's sequence number has diverged.
-                # One of the reasons this can happen is because this call is being done from python's GC where
-                # it decides to gc old iterator objects *during a new call on the proxy*.
-                # If we use the same proxy and do a call in between, the other call on the proxy will get an out of sync seq and crash!
-                # We create a temporary second proxy to call close_stream on. This is inefficient, but avoids the problem.
-                try:
-                    with self.proxy.__copy__() as closingProxy:
-                        closingProxy._pyroInvoke("close_stream", [self.streamId], {},
-                                                 flags=protocol.FLAGS_ONEWAY, objectId=DAEMON_NAME)
-                except errors.CommunicationError:
-                    pass
-        self.proxy = None
-
-
-class _BatchedRemoteMethod(object):
-    """method call abstraction that is used with batched calls"""
-
-    def __init__(self, calls, name):
-        self.__calls = calls
-        self.__name = name
-
-    def __getattr__(self, name):
-        return _BatchedRemoteMethod(self.__calls, "%s.%s" % (self.__name, name))
-
-    def __call__(self, *args, **kwargs):
-        self.__calls.append((self.__name, args, kwargs))
-
-
-class _BatchProxyAdapter(object):
-    """Helper class that lets you batch multiple method calls into one.
-    It is constructed with a reference to the normal proxy that will
-    carry out the batched calls. Call methods on this object that you want to batch,
-    and finally call the batch proxy itself. That call will return a generator
-    for the results of every method call in the batch (in sequence)."""
-
-    def __init__(self, proxy):
-        self.__proxy = proxy
-        self.__calls = []
-
-    def __getattr__(self, name):
-        return _BatchedRemoteMethod(self.__calls, name)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        pass
-
-    def __copy__(self):
-        copy = type(self)(self.__proxy)
-        copy.__calls = list(self.__calls)
-        return copy
-
-    def __resultsgenerator(self, results):
-        for result in results:
-            if isinstance(result, _ExceptionWrapper):
-                result.raiseIt()  # re-raise the remote exception locally.
-            else:
-                yield result  # it is a regular result object, yield that and continue.
-
-    def __call__(self, oneway=False):
-        results = self.__proxy._pyroInvokeBatch(self.__calls, oneway)
-        self.__calls = []  # clear for re-use
-        if not oneway:
-            return self.__resultsgenerator(results)
-
-    def _pyroInvoke(self, name, args, kwargs):
-        # ignore all parameters, we just need to execute the batch
-        results = self.__proxy._pyroInvokeBatch(self.__calls)
-        self.__calls = []  # clear for re-use
-        return self.__resultsgenerator(results)
-
-
-def batch(proxy):
-    """convenience method to get a batch proxy adapter"""
-    return proxy._pyroBatch()
 
 
 def pyroObjectToAutoProxy(obj):
@@ -1081,7 +472,7 @@ class Daemon(object):
             if denied_reason:
                 raise Exception(denied_reason)
             if config.LOGWIRE:
-                _log_wiredata(log, "daemon handshake received", msg)
+                protocol.log_wiredata(log, "daemon handshake received", msg)
             if "CORR" in msg.annotations:
                 current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"])
             else:
@@ -1117,7 +508,7 @@ class Daemon(object):
         # on some systems... (messages smaller than 40 bytes)
         msg = protocol.Message(msgtype, data, serializer_id, flags, msg_seq, annotations=self.__annotations())
         if config.LOGWIRE:
-            _log_wiredata(log, "daemon handshake response", msg)
+            protocol.log_wiredata(log, "daemon handshake response", msg)
         conn.send(msg.to_bytes())
         return msg.type == protocol.MSG_CONNECTOK
 
@@ -1159,13 +550,13 @@ class Daemon(object):
             request_serializer_id = msg.serializer_id
             current_context.correlation_id = uuid.UUID(bytes=msg.annotations["CORR"]) if "CORR" in msg.annotations else uuid.uuid4()
             if config.LOGWIRE:
-                _log_wiredata(log, "daemon wiredata received", msg)
+                protocol.log_wiredata(log, "daemon wiredata received", msg)
             if msg.type == protocol.MSG_PING:
                 # return same seq, but ignore any data (it's a ping, not an echo). Nothing is deserialized.
                 msg = protocol.Message(protocol.MSG_PING, b"pong", msg.serializer_id, 0, msg.seq,
                                        annotations=self.__annotations())
                 if config.LOGWIRE:
-                    _log_wiredata(log, "daemon wiredata sending", msg)
+                    protocol.log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.to_bytes())
                 return
             serializer = serializers.serializers_by_id[msg.serializer_id]
@@ -1243,7 +634,7 @@ class Daemon(object):
                                        annotations=self.__annotations())
                 current_context.response_annotations = {}
                 if config.LOGWIRE:
-                    _log_wiredata(log, "daemon wiredata sending", msg)
+                    protocol.log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.to_bytes())
         except Exception as xv:
             msg = getattr(xv, "pyroMsg", None)
@@ -1372,7 +763,7 @@ class Daemon(object):
         annotations.update(self.annotations())
         msg = protocol.Message(protocol.MSG_RESULT, data, serializer.serializer_id, flags, seq, annotations=annotations)
         if config.LOGWIRE:
-            _log_wiredata(log, "daemon wiredata sending (error response)", msg)
+            protocol.log_wiredata(log, "daemon wiredata sending (error response)", msg)
         connection.send(msg.to_bytes())
 
     def register(self, obj_or_class, objectId=None, force=False):
@@ -1474,7 +865,7 @@ class Daemon(object):
         (you can't get a proxy for an unknown object)
         """
         uri = self.uriFor(objectOrId, nat)
-        proxy = Proxy(uri)
+        proxy = client.Proxy(uri)
         try:
             registered_object = self.objectsById[uri.object]
         except KeyError:
@@ -1559,49 +950,18 @@ class Daemon(object):
         import marshal
         blobinfo = protocolmsg.annotations["BLBI"]
         blobinfo, objId, method = marshal.loads(blobinfo)
-        blob = SerializedBlob(blobinfo, protocolmsg, is_blob=True)
+        blob = client.SerializedBlob(blobinfo, protocolmsg, is_blob=True)
         return objId, method, (blob,), {}  # object, method, vargs, kwargs
 
 
 # serpent serializer initialization
-
-try:
-    import serpent
-
-    def pyro_class_serpent_serializer(obj, serializer, stream, level):
-        # Override the default way that a Pyro URI/proxy/daemon is serialized.
-        # Because it defines a __getstate__ it would otherwise just become a tuple,
-        # and not be deserialized as a class.
-        d = serializers.SerializerBase.class_to_dict(obj)
-        serializer.ser_builtins_dict(d, stream, level)
-
-    # register the special serializers for the pyro objects with Serpent
-    serpent.register_class(URI, pyro_class_serpent_serializer)
-    serpent.register_class(Proxy, pyro_class_serpent_serializer)
-    serpent.register_class(Daemon, pyro_class_serpent_serializer)
-    serpent.register_class(_ExceptionWrapper, pyro_class_serpent_serializer)
-except ImportError:
-    pass
-
-
-def serialize_core_object_to_dict(obj):
-    return {
-        "__class__": "Pyro5.core." + obj.__class__.__name__,
-        "state": obj.__getstate_for_dict__()
-    }
-
-
-serializers.SerializerBase.register_class_to_dict(URI, serialize_core_object_to_dict, serpent_too=False)
-serializers.SerializerBase.register_class_to_dict(Proxy, serialize_core_object_to_dict, serpent_too=False)
-serializers.SerializerBase.register_class_to_dict(Daemon, serialize_core_object_to_dict, serpent_too=False)
+# register the special serializers for the pyro objects with Serpent
+serpent.register_class(URI, serializers.pyro_class_serpent_serializer)
+serpent.register_class(Daemon, serializers.pyro_class_serpent_serializer)
+serpent.register_class(_ExceptionWrapper, serializers.pyro_class_serpent_serializer)
+serializers.SerializerBase.register_class_to_dict(URI, serializers.serialize_pyro_object_to_dict, serpent_too=False)
+serializers.SerializerBase.register_class_to_dict(Daemon, serializers.serialize_pyro_object_to_dict, serpent_too=False)
 serializers.SerializerBase.register_class_to_dict(_ExceptionWrapper, _ExceptionWrapper.__serialized_dict__, serpent_too=False)
-
-
-def _log_wiredata(logger, text, msg):
-    """logs all the given properties of the wire message in the given logger"""
-    corr = str(uuid.UUID(bytes=msg.annotations["CORR"])) if "CORR" in msg.annotations else "?"
-    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s\nannotations=%r\ndata=%r" %
-                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, msg.annotations, msg.data))
 
 
 class _CallContext(threading.local):
@@ -1692,7 +1052,7 @@ def _locateNS(host=None, port=None, broadcast=True):
             for host in hosts:
                 uristring = "PYRO:%s@%s:%d" % (NAMESERVER_NAME, host, port or config.NS_PORT)
                 log.debug("locating the NS: %s", uristring)
-                proxy = Proxy(uristring)
+                proxy = client.Proxy(uristring)
                 try:
                     proxy._pyroBind()
                     log.debug("located NS")
@@ -1721,7 +1081,7 @@ def _locateNS(host=None, port=None, broadcast=True):
                     sock.close()
                     data = data.decode("iso-8859-1")
                     log.debug("located NS: %s", data)
-                    proxy = Proxy(data)
+                    proxy = client.Proxy(data)
                     return proxy
                 except socket.timeout:
                     continue
@@ -1748,41 +1108,13 @@ def _locateNS(host=None, port=None, broadcast=True):
         uristring = "PYRO:%s@%s:%d" % (NAMESERVER_NAME, host, port)
     uri = URI(uristring)
     log.debug("locating the NS: %s", uri)
-    proxy = Proxy(uri)
+    proxy = client.Proxy(uri)
     try:
         proxy._pyroBind()
         log.debug("located NS")
         return proxy
     except errors.PyroError as x:
         raise errors.NamingError("Failed to locate the nameserver") from x
-
-
-class SerializedBlob(object):
-    """
-    Used to wrap some data to make Pyro pass this object transparently (it keeps the serialized payload as-is)
-    Only when you need to access the actual client data you can deserialize on demand.
-    This makes efficient, transparent gateways or dispatchers and such possible:
-    they don't have to de/reserialize the message and are independent from the serialized class definitions.
-    You have to pass this as the only parameter to a remote method call for Pyro to understand it.
-    Init arguments:
-    ``info`` = some (small) descriptive data about the blob. Can be a simple id or name or guid. Must be marshallable.
-    ``data`` = the actual client data payload that you want to transfer in the blob. Can be anything that you would
-    otherwise have used as regular remote call arguments.
-    """
-    def __init__(self, info, data, is_blob=False):
-        self.info = info
-        self._data = data
-        self._contains_blob = is_blob
-
-    def deserialized(self):
-        """Retrieves the client data stored in this blob. Deserializes the data automatically if required."""
-        if self._contains_blob:
-            protocol_msg = self._data
-            serializer = serializers.serializers_by_id[protocol_msg.serializer_id]
-            _, _, data, _ = serializer.deserializeData(protocol_msg.data, protocol_msg.flags & protocol.FLAGS_COMPRESSED)
-            return data
-        else:
-            return self._data
 
 
 # call context thread local

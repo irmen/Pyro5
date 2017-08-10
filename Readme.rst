@@ -31,6 +31,7 @@ changes done based on original Pyro4 sources (release 4.62)
 - moved the multiplex and thread socketservers modules into main package
 - no custom futures module anymore (you should use Python's own concurrent.futures instead)
 - async proxy removed (may come back but probably not directly integrated into the Proxy class)
+- batch calls now via client.BatchProxy
 - nameserver storage option 'dbm' removed (only memory and sql possible now)
 - naming_storage module merged into nameserver module
 - no Hmac key anymore, use SSL and 2-way certs if you want true security
