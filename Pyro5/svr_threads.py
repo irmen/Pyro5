@@ -49,7 +49,7 @@ class ClientConnectionJob(object):
                     except:
                         # other errors log a warning, break this loop and close the client connection
                         ex_t, ex_v, ex_tb = sys.exc_info()
-                        tb = serializers.formatTraceback(ex_t, ex_v, ex_tb)
+                        tb = errors.formatTraceback(ex_t, ex_v, ex_tb)
                         msg = "error during handleRequest: %s; %s" % (ex_v, "".join(tb))
                         log.warning(msg)
                         break
@@ -69,7 +69,7 @@ class ClientConnectionJob(object):
             self.csock.close()
         except:
             ex_t, ex_v, ex_tb = sys.exc_info()
-            tb = serializers.formatTraceback(ex_t, ex_v, ex_tb)
+            tb = errors.formatTraceback(ex_t, ex_v, ex_tb)
             log.warning("error during connect/handshake: %s; %s", ex_v, "\n".join(tb))
             self.csock.close()
         return False
@@ -272,8 +272,8 @@ class Worker(threading.Thread):
                 break
             try:
                 self.job()
-            except Exception:
-                log.exception("unhandled exception from job in worker thread %s: %s", self.name)
+            except Exception as x:
+                log.exception("unhandled exception from job in worker thread %s: %s", self.name, x)
             self.job = None
             self.pool.notify_done(self)
         self.pool = None
