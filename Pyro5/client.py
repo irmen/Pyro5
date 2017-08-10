@@ -105,7 +105,7 @@ class Proxy(object):
         else:
             connected = "not connected"
         return "<%s.%s at 0x%x; %s; for %s; owner %s>" % (self.__class__.__module__, self.__class__.__name__,
-                                                id(self), connected, self._pyroUri, self.__pyroOwnerThread)
+                                                          id(self), connected, self._pyroUri, self.__pyroOwnerThread)
 
     def __getstate_for_dict__(self):
         # for backwards compatibility reasons we also put the timeout and maxretries into the state
@@ -227,7 +227,7 @@ class Proxy(object):
             if flags & protocol.FLAGS_ONEWAY:
                 return None  # oneway call, no response data
             else:
-                msg = protocol.MessageXXX.recv(self._pyroConnection, [protocol.MSG_RESULT])
+                msg = protocol.recv_stub(self._pyroConnection, [protocol.MSG_RESULT])
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "proxy wiredata received", msg)
                 self.__pyroCheckSequence(msg.seq)
@@ -308,7 +308,7 @@ class Proxy(object):
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "proxy connect sending", msg)
             conn.send(msg.data)
-            msg = protocol.MessageXXX.recv(conn, [protocol.MSG_CONNECTOK, protocol.MSG_CONNECTFAIL])
+            msg = protocol.recv_stub(conn, [protocol.MSG_CONNECTOK, protocol.MSG_CONNECTFAIL])
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "proxy connect response received", msg)
         except Exception as x:

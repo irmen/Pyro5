@@ -11,16 +11,17 @@ Annotation chunks are only parsed.
 
 The header format is::
 
-   4s  4   'PYRO' (message identifier)
-   H   2   protocol version
-   B   1   message type
-   B   1   serializer id
-   H   2   message flags
-   H   2   sequence number   (to identify proper request-reply sequencing)
-   I   4   data length   (max 4 Gb)
-   H   2   annotations length (total of all chunks, 0 if no annotation chunks present)
-   H   2   (reserved)
-   H   2   magic number 0x4dc5
+0x00   4s  4   'PYRO' (message identifier)
+0x04   H   2   protocol version
+0x06   B   1   message type
+0x07   B   1   serializer id
+0x08   H   2   message flags
+0x0a   H   2   sequence number   (to identify proper request-reply sequencing)
+0x0c   I   4   data length   (max 4 Gb)
+0x10   H   2   annotations length (total of all chunks, 0 if no annotation chunks present)
+0x12   H   2   (reserved)
+0x14   H   2   magic number 0x4dc5
+total size: 0x16 (22 bytes)
 
 After the header, zero or more annotation chunks may follow, of the format::
 
@@ -62,6 +63,8 @@ PROTOCOL_VERSION = 501
 _magic_number = 0x4dc5
 _header_format = '!4sHBBHHIHHH'
 _header_size = struct.calcsize(_header_format)
+_magic_number_bytes = _magic_number.to_bytes(2, "big")
+_protocol_version_bytes = PROTOCOL_VERSION.to_bytes(2, "big")
 
 
 class SendingMessage:
@@ -101,117 +104,64 @@ class SendingMessage:
         """Convenience method to send a 'ping' message and wait for the 'pong' response"""
         ping = SendingMessage(MSG_PING, 0, 0, 42, b"ping")
         pyroConnection.send(ping.data)
-        MessageXXX.recv(pyroConnection, [MSG_PING])
+        recv_stub(pyroConnection, [MSG_PING])
 
 
-class MessageXXX(object):  # @todo split up in SendingMessage and ReceivingMessage
-    """Pyro write protocol message."""
-
-    def __init__(self, msgType, databytes, serializer_id, flags, seq, annotations=None):
-        self.type = msgType
-        self.flags = flags
-        self.seq = seq
-        self.data = databytes
-        self.data_size = len(self.data)
-        self.serializer_id = serializer_id
-        self.annotations = dict(annotations or {})
-        self.annotations_size = sum([8 + len(v) for v in self.annotations.values()])
-        if 0 < config.MAX_MESSAGE_SIZE < (self.data_size + self.annotations_size):
-            raise errors.MessageTooLargeError("max message size exceeded (%d where max=%d)" %
-                                              (self.data_size + self.annotations_size, config.MAX_MESSAGE_SIZE))
+class ReceivingMessage:
+    """Wire protocol message that was received."""
+    def __init__(self, header, payload=None):
+        """Parses a message from the given header."""
+        tag, ver, self.type, self.serializer_id, self.flags, self.seq, self.data_size, self.annotations_size, _, magic = \
+            struct.unpack(_header_format, header)
+        if tag != b"PYRO" or ver != PROTOCOL_VERSION or magic != _magic_number:
+            raise errors.ProtocolError("invalid message or protocol version")
+        if self.data_size+self.annotations_size > config.MAX_MESSAGE_SIZE:
+            raise errors.ProtocolError("message too large ({:d}, max={:d})"
+                                       .format(self.data_size+self.annotations_size, config.MAX_MESSAGE_SIZE))
+        self.data = None
+        self.annotations = {}
+        if payload:
+            self.add_payload(payload)
 
     def __repr__(self):
-        return "<%s.%s at %x; type=%d flags=%d seq=%d datasize=%d #ann=%d>" %\
-               (self.__module__, self.__class__.__name__, id(self), self.type, self.flags, self.seq, self.data_size, len(self.annotations))
+        return "<{:s}.{:s} at 0x{:x}; type={:d} flags={:d} seq={:d} size={:d}>" \
+            .format(self.__module__, self.__class__.__name__, id(self), self.type, self.flags, self.seq, len(self.data or ""))
 
-    def to_bytes(self):
-        """creates a byte stream containing the header followed by annotations (if any) followed by the data"""
-        return self.__header_bytes() + self.__annotations_bytes() + self.data
+    @staticmethod
+    def validate(data):
+        """Checks if the message data looks like a valid Pyro message, if not, raise an error."""
+        ld = len(data)
+        if ld < 4:
+            raise ValueError("data must be at least 4 bytes to be able to identify")
+        if not data.startswith(b"PYRO"):
+            raise errors.ProtocolError("invalid data")
+        if ld >= 6 and data[4:6] != _protocol_version_bytes:
+            raise errors.ProtocolError("invalid protocol version: {:d}".format(int.from_bytes(data[4:6], "big")))
+        if ld >= _header_size and data[20:22] != _magic_number_bytes:
+            raise errors.ProtocolError("invalid magic number")
 
-    def __header_bytes(self):
-        if self.data_size > 0x7fffffff:
-            raise ValueError("invalid message size (outside range 0..2Gb)")
-        return struct.pack(_header_format, b"PYRO", PROTOCOL_VERSION, self.type, self.serializer_id, self.flags,
-                           self.seq, self.data_size, self.annotations_size, 0, _magic_number)
-
-    def __annotations_bytes(self):
-        if self.annotations:
-            a = []
-            for k, v in self.annotations.items():
-                if len(k) != 4:
-                    raise errors.ProtocolError("annotation key must be of length 4")
-                k = k.encode()
-                a.append(struct.pack("!4sI", k, len(v)))
-                a.append(v)
-            return b"".join(a)
-        return b""
-
-    # Note: this 'chunked' way of sending is not used because it triggers Nagle's algorithm
-    # on some systems (linux). This causes big delays, unless you change the socket option
-    # TCP_NODELAY to disable the algorithm. What also works, is sending all the message bytes
-    # in one go: connection.send(message.to_bytes()). This is what Pyro does.
-    def send(self, connection):
-        """send the message as bytes over the connection"""
-        connection.send(self.__header_bytes())
-        if self.annotations:
-            connection.send(self.__annotations_bytes())
-        connection.send(self.data)
-
-    @classmethod
-    def from_header(cls, headerData):
-        """Parses a message header. Does not yet process the annotations chunks and message data."""
-        if not headerData or len(headerData) != _header_size:
-            raise errors.ProtocolError("header data size mismatch")
-        tag, ver, msg_type, serializer_id, flags, seq, data_size, anns_size, _, magic = struct.unpack(_header_format, headerData)
-        if tag != b"PYRO" or ver != PROTOCOL_VERSION or magic != _magic_number:
-            raise errors.ProtocolError("invalid message or unsupported protocol version")
-        msg = MessageXXX(msg_type, b"", serializer_id, flags, seq)
-        msg.data_size = data_size
-        msg.annotations_size = anns_size
-        return msg
-
-    @classmethod
-    def recv(cls, connection, requiredMsgTypes=None):
-        """
-        Receives a pyro message from a given connection.
-        Accepts the given message types (None=any, or pass a sequence).
-        Also reads annotation chunks and the actual payload data.
-        """
-        msg = cls.from_header(connection.recv(_header_size))
-        if 0 < config.MAX_MESSAGE_SIZE < (msg.data_size + msg.annotations_size):
-            errorMsg = "max message size exceeded (%d where max=%d)" % (msg.data_size + msg.annotations_size, config.MAX_MESSAGE_SIZE)
-            log.error("connection " + str(connection) + ": " + errorMsg)
-            connection.close()  # close the socket because at this point we can't return the correct seqnr for returning an errormsg
-            exc = errors.MessageTooLargeError(errorMsg)
-            exc.pyroMsg = msg
-            raise exc
-        if requiredMsgTypes and msg.type not in requiredMsgTypes:
-            err = "invalid msg type %d received" % msg.type
-            log.error(err)
-            exc = errors.ProtocolError(err)
-            exc.pyroMsg = msg
-            raise exc
-        if msg.annotations_size:
-            # read annotation chunks
-            annotations_data = connection.recv(msg.annotations_size)
-            msg.annotations = {}
+    def add_payload(self, payload):
+        """Parses (annotations processing) and adds payload data to a received message."""
+        assert not self.data
+        if len(payload) != self.data_size + self.annotations_size:
+            raise errors.ProtocolError("payload length doesn't match message header")
+        if self.annotations_size:
+            payload = memoryview(payload)  # avoid copying
+            self.annotations = {}
             i = 0
-            while i < msg.annotations_size:
-                anno, length = struct.unpack("!4sI", annotations_data[i:i + 8])
-                anno = anno.decode()
-                msg.annotations[anno] = annotations_data[i + 8:i + 8 + length]
+            while i < self.annotations_size:
+                annotation_id = bytes(payload[i:i+4]).decode("ascii")
+                length = int.from_bytes(payload[i+4:i+8], "big")
+                self.annotations[annotation_id] = payload[i+8:i+8+length]
                 i += 8 + length
-        # read data
-        msg.data = connection.recv(msg.data_size)
-        return msg
-
-    def decompress_if_needed(self):
-        """Decompress the message data if it is compressed."""
+            assert i == self.annotations_size
+            self.data = payload[self.annotations_size:]
+        else:
+            self.data = payload
         if self.flags & FLAGS_COMPRESSED:
             self.data = zlib.decompress(self.data)
             self.flags &= ~FLAGS_COMPRESSED
             self.data_size = len(self.data)
-        return self
 
 
 def log_wiredata(logger, text, msg):
@@ -224,3 +174,24 @@ def log_wiredata(logger, text, msg):
         logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=?\ndata=%r" %
                      (text, msg.type, msg.flags, msg.serializer_id, msg.seq, msg.data))
         # @todo get corr from the header
+
+
+def recv_stub(connection, accepted_msgtypes=None):  # XXX decouple i/o from actual protocol logic
+    """
+    Receives a pyro message from a given connection.
+    Accepts the given message types (None=any, or pass a sequence).
+    Also reads annotation chunks and the actual payload data.
+    """
+    header = connection.recv(6)  # 'PYRO' + 2 bytes protocol version
+    ReceivingMessage.validate(header)
+    header += connection.recv(_header_size - 6)
+    msg = ReceivingMessage(header)
+    if accepted_msgtypes and msg.type not in accepted_msgtypes:
+        err = "invalid msg type {:d} received (expected: {:s})".format(msg.type, ",".join(str(t) for t in accepted_msgtypes))
+        log.error(err)
+        exc = errors.ProtocolError(err)
+        exc.pyroMsg = msg
+        raise exc
+    payload = connection.recv(msg.annotations_size + msg.data_size)
+    msg.add_payload(payload)
+    return msg

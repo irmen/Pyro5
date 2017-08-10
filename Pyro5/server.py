@@ -322,7 +322,7 @@ class Daemon(object):
         serializer_id = serializers.MarshalSerializer.serializer_id
         msg_seq = 0
         try:
-            msg = protocol.MessageXXX.recv(conn, [protocol.MSG_CONNECT])
+            msg = protocol.recv_stub(conn, [protocol.MSG_CONNECT])
             msg_seq = msg.seq
             if denied_reason:
                 raise Exception(denied_reason)
@@ -389,7 +389,7 @@ class Daemon(object):
         wasBatched = False
         isCallback = False
         try:
-            msg = protocol.MessageXXX.recv(conn, [protocol.MSG_INVOKE, protocol.MSG_PING])
+            msg = protocol.recv_stub(conn, [protocol.MSG_INVOKE, protocol.MSG_PING])
         except errors.CommunicationError as x:
             # we couldn't even get data from the client, this is an immediate error
             # log.info("error receiving data from client %s: %s", conn.sock.getpeername(), x)
