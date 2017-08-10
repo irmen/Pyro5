@@ -18,13 +18,6 @@ except ImportError:
 from . import config
 from .errors import CommunicationError, TimeoutError, ConnectionClosedError
 
-try:
-    InterruptedError()  # new since Python 3.4
-except NameError:
-    class InterruptedError(Exception):
-        pass
-
-
 # XXX todo: use ipaddress module
 
 
