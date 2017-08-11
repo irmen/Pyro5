@@ -10,7 +10,7 @@ import threading
 import socket
 import random
 import serpent
-from . import config, errors, socketutil, serializers, client
+from . import config, errors, socketutil, serializers
 
 
 __all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME", "current_context", "resolve", "locate_ns", "type_meta"]
@@ -212,6 +212,7 @@ def resolve(uri):
 
 def locate_ns(host=None, port=None, broadcast=True):
     """Get a proxy for a name server somewhere in the network."""
+    from . import client  # XXX circular
     if host is None:
         # first try localhost if we have a good chance of finding it there
         if config.NS_HOST in ("localhost", "::1") or config.NS_HOST.startswith("127."):

@@ -58,12 +58,12 @@ class TestReceivingMessage:
         msg = self.createmessage()
         msg.data = bytearray(msg.data)
         Pyro5.protocol.ReceivingMessage.validate(msg.data)
-        orig_magic = msg.data[20]
-        msg.data[20] = 0xff   # kill the magic number
+        orig_magic = msg.data[36]
+        msg.data[36] = 0xff   # kill the magic number
         with pytest.raises(Pyro5.errors.ProtocolError) as x:
             Pyro5.protocol.ReceivingMessage.validate(msg.data)
         assert "magic number" in str(x)
-        msg.data[20] = orig_magic   # repair the magic number
+        msg.data[36] = orig_magic   # repair the magic number
         msg.data[5] = 0xff   # invalid protocol version
         with pytest.raises(Pyro5.errors.ProtocolError) as x:
             Pyro5.protocol.ReceivingMessage.validate(msg.data)

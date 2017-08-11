@@ -144,7 +144,7 @@ class ReceivingMessage:
             raise errors.ProtocolError("invalid data")
         if ld >= 6 and data[4:6] != _protocol_version_bytes:
             raise errors.ProtocolError("invalid protocol version: {:d}".format(int.from_bytes(data[4:6], "big")))
-        if ld >= _header_size and data[20:22] != _magic_number_bytes:
+        if ld >= _header_size and data[36:38] != _magic_number_bytes:
             raise errors.ProtocolError("invalid magic number")
 
     def add_payload(self, payload):
