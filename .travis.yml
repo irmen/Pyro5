@@ -4,11 +4,12 @@ python:
   - 3.4.4
   - 3.5
   - 3.6
-  - pypy3-5.8.0
+  - pypy3-5.7.0
 matrix:
   fast_finish: true
 
 # Use fast travis build infrastructure explicitly
+dist: xenial
 sudo: false
 
 install:
