@@ -446,10 +446,6 @@ class Proxy(object):
 
     def __annotations(self, clear=True):
         annotations = core.current_context.annotations
-        if core.current_context.correlation_id:
-            annotations["CORR"] = core.current_context.correlation_id.bytes
-        else:
-            annotations.pop("CORR", None)
         annotations.update(self._pyroAnnotations())
         if clear:
             core.current_context.annotations = {}

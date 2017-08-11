@@ -19,9 +19,10 @@ The header format is::
 0x0a   H   2   sequence number   (to identify proper request-reply sequencing)
 0x0c   I   4   data length   (max 4 Gb)
 0x10   H   2   annotations length (total of all chunks, 0 if no annotation chunks present)
-0x12   H   2   (reserved)
-0x14   H   2   magic number 0x4dc5
-total size: 0x16 (22 bytes)
+0x12   16s 16  correlation uuid
+0x22   H   2   (reserved)
+0x24   H   2   magic number 0x4dc5
+total size: 0x26 (38 bytes)
 
 After the header, zero or more annotation chunks may follow, of the format::
 
@@ -32,13 +33,11 @@ After the header, zero or more annotation chunks may follow, of the format::
 After that, the actual payload data bytes follow.
 """
 
-# @todo put correlation ID in the header itself rather than as an annotation
-
 import struct
 import logging
 import zlib
 import uuid
-from . import config, errors
+from . import config, errors, core
 
 
 __all__ = ["Message"]
@@ -57,14 +56,16 @@ FLAGS_ONEWAY = 1 << 2
 FLAGS_BATCH = 1 << 3
 FLAGS_ITEMSTREAMRESULT = 1 << 4
 FLAGS_KEEPSERIALIZED = 1 << 5
+FLAGS_CORR_ID = 1 << 6
 
 # wire protocol version. Note that if this gets updated, Pyrolite might need an update too.
 PROTOCOL_VERSION = 501
 _magic_number = 0x4dc5
-_header_format = '!4sHBBHHIHHH'
+_header_format = '!4sHBBHHIH16sHH'
 _header_size = struct.calcsize(_header_format)
 _magic_number_bytes = _magic_number.to_bytes(2, "big")
 _protocol_version_bytes = PROTOCOL_VERSION.to_bytes(2, "big")
+_empty_correlation_id = b"\0" * 16
 
 
 class SendingMessage:
@@ -83,8 +84,13 @@ class SendingMessage:
         total_size = len(payload) + annotations_size
         if total_size > config.MAX_MESSAGE_SIZE:
             raise errors.ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
+        if core.current_context.correlation_id:
+            flags |= FLAGS_CORR_ID
+            self.corr_id = core.current_context.correlation_id.bytes
+        else:
+            self.corr_id = _empty_correlation_id
         header_data = struct.pack(_header_format, b"PYRO", PROTOCOL_VERSION, msgtype, serializer_id, flags, seq,
-                                  len(payload), annotations_size, 0, _magic_number)
+                                  len(payload), annotations_size, self.corr_id, 0, _magic_number)
         annotation_data = []
         for k, v in annotations.items():
             if len(k) != 4:
@@ -111,8 +117,8 @@ class ReceivingMessage:
     """Wire protocol message that was received."""
     def __init__(self, header, payload=None):
         """Parses a message from the given header."""
-        tag, ver, self.type, self.serializer_id, self.flags, self.seq, self.data_size, self.annotations_size, _, magic = \
-            struct.unpack(_header_format, header)
+        tag, ver, self.type, self.serializer_id, self.flags, self.seq, self.data_size, \
+            self.annotations_size, self.corr_id,  _, magic = struct.unpack(_header_format, header)
         if tag != b"PYRO" or ver != PROTOCOL_VERSION or magic != _magic_number:
             raise errors.ProtocolError("invalid message or protocol version")
         if self.data_size+self.annotations_size > config.MAX_MESSAGE_SIZE:
@@ -166,14 +172,11 @@ class ReceivingMessage:
 
 def log_wiredata(logger, text, msg):
     """logs all the given properties of the wire message in the given logger"""
-    if hasattr(msg, "annotations"):
-        corr = str(uuid.UUID(bytes=bytes(msg.annotations["CORR"]))) if "CORR" in msg.annotations else "?"
-        num_anns = len(msg.annotations)
-    else:
-        corr = num_anns = "?"
-    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d corr=%s num_annotations=%s\ndata=%r" %
-                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, corr, num_anns, bytes(msg.data)))
-    # @todo get corr from the header
+    num_anns = len(msg.annotations) if hasattr(msg, "annotations") else 0
+    corr_bytes = bytes(msg.corr_id) if hasattr(msg, "corr_id") else _empty_correlation_id
+    corr_id = uuid.UUID(bytes=corr_bytes)
+    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d num_annotations=%s corr_id=%s\ndata=%r" %
+                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, num_anns, corr_id, bytes(msg.data)))
 
 
 def recv_stub(connection, accepted_msgtypes=None):  # XXX decouple i/o from actual protocol logic

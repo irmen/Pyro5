@@ -328,8 +328,8 @@ class Daemon(object):
                 raise Exception(denied_reason)
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "daemon handshake received", msg)
-            if "CORR" in msg.annotations:
-                core.current_context.correlation_id = uuid.UUID(bytes=bytes(msg.annotations["CORR"]))
+            if msg.flags & protocol.FLAGS_CORR_ID:
+                core.current_context.correlation_id = uuid.UUID(bytes=msg.corr_id)
             else:
                 core.current_context.correlation_id = uuid.uuid4()
             serializer_id = msg.serializer_id
@@ -394,8 +394,8 @@ class Daemon(object):
             request_flags = msg.flags
             request_seq = msg.seq
             request_serializer_id = msg.serializer_id
-            if "CORR" in msg.annotations:
-                core.current_context.correlation_id = uuid.UUID(bytes=bytes(msg.annotations["CORR"]))
+            if msg.flags & protocol.FLAGS_CORR_ID:
+                core.current_context.correlation_id = uuid.UUID(bytes=msg.corr_id)
             else:
                 core.current_context.correlation_id = uuid.uuid4()
             if config.LOGWIRE:
@@ -742,10 +742,6 @@ class Daemon(object):
 
     def __annotations(self):
         annotations = core.current_context.response_annotations
-        if core.current_context.correlation_id:
-            annotations["CORR"] = core.current_context.correlation_id.bytes
-        else:
-            annotations.pop("CORR", None)
         annotations.update(self.annotations())
         return annotations
 

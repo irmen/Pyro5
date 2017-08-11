@@ -1,5 +1,10 @@
 import timeit
+import uuid
 import Pyro5.api
+import Pyro5.core
+
+
+# Pyro5.core.current_context.correlation_id = uuid.uuid1()
 
 num_iterations = 3000
 num_tries = 10
