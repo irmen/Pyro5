@@ -3,27 +3,23 @@ Pyro5 - work in progress - use Pyro4 for now
 
 *Remote objects communication library for Python 3, fifth incarnation*
 
-**Don't use this yet, it is very much in development and can change or be canceled at any time. Use Pyro4 instead!**
-
-
-This may or may not become the next major Pyro version.
-It will only work on Python 3.4 or later. Python 2.x is no longer supported!
-If you require compatibility with older Python versions, use Pyro4 instead.
-
 Pyro5 is an "overhauled and updated" Pyro4: more efficient, faster, simpler, streamlined, and cleaned up.
+This may or may not become the next major Pyro version. It requires Python 3.4 or later.
+Feel free to report issues for suggestions or problems!
+
+**This is very much in development and can change or be canceled at any time. Use Pyro4 for real work instead.**
 
 
+changes done based on original Pyro4 (release 4.62)
+---------------------------------------------------
 
-changes done based on original Pyro4 sources (release 4.62)
------------------------------------------------------------
-
-- the API is similar but incompatible:
+- the Pyro5 API is redesigned and is incompatible with Pyro4 code (although everything should be familiar):
 
   - Pyro5 is the new package name (duh)
   - restructured the submodules, renamed some submodules (naming -> nameserver, configuration -> config,
     message -> protocol, util -> serializers)
-  - many classes and method names are the same or at least similar, but may have been shuffled around to other modules
-  - all toplevel functions are renamed to pep8 code style, but class method names are unchanged from Pyro4
+  - most classes and method names are the same or at least similar but may have been shuffled around to other modules
+  - all toplevel functions are renamed to pep8 code style (but class method names are unchanged from Pyro4 for now)
   - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
 
 - Proxy moved from core to new client module
