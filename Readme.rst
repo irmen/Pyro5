@@ -10,7 +10,7 @@ This may or may not become the next major Pyro version.
 It will only work on Python 3.4 or later. Python 2.x is no longer supported!
 If you require compatibility with older Python versions, use Pyro4 instead.
 
-Pyro5 is an "overhauled and updated" Pyro4: more efficient, simpler, streamlined, and cleaned up.
+Pyro5 is an "overhauled and updated" Pyro4: more efficient, faster, simpler, streamlined, and cleaned up.
 
 
 
