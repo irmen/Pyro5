@@ -49,7 +49,7 @@ class ClientConnectionJob(object):
                     except:
                         # other errors log a warning, break this loop and close the client connection
                         ex_t, ex_v, ex_tb = sys.exc_info()
-                        tb = errors.formatTraceback(ex_t, ex_v, ex_tb)
+                        tb = errors.format_traceback(ex_t, ex_v, ex_tb)
                         msg = "error during handleRequest: %s; %s" % (ex_v, "".join(tb))
                         log.warning(msg)
                         break
@@ -69,7 +69,7 @@ class ClientConnectionJob(object):
             self.csock.close()
         except:
             ex_t, ex_v, ex_tb = sys.exc_info()
-            tb = errors.formatTraceback(ex_t, ex_v, ex_tb)
+            tb = errors.format_traceback(ex_t, ex_v, ex_tb)
             log.warning("error during connect/handshake: %s; %s", ex_v, "\n".join(tb))
             self.csock.close()
         return False
@@ -110,20 +110,20 @@ class SocketServer_Threadpool(object):
         self.sock = None
         bind_location = unixsocket if unixsocket else (host, port)
         if config.SSL:
-            sslContext = socketutil.getSSLcontext(servercert=config.SSL_SERVERCERT,
-                                                  serverkey=config.SSL_SERVERKEY,
-                                                  keypassword=config.SSL_SERVERKEYPASSWD,
-                                                  cacerts=config.SSL_CACERTS)
+            sslContext = socketutil.get_ssl_context(servercert=config.SSL_SERVERCERT,
+                                                    serverkey=config.SSL_SERVERKEY,
+                                                    keypassword=config.SSL_SERVERKEYPASSWD,
+                                                    cacerts=config.SSL_CACERTS)
             log.info("using SSL,  cert=%s  key=%s  cacerts=%s", config.SSL_SERVERCERT, config.SSL_SERVERKEY, config.SSL_CACERTS)
         else:
             sslContext = None
             log.info("not using SSL")
-        self.sock = socketutil.createSocket(bind=bind_location,
-                                            reuseaddr=config.SOCK_REUSE,
-                                            timeout=config.COMMTIMEOUT,
-                                            noinherit=True,
-                                            nodelay=config.SOCK_NODELAY,
-                                            sslContext=sslContext)
+        self.sock = socketutil.create_socket(bind=bind_location,
+                                             reuseaddr=config.SOCK_REUSE,
+                                             timeout=config.COMMTIMEOUT,
+                                             noinherit=True,
+                                             nodelay=config.SOCK_NODELAY,
+                                             sslContext=sslContext)
         self._socketaddr = self.sock.getsockname()
         if not unixsocket and self._socketaddr[0].startswith("127."):
             if host is None or host.lower() != "localhost" and not host.startswith("127."):
@@ -240,7 +240,7 @@ class SocketServer_Threadpool(object):
         raise TypeError("threadpool server doesn't have multiplexing selector")
 
     def wakeup(self):
-        socketutil.interruptSocket(self._socketaddr)
+        socketutil.interrupt_socket(self._socketaddr)
 
 
 class PoolError(Exception):

@@ -243,7 +243,7 @@ def locate_ns(host=None, port=None, broadcast=True):
             if not port:
                 port = config.NS_BCPORT
             log.debug("broadcast locate")
-            sock = socketutil.createBroadcastSocket(reuseaddr=config.SOCK_REUSE, timeout=0.7)
+            sock = socketutil.create_bc_socket(reuseaddr=config.SOCK_REUSE, timeout=0.7)
             for _ in range(3):
                 try:
                     for bcaddr in config.BROADCAST_ADDRS:

@@ -7,7 +7,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 from . import errors, core
 
 
-def handleCommand(namesrv, cmd, args):
+def handle_command(namesrv, cmd, args):
     def printListResult(resultdict, title=""):
         print("--------START LIST %s" % title)
         for name, (uri, metadata) in sorted(resultdict.items()):
@@ -122,7 +122,7 @@ def main(args=None):
         return
     if options.verbose:
         print("Name server found:", namesrv._pyroUri)
-    handleCommand(namesrv, options.command, unknown_args)
+    handle_command(namesrv, options.command, unknown_args)
     if options.verbose:
         print("Done.")
 

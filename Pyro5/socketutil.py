@@ -53,14 +53,14 @@ if hasattr(errno, "WSAEADDRINUSE"):
 USE_MSG_WAITALL = hasattr(socket, "MSG_WAITALL") and platform.system() != "Windows"  # waitall is not reliable on windows
 
 
-def getIpVersion(hostnameOrAddress):
+def get_ip_version(hostnameOrAddress):
     """
     Determine what the IP version is of the given hostname or ip address (4 or 6).
     First, it resolves the hostname or address to get an IP address.
     Then, if the resolved IP contains a ':' it is considered to be an ipv6 address,
     and if it contains a '.', it is ipv4.
     """
-    address = getIpAddress(hostnameOrAddress)
+    address = get_ip_address(hostnameOrAddress)
     if "." in address:
         return 4
     elif ":" in address:
@@ -69,7 +69,7 @@ def getIpVersion(hostnameOrAddress):
         raise CommunicationError("Unknown IP address format" + address)
 
 
-def getIpAddress(hostname, workaround127=False, ipVersion=None):
+def get_ip_address(hostname, workaround127=False, ipVersion=None):
     """
     Returns the IP address for the given host. If you enable the workaround,
     it will use a little hack if the ip address is found to be the loopback address.
@@ -88,7 +88,7 @@ def getIpAddress(hostname, workaround127=False, ipVersion=None):
             raise ValueError("unknown value for argument ipVersion.")
         ip = socket.getaddrinfo(hostname or socket.gethostname(), 80, family, socket.SOCK_STREAM, socket.SOL_TCP)[0][4][0]
         if workaround127 and (ip.startswith("127.") or ip == "0.0.0.0"):
-            ip = getInterfaceAddress("4.2.2.2")
+            ip = get_interface_address("4.2.2.2")
         return ip
 
     try:
@@ -101,9 +101,9 @@ def getIpAddress(hostname, workaround127=False, ipVersion=None):
         return getaddr(0)
 
 
-def getInterfaceAddress(ip_address):
+def get_interface_address(ip_address):
     """tries to find the ip address of the interface that connects to the given host's address"""
-    family = socket.AF_INET if getIpVersion(ip_address) == 4 else socket.AF_INET6
+    family = socket.AF_INET if get_ip_version(ip_address) == 4 else socket.AF_INET6
     sock = socket.socket(family, socket.SOCK_DGRAM)
     try:
         sock.connect((ip_address, 53))  # 53=dns
@@ -112,17 +112,19 @@ def getInterfaceAddress(ip_address):
         sock.close()
 
 
-def __nextRetrydelay(delay):
+def __retrydelays():
     # first try a few very short delays,
     # if that doesn't work, increase by 0.1 sec every time
-    if delay == 0.0:
-        return 0.001
-    if delay == 0.001:
-        return 0.01
-    return delay + 0.1
+    yield 0.0001
+    yield 0.001
+    yield 0.01
+    d = 0.1
+    while True:
+        yield d
+        d += 0.1
 
 
-def receiveData(sock, size):
+def receive_data(sock, size):
     """Retrieve a given number of bytes from a socket.
     It is expected the socket is able to supply that number of bytes.
     If it isn't, an exception is raised (you will not get a zero length result
@@ -130,7 +132,7 @@ def receiveData(sock, size):
     has been received however is stored in the 'partialData' attribute of
     the exception object."""
     try:
-        retrydelay = 0.0
+        delays = __retrydelays()
         msglen = 0
         data = bytearray()
         if USE_MSG_WAITALL and not hasattr(sock, "getpeercert"):    # ssl doesn't support recv flags
@@ -149,8 +151,7 @@ def receiveData(sock, size):
                     err = getattr(x, "errno", x.args[0])
                     if err not in ERRNO_RETRIES:
                         raise ConnectionClosedError("receiving: connection lost: " + str(x))
-                    time.sleep(0.00001 + retrydelay)  # a slight delay to wait before retrying
-                    retrydelay = __nextRetrydelay(retrydelay)
+                    time.sleep(next(delays))  # a slight delay to wait before retrying
         # old fashioned recv loop, we gather chunks until the message is complete
         while True:
             try:
@@ -172,13 +173,12 @@ def receiveData(sock, size):
                 err = getattr(x, "errno", x.args[0])
                 if err not in ERRNO_RETRIES:
                     raise ConnectionClosedError("receiving: connection lost: " + str(x))
-                time.sleep(0.00001 + retrydelay)  # a slight delay to wait before retrying
-                retrydelay = __nextRetrydelay(retrydelay)
+                time.sleep(next(delays))  # a slight delay to wait before retrying
     except socket.timeout:
         raise TimeoutError("receiving: timeout")
 
 
-def sendData(sock, data):
+def send_data(sock, data):
     """
     Send some data over a socket.
     Some systems have problems with ``sendall()`` when the socket is in non-blocking mode.
@@ -196,7 +196,7 @@ def sendData(sock, data):
             raise ConnectionClosedError("sending: connection lost: " + str(x))
     else:
         # Socket is in non-blocking mode, use regular send loop.
-        retrydelay = 0.0
+        delays = __retrydelays()
         while data:
             try:
                 sent = sock.send(data)
@@ -207,15 +207,14 @@ def sendData(sock, data):
                 err = getattr(x, "errno", x.args[0])
                 if err not in ERRNO_RETRIES:
                     raise ConnectionClosedError("sending: connection lost: " + str(x))
-                time.sleep(0.00001 + retrydelay)  # a slight delay to wait before retrying
-                retrydelay = __nextRetrydelay(retrydelay)
+                time.sleep(next(delays))  # a slight delay to wait before retrying
 
 
 _GLOBAL_DEFAULT_TIMEOUT = object()
 
 
-def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
-                 timeout=_GLOBAL_DEFAULT_TIMEOUT, noinherit=False, ipv6=False, nodelay=True, sslContext=None):
+def create_socket(bind=None, connect=None, reuseaddr=False, keepalive=True,
+                  timeout=_GLOBAL_DEFAULT_TIMEOUT, noinherit=False, ipv6=False, nodelay=True, sslContext=None):
     """
     Create a socket. Default socket options are keepalive and IPv4 family, and nodelay (nagle disabled).
     If 'bind' or 'connect' is a string, it is assumed a Unix domain socket is requested.
@@ -234,11 +233,11 @@ def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
         if not bind[0]:
             family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
         else:
-            if getIpVersion(bind[0]) == 4:
+            if get_ip_version(bind[0]) == 4:
                 if forceIPv6:
                     raise ValueError("IPv4 address is used bind argument with forceIPv6 argument:" + bind[0] + ".")
                 family = socket.AF_INET
-            elif getIpVersion(bind[0]) == 6:
+            elif get_ip_version(bind[0]) == 6:
                 family = socket.AF_INET6
                 # replace bind addresses by their ipv6 counterparts (4-tuple)
                 bind = (bind[0], bind[1], 0, 0)
@@ -248,11 +247,11 @@ def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
         if not connect[0]:
             family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
         else:
-            if getIpVersion(connect[0]) == 4:
+            if get_ip_version(connect[0]) == 4:
                 if forceIPv6:
                     raise ValueError("IPv4 address is used in connect argument with forceIPv6 argument:" + bind[0] + ".")
                 family = socket.AF_INET
-            elif getIpVersion(connect[0]) == 6:
+            elif get_ip_version(connect[0]) == 6:
                 family = socket.AF_INET6
                 # replace connect addresses by their ipv6 counterparts (4-tuple)
                 connect = (connect[0], connect[1], 0, 0)
@@ -269,18 +268,18 @@ def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
         else:
             sock = sslContext.wrap_socket(sock, server_side=False)
     if nodelay:
-        setNoDelay(sock)
+        set_nodelay(sock)
     if reuseaddr:
-        setReuseAddr(sock)
+        set_reuseaddr(sock)
     if noinherit:
-        setNoInherit(sock)
+        set_noinherit(sock)
     if timeout == 0:
         timeout = None
     if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
         sock.settimeout(timeout)
     if bind:
         if type(bind) is tuple and bind[1] == 0:
-            bindOnUnusedPort(sock, bind[0])
+            bind_unused_port(sock, bind[0])
         else:
             sock.bind(bind)
         try:
@@ -313,11 +312,11 @@ def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
                 sock.close()  # close the socket that refused to connect
                 raise
     if keepalive:
-        setKeepalive(sock)
+        set_keepalive(sock)
     return sock
 
 
-def createBroadcastSocket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TIMEOUT, ipv6=False):
+def create_bc_socket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TIMEOUT, ipv6=False):
     """
     Create a udp broadcast socket.
     Set ipv6=True to create an IPv6 socket rather than IPv4.
@@ -330,11 +329,11 @@ def createBroadcastSocket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TI
         if not bind[0]:
             family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
         else:
-            if getIpVersion(bind[0]) == 4:
+            if get_ip_version(bind[0]) == 4:
                 if forceIPv6:
                     raise ValueError("IPv4 address is used with forceIPv6 option:" + bind[0] + ".")
                 family = socket.AF_INET
-            elif getIpVersion(bind[0]) == 6:
+            elif get_ip_version(bind[0]) == 6:
                 family = socket.AF_INET6
                 bind = (bind[0], bind[1], 0, 0)
             else:
@@ -345,7 +344,7 @@ def createBroadcastSocket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TI
     if family == socket.AF_INET:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     if reuseaddr:
-        setReuseAddr(sock)
+        set_reuseaddr(sock)
     if timeout is None:
         sock.settimeout(None)
     else:
@@ -355,7 +354,7 @@ def createBroadcastSocket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TI
         host = bind[0] or ""
         port = bind[1]
         if port == 0:
-            bindOnUnusedPort(sock, host)
+            bind_unused_port(sock, host)
         else:
             if len(bind) == 2:
                 sock.bind((host, port))  # ipv4
@@ -366,7 +365,7 @@ def createBroadcastSocket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TI
     return sock
 
 
-def setReuseAddr(sock):
+def set_reuseaddr(sock):
     """sets the SO_REUSEADDR option on the socket, if possible."""
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -374,7 +373,7 @@ def setReuseAddr(sock):
         pass
 
 
-def setNoDelay(sock):
+def set_nodelay(sock):
     """sets the TCP_NODELAY option on the socket (to disable Nagle's algorithm), if possible."""
     try:
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -382,7 +381,7 @@ def setNoDelay(sock):
         pass
 
 
-def setKeepalive(sock):
+def set_keepalive(sock):
     """sets the SO_KEEPALIVE option on the socket, if possible."""
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -393,7 +392,7 @@ def setKeepalive(sock):
 try:
     import fcntl
 
-    def setNoInherit(sock):
+    def set_noinherit(sock):
         """Mark the given socket fd as non-inheritable to child processes"""
         fd = sock.fileno()
         flags = fcntl.fcntl(fd, fcntl.F_GETFD)
@@ -408,14 +407,14 @@ except ImportError:
         _SetHandleInformation.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.DWORD]
         _SetHandleInformation.restype = wintypes.BOOL  # don't need this, but might as well
 
-        def setNoInherit(sock):
+        def set_noinherit(sock):
             """Mark the given socket fd as non-inheritable to child processes"""
             if not _SetHandleInformation(sock.fileno(), 1, 0):
                 raise WinError()
 
     except (ImportError, NotImplementedError):
         # nothing available, define a dummy function
-        def setNoInherit(sock):
+        def set_noinherit(sock):
             """Mark the given socket fd as non-inheritable to child processes (dummy)"""
             pass
 
@@ -437,10 +436,10 @@ class SocketConnection(object):
         self.close()
 
     def send(self, data):
-        sendData(self.sock, data)
+        send_data(self.sock, data)
 
     def recv(self, size):
-        return receiveData(self.sock, size)
+        return receive_data(self.sock, size)
 
     def close(self):
         try:
@@ -485,17 +484,17 @@ def family_str(sock):
     return "???"
 
 
-def findProbablyUnusedPort(family=socket.AF_INET, socktype=socket.SOCK_STREAM):
+def find_probably_unused_port(family=socket.AF_INET, socktype=socket.SOCK_STREAM):
     """Returns an unused port that should be suitable for binding (likely, but not guaranteed).
     This code is copied from the stdlib's test.test_support module."""
     tempsock = socket.socket(family, socktype)
     try:
-        return bindOnUnusedPort(tempsock)
+        return bind_unused_port(tempsock)
     finally:
         tempsock.close()
 
 
-def bindOnUnusedPort(sock, host='localhost'):
+def bind_unused_port(sock, host='localhost'):
     """Bind the socket to a free port and return the port number.
     This code is based on the code in the stdlib's test.test_support module."""
     if sock.family in (socket.AF_INET, socket.AF_INET6) and sock.type == socket.SOCK_STREAM:
@@ -519,10 +518,10 @@ def bindOnUnusedPort(sock, host='localhost'):
     return sock.getsockname()[1]
 
 
-def interruptSocket(address):
+def interrupt_socket(address):
     """bit of a hack to trigger a blocking server to get out of the loop, useful at clean shutdowns"""
     try:
-        sock = createSocket(connect=address, keepalive=False, timeout=None)
+        sock = create_socket(connect=address, keepalive=False, timeout=None)
         try:
             sock.sendall(b"!" * 16)
         except (socket.error, AttributeError):
@@ -540,7 +539,7 @@ __ssl_server_context = None
 __ssl_client_context = None
 
 
-def getSSLcontext(servercert="", serverkey="", clientcert="", clientkey="", cacerts="", keypassword=""):
+def get_ssl_context(servercert="", serverkey="", clientcert="", clientkey="", cacerts="", keypassword=""):
     """creates an SSL context and caches it, so you have to set the parameters correctly before doing anything"""
     global __ssl_client_context, __ssl_server_context
     if not ssl:

@@ -37,20 +37,20 @@ class SocketServer_Multiplex(object):
         self.sock = None
         bind_location = unixsocket if unixsocket else (host, port)
         if config.SSL:
-            sslContext = socketutil.getSSLcontext(servercert=config.SSL_SERVERCERT,
-                                                  serverkey=config.SSL_SERVERKEY,
-                                                  keypassword=config.SSL_SERVERKEYPASSWD,
-                                                  cacerts=config.SSL_CACERTS)
+            sslContext = socketutil.get_ssl_context(servercert=config.SSL_SERVERCERT,
+                                                    serverkey=config.SSL_SERVERKEY,
+                                                    keypassword=config.SSL_SERVERKEYPASSWD,
+                                                    cacerts=config.SSL_CACERTS)
             log.info("using SSL,  cert=%s  key=%s  cacerts=%s", config.SSL_SERVERCERT, config.SSL_SERVERKEY, config.SSL_CACERTS)
         else:
             sslContext = None
             log.info("not using SSL")
-        self.sock = socketutil.createSocket(bind=bind_location,
-                                            reuseaddr=config.SOCK_REUSE,
-                                            timeout=config.COMMTIMEOUT,
-                                            noinherit=True,
-                                            nodelay=config.SOCK_NODELAY,
-                                            sslContext=sslContext)
+        self.sock = socketutil.create_socket(bind=bind_location,
+                                             reuseaddr=config.SOCK_REUSE,
+                                             timeout=config.COMMTIMEOUT,
+                                             noinherit=True,
+                                             nodelay=config.SOCK_NODELAY,
+                                             sslContext=sslContext)
         self.daemon = daemon
         self._socketaddr = sockaddr = self.sock.getsockname()
         if not unixsocket and sockaddr[0].startswith("127."):
@@ -125,7 +125,7 @@ class SocketServer_Multiplex(object):
             conn.close()
         except:  # catch all errors, otherwise the event loop could terminate
             ex_t, ex_v, ex_tb = sys.exc_info()
-            tb = errors.formatTraceback(ex_t, ex_v, ex_tb)
+            tb = errors.format_traceback(ex_t, ex_v, ex_tb)
             log.warning("error during connect/handshake: %s; %s", ex_v, "\n".join(tb))
             try:
                 csock.shutdown(socket.SHUT_RDWR)
@@ -166,7 +166,7 @@ class SocketServer_Multiplex(object):
 
     def wakeup(self):
         """bit of a hack to trigger a blocking server to get out of the loop, useful at clean shutdowns"""
-        socketutil.interruptSocket(self._socketaddr)
+        socketutil.interrupt_socket(self._socketaddr)
 
     def handleRequest(self, conn):
         """Handles a single connection request event and returns if the connection is still active"""
@@ -189,7 +189,7 @@ class SocketServer_Multiplex(object):
         except:
             # other error occurred, close the connection, but also log a warning
             ex_t, ex_v, ex_tb = sys.exc_info()
-            tb = errors.formatTraceback(ex_t, ex_v, ex_tb)
+            tb = errors.format_traceback(ex_t, ex_v, ex_tb)
             msg = "error during handleRequest: %s; %s" % (ex_v, "".join(tb))
             log.warning(msg)
             return False

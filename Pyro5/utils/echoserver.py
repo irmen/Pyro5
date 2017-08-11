@@ -124,7 +124,7 @@ class NameServer(threading.Thread):
         self.started = threading.Event()
 
     def run(self):
-        self.uri, self.ns_daemon, self.bc_server = nameserver.startNS(self.hostname)
+        self.uri, self.ns_daemon, self.bc_server = nameserver.start_ns(self.hostname)
         self.started.set()
         if self.bc_server:
             self.bc_server.runInThread()

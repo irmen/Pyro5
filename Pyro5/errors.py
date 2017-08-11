@@ -63,7 +63,7 @@ class SerializeError(ProtocolError):
     pass
 
 
-def getPyroTraceback(ex_type=None, ex_value=None, ex_tb=None):
+def get_pyro_traceback(ex_type=None, ex_value=None, ex_tb=None):
     """Returns a list of strings that form the traceback information of a
     Pyro exception. Any remote Pyro exception information is included.
     Traceback information is automatically obtained via ``sys.exc_info()`` if
@@ -89,7 +89,7 @@ def getPyroTraceback(ex_type=None, ex_value=None, ex_tb=None):
             ex_type, ex_value, ex_tb = sys.exc_info()
 
         remote_tb = getattr(ex_value, "_pyroTraceback", None)
-        local_tb = formatTraceback(ex_type, ex_value, ex_tb, config.DETAILED_TRACEBACK)
+        local_tb = format_traceback(ex_type, ex_value, ex_tb, config.DETAILED_TRACEBACK)
         if remote_tb:
             remote_tb = formatRemoteTraceback(remote_tb)
             return local_tb + remote_tb
@@ -101,7 +101,7 @@ def getPyroTraceback(ex_type=None, ex_value=None, ex_tb=None):
         del ex_type, ex_value, ex_tb
 
 
-def formatTraceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
+def format_traceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
     """Formats an exception traceback. If you ask for detailed formatting,
     the result will contain info on the variables in each stack frame.
     You don't have to provide the exception info objects, if you omit them,
@@ -171,5 +171,5 @@ def formatTraceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
 
 def excepthook(ex_type, ex_value, ex_tb):
     """An exception hook you can use for ``sys.excepthook``, to automatically print remote Pyro tracebacks"""
-    traceback = "".join(getPyroTraceback(ex_type, ex_value, ex_tb))
+    traceback = "".join(get_pyro_traceback(ex_type, ex_value, ex_tb))
     sys.stderr.write(traceback)

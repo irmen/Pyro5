@@ -429,12 +429,12 @@ class Daemon(object):
                     # batched method calls, loop over them all and collect all results
                     data = []
                     for method, vargs, kwargs in vargs:
-                        method = getAttribute(obj, method)
+                        method = get_attribute(obj, method)
                         try:
                             result = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
                         except Exception as xv:
                             log.debug("Exception occurred while handling batched request: %s", xv)
-                            xv._pyroTraceback = errors.formatTraceback(detailed=config.DETAILED_TRACEBACK)
+                            xv._pyroTraceback = errors.format_traceback(detailed=config.DETAILED_TRACEBACK)
                             data.append(core._ExceptionWrapper(xv))
                             break  # stop processing the rest of the batch
                         else:
@@ -449,7 +449,7 @@ class Daemon(object):
                         # special case for direct attribute access (only exposed @properties are accessible)
                         data = set_exposed_property_value(obj, vargs[0], vargs[1])
                     else:
-                        method = getAttribute(obj, method)
+                        method = get_attribute(obj, method)
                         if request_flags & protocol.FLAGS_ONEWAY and config.ONEWAY_THREADED:
                             # oneway call to be run inside its own thread
                             _OnewayCallThread(target=method, args=vargs, kwargs=kwargs).start()
@@ -494,7 +494,7 @@ class Daemon(object):
                     if isinstance(xv, errors.SerializeError) or not isinstance(xv, errors.CommunicationError):
                         # only return the error to the client if it wasn't a oneway call, and not a communication error
                         # (in these cases, it makes no sense to try to report the error back to the client...)
-                        tblines = errors.formatTraceback(detailed=config.DETAILED_TRACEBACK)
+                        tblines = errors.format_traceback(detailed=config.DETAILED_TRACEBACK)
                         self._sendExceptionResponse(conn, request_seq, request_serializer_id, xv, tblines)
             if isCallback or isinstance(xv, (errors.CommunicationError, errors.SecurityError)):
                 raise  # re-raise if flagged as callback, communication or security error.
@@ -641,7 +641,7 @@ class Daemon(object):
         # register a custom serializer for the type to automatically return proxies
         # we need to do this for all known serializers
         for ser in serializers.serializers.values():
-            ser.register_type_replacement(type(obj_or_class), pyroObjectToAutoProxy)
+            ser.register_type_replacement(type(obj_or_class), pyro_obj_to_auto_proxy)
         # register the object/class in the mapping
         self.objectsById[obj_or_class._pyroId] = obj_or_class
         return self.uriFor(objectId)
@@ -799,7 +799,7 @@ serpent.register_class(Daemon, serializers.pyro_class_serpent_serializer)
 serializers.SerializerBase.register_class_to_dict(Daemon, serializers.serialize_pyro_object_to_dict, serpent_too=False)
 
 
-def pyroObjectToAutoProxy(obj):
+def pyro_obj_to_auto_proxy(obj):
     """reduce function that automatically replaces Pyro objects by a Proxy"""
     daemon = getattr(obj, "_pyroDaemon", None)
     if daemon:
@@ -808,7 +808,7 @@ def pyroObjectToAutoProxy(obj):
     return obj
 
 
-def getAttribute(obj, attr):
+def get_attribute(obj, attr):
     """
     Resolves an attribute name to an object.  Raises
     an AttributeError if any attribute in the chain starts with a '``_``'.

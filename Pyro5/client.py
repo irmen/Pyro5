@@ -282,17 +282,17 @@ class Proxy(object):
             if self._pyroConnection is not None:
                 return False  # already connected
             if config.SSL:
-                sslContext = socketutil.getSSLcontext(clientcert=config.SSL_CLIENTCERT,
-                                                      clientkey=config.SSL_CLIENTKEY,
-                                                      keypassword=config.SSL_CLIENTKEYPASSWD,
-                                                      cacerts=config.SSL_CACERTS)
+                sslContext = socketutil.get_ssl_context(clientcert=config.SSL_CLIENTCERT,
+                                                        clientkey=config.SSL_CLIENTKEY,
+                                                        keypassword=config.SSL_CLIENTKEYPASSWD,
+                                                        cacerts=config.SSL_CACERTS)
             else:
                 sslContext = None
-            sock = socketutil.createSocket(connect=connect_location,
-                                           reuseaddr=config.SOCK_REUSE,
-                                           timeout=self.__pyroTimeout,
-                                           nodelay=config.SOCK_NODELAY,
-                                           sslContext=sslContext)
+            sock = socketutil.create_socket(connect=connect_location,
+                                            reuseaddr=config.SOCK_REUSE,
+                                            timeout=self.__pyroTimeout,
+                                            nodelay=config.SOCK_NODELAY,
+                                            sslContext=sslContext)
             conn = socketutil.SocketConnection(sock, uri.object)
             # Do handshake.
             serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]

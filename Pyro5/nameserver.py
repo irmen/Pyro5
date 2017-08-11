@@ -19,7 +19,7 @@ from . import config, core, socketutil, server, errors
 from .errors import NamingError, PyroError, ProtocolError
 
 
-__all__ = ["startNSloop", "startNS"]
+__all__ = ["start_ns_loop", "start_ns"]
 
 log = logging.getLogger("Pyro5.naming")
 
@@ -545,7 +545,7 @@ class AutoCleaner(threading.Thread):
                 try:
                     uri_obj = core.URI(uri)
                     timeout = config.COMMTIMEOUT or 5
-                    sock = socketutil.createSocket(connect=(uri_obj.host, uri_obj.port), timeout=timeout)
+                    sock = socketutil.create_socket(connect=(uri_obj.host, uri_obj.port), timeout=timeout)
                     sock.close()
                     # if we get here, the listed server is still answering on its port
                     if name in self.unreachable:
@@ -582,9 +582,9 @@ class BroadcastServer(object):
             bchost = config.NS_BCHOST
         if ":" in nsUri.host or ipv6:   # match nameserver's ip version
             bchost = bchost or "::"
-            self.sock = socketutil.createBroadcastSocket((bchost, bcport, 0, 0), reuseaddr=config.SOCK_REUSE, timeout=2.0)
+            self.sock = socketutil.create_bc_socket((bchost, bcport, 0, 0), reuseaddr=config.SOCK_REUSE, timeout=2.0)
         else:
-            self.sock = socketutil.createBroadcastSocket((bchost, bcport), reuseaddr=config.SOCK_REUSE, timeout=2.0)
+            self.sock = socketutil.create_bc_socket((bchost, bcport), reuseaddr=config.SOCK_REUSE, timeout=2.0)
         self._sockaddr = self.sock.getsockname()
         bchost = bchost or self._sockaddr[0]
         bcport = bcport or self._sockaddr[1]
@@ -631,7 +631,7 @@ class BroadcastServer(object):
                 if responsedata.host == "0.0.0.0":
                     # replace INADDR_ANY address by the interface IP address that connects to the requesting client
                     try:
-                        interface_ip = socketutil.getInterfaceAddress(addr[0])
+                        interface_ip = socketutil.get_interface_address(addr[0])
                         responsedata.host = interface_ip
                     except socket.error:
                         pass
@@ -648,8 +648,8 @@ class BroadcastServer(object):
         self.close()
 
 
-def startNSloop(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None,
-                unixsocket=None, nathost=None, natport=None, storage=None):
+def start_ns_loop(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None,
+                  unixsocket=None, nathost=None, natport=None, storage=None):
     """utility function that starts a new Name server and enters its requestloop."""
     daemon = NameServerDaemon(host, port, unixsocket, nathost=nathost, natport=natport, storage=storage)
     nsUri = daemon.uriFor(daemon.nameserver)
@@ -692,8 +692,8 @@ def startNSloop(host=None, port=None, enableBroadcast=True, bchost=None, bcport=
     print("NS shut down.")
 
 
-def startNS(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None,
-            unixsocket=None, nathost=None, natport=None, storage=None):
+def start_ns(host=None, port=None, enableBroadcast=True, bchost=None, bcport=None,
+             unixsocket=None, nathost=None, natport=None, storage=None):
     """utility fuction to quickly get a Name server daemon to be used in your own event loops.
     Returns (nameserverUri, nameserverDaemon, broadcastServer)."""
     daemon = NameServerDaemon(host, port, unixsocket, nathost=nathost, natport=natport, storage=storage)
@@ -724,9 +724,9 @@ def main(args=None):
     parser.add_argument("-x", "--nobc", dest="enablebc", action="store_false", default=True,
                         help="don't start a broadcast server")
     options = parser.parse_args(args)
-    startNSloop(options.host, options.port, enableBroadcast=options.enablebc,
-                bchost=options.bchost, bcport=options.bcport, unixsocket=options.unixsocket,
-                nathost=options.nathost, natport=options.natport, storage=options.storage)
+    start_ns_loop(options.host, options.port, enableBroadcast=options.enablebc,
+                  bchost=options.bchost, bcport=options.bcport, unixsocket=options.unixsocket,
+                  nathost=options.nathost, natport=options.natport, storage=options.storage)
 
 
 if __name__ == "__main__":
