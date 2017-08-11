@@ -131,7 +131,7 @@ class NameServer(threading.Thread):
         self.ns_daemon.requestLoop()
 
 
-def startNameServer(host):
+def start_nameserver(host):
     ns = NameServer(host)
     ns.start()
     ns.started.wait()
@@ -158,7 +158,7 @@ def main(args=None, returnWithoutLooping=False):
     namesvr = None
     if args.nameserver:
         args.naming = True
-        namesvr = startNameServer(args.host)
+        namesvr = start_nameserver(args.host)
 
     d = server.Daemon(host=args.host, port=args.port, unixsocket=args.unixsocket)
     echo = EchoServer()

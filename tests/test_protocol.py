@@ -20,8 +20,8 @@ class TestSendingMessage:
         assert len(msg.data) > 1
 
     def test_compression(self):
+        compr_orig = Pyro5.config.COMPRESSION
         try:
-            compr_orig = Pyro5.config.COMPRESSION
             Pyro5.config.COMPRESSION = False
             msg_uncompressed = Pyro5.protocol.SendingMessage(Pyro5.protocol.MSG_INVOKE, 0, 42, 99, b"abcdefg"*100)
             Pyro5.config.COMPRESSION = True

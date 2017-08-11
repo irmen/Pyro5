@@ -296,9 +296,9 @@ class SerpentSerializer(SerializerBase):
 
     @classmethod
     def register_type_replacement(cls, object_type, replacement_function):
-        def custom_serializer(object, serpent_serializer, outputstream, indentlevel):
-            replaced = replacement_function(object)
-            if replaced is object:
+        def custom_serializer(obj, serpent_serializer, outputstream, indentlevel):
+            replaced = replacement_function(obj)
+            if replaced is obj:
                 serpent_serializer.ser_default_class(replaced, outputstream, indentlevel)
             else:
                 serpent_serializer._serialize(replaced, outputstream, indentlevel)

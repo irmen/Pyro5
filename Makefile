@@ -22,7 +22,7 @@ install:
 	$(PYTHON) setup.py install
 
 test:
-	$(PYTHON) tests/run_testsuite.py
+	PYTHONPATH=. python3 -m pytest tests    
 
 clean:
 	@echo "Removing tox dirs, logfiles, Pyro URI dumps, .pyo/.pyc files..."

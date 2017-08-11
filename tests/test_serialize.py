@@ -1,4 +1,3 @@
-import pytest
 import Pyro5.serializers
 
 

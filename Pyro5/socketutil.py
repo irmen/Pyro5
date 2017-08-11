@@ -458,10 +458,10 @@ class SocketConnection(object):
     def family(self):
         return family_str(self.sock)
 
-    def setTimeout(self, timeout):
+    def settimeout(self, timeout):
         self.sock.settimeout(timeout)
 
-    def getTimeout(self):
+    def gettimeout(self):
         return self.sock.gettimeout()
 
     def getpeercert(self):
@@ -470,7 +470,7 @@ class SocketConnection(object):
         except AttributeError:
             return None
 
-    timeout = property(getTimeout, setTimeout)
+    timeout = property(gettimeout, settimeout)
 
 
 def family_str(sock):

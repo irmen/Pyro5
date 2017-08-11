@@ -7,4 +7,4 @@ class TestCore:
     def test_uri(self):
         with pytest.raises(Pyro5.errors.PyroError):
             Pyro5.core.URI("burp")
-        u = Pyro5.core.URI("PYRO:obj@host:5555")
+        Pyro5.core.URI("PYRO:obj@host:5555")
