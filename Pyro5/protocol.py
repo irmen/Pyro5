@@ -37,7 +37,7 @@ import struct
 import logging
 import zlib
 import uuid
-from . import config, errors, core
+from . import config, errors
 
 
 __all__ = ["Message"]
@@ -84,6 +84,7 @@ class SendingMessage:
         total_size = len(payload) + annotations_size
         if total_size > config.MAX_MESSAGE_SIZE:
             raise errors.ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
+        from . import core  # XXX circular
         if core.current_context.correlation_id:
             flags |= FLAGS_CORR_ID
             self.corr_id = core.current_context.correlation_id.bytes
