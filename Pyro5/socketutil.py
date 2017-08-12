@@ -545,8 +545,8 @@ def get_ssl_context(servercert="", serverkey="", clientcert="", clientkey="", ca
     if not ssl:
         raise ValueError("SSL requested but ssl module is not available")
     else:
-        if sys.version_info < (3, 4, 3):
-            raise RuntimeError("need Python 3.4.3 or newer to properly use SSL")
+        if sys.version_info < (3, 4, 4):
+            raise RuntimeError("need Python 3.4.4 or newer to properly use SSL")
     if servercert:
         if clientcert:
             raise ValueError("can't have both server cert and client cert")
