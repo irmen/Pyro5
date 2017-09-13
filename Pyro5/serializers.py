@@ -303,6 +303,8 @@ class SerpentSerializer(SerializerBase):
             else:
                 serpent_serializer._serialize(replaced, outputstream, indentlevel)
 
+        if object_type is type or not isinstance(object_type, type):
+            raise ValueError("refusing to register replacement for a non-type or the type 'type' itself")
         serpent.register_class(object_type, custom_serializer)
 
     @classmethod
@@ -389,6 +391,8 @@ class JsonSerializer(SerializerBase):
 
     @classmethod
     def register_type_replacement(cls, object_type, replacement_function):
+        if object_type is type or not isinstance(object_type, type):
+            raise ValueError("refusing to register replacement for a non-type or the type 'type' itself")
         cls.__type_replacements[object_type] = replacement_function
 
 
@@ -453,6 +457,8 @@ class MsgpackSerializer(SerializerBase):
 
     @classmethod
     def register_type_replacement(cls, object_type, replacement_function):
+        if object_type is type or not isinstance(object_type, type):
+            raise ValueError("refusing to register replacement for a non-type or the type 'type' itself")
         cls.__type_replacements[object_type] = replacement_function
 
 
