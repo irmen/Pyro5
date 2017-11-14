@@ -17,6 +17,6 @@ install:
   - pip install .
 script:
   - cd tests
-  - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then python -E -Wall -tt -bb -m pytest tests; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then python -E -Wall -bb -m pytest tests; fi
+  - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then PYTHONPATH=. python -E -Wall -tt -bb -m pytest tests; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then PYTHONPATH=. python -E -Wall -bb -m pytest tests; fi
 # pypy doesn't like -tt option
