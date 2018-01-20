@@ -291,8 +291,7 @@ class Daemon(object):
         log.info("daemon %s entering requestloop", self.locationStr)
         try:
             self.__loopstopped.clear()
-            condition = lambda: not self.__mustshutdown.isSet() and loopCondition()
-            self.transportServer.loop(loopCondition=condition)
+            self.transportServer.loop(loopCondition=lambda: not self.__mustshutdown.isSet() and loopCondition())
         finally:
             self.__loopstopped.set()
         log.debug("daemon exits requestloop")

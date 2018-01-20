@@ -77,6 +77,8 @@ def _save_defaults():
     for key in _config_items():
         defaults[key] = copy.copy(g[key])
     return defaults
+
+
 __defaults = _save_defaults()
 assert len(__defaults) == 38
 del _save_defaults
@@ -106,6 +108,7 @@ def _read_env():
         else:
             envvalue = valuetype(envvalue)
         configitems[item] = envvalue
+
 
 _read_env()
 

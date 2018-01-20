@@ -38,4 +38,5 @@ def __configure_logging():
         return logfilename, None
     return logfilename, level or None
 
+
 _pyro_logfile, _pyro_loglevel = __configure_logging()
