@@ -48,7 +48,9 @@ class Proxy(object):
          "_pyroRawWireResponse", "_pyroHandshake", "_pyroMaxRetries", "_pyroSerializer",
          "_Proxy__pyroTimeout", "_Proxy__pyroOwnerThread"])
 
-    def __init__(self, uri):
+    def __init__(self, uri, connected_socket=None):
+        if connected_socket:
+            uri = core.URI("PYRO:" + uri + "@<<connected-socket>>:0")
         if isinstance(uri, str):
             uri = core.URI(uri)
         elif not isinstance(uri, core.URI):
@@ -69,6 +71,8 @@ class Proxy(object):
             raise ValueError("unknown serializer configured")
         core.current_context.annotations = {}
         core.current_context.response_annotations = {}
+        if connected_socket:
+            self.__pyroCreateConnection(False, connected_socket)
 
     def __del__(self):
         if hasattr(self, "_pyroConnection"):
@@ -265,11 +269,75 @@ class Proxy(object):
             log.error(err)
             raise errors.ProtocolError(err)
 
-    def __pyroCreateConnection(self, replaceUri=False):
+    def __pyroCreateConnection(self, replaceUri=False, connected_socket=None):
         """
         Connects this proxy to the remote Pyro daemon. Does connection handshake.
         Returns true if a new connection was made, false if an existing one was already present.
         """
+        def connect_and_handshake(conn):
+            try:
+                if self._pyroConnection is not None:
+                    return False  # already connected
+                if config.SSL:
+                    sslContext = socketutil.get_ssl_context(clientcert=config.SSL_CLIENTCERT,
+                                                            clientkey=config.SSL_CLIENTKEY,
+                                                            keypassword=config.SSL_CLIENTKEYPASSWD,
+                                                            cacerts=config.SSL_CACERTS)
+                else:
+                    sslContext = None
+                sock = socketutil.create_socket(connect=connect_location,
+                                                reuseaddr=config.SOCK_REUSE,
+                                                timeout=self.__pyroTimeout,
+                                                nodelay=config.SOCK_NODELAY,
+                                                sslContext=sslContext)
+                conn = socketutil.SocketConnection(sock, uri.object)
+                # Do handshake.
+                serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
+                data = {"handshake": self._pyroHandshake, "object": uri.object}
+                data = serializer.dumps(data)
+                msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id,
+                                              data, annotations=self.__annotations(False))
+                if config.LOGWIRE:
+                    protocol.log_wiredata(log, "proxy connect sending", msg)
+                conn.send(msg.data)
+                msg = protocol.recv_stub(conn, [protocol.MSG_CONNECTOK, protocol.MSG_CONNECTFAIL])
+                if config.LOGWIRE:
+                    protocol.log_wiredata(log, "proxy connect response received", msg)
+            except Exception as x:
+                if conn:
+                    conn.close()
+                err = "cannot connect to %s: %s" % (connect_location, x)
+                log.error(err)
+                if isinstance(x, errors.CommunicationError):
+                    raise
+                else:
+                    raise errors.CommunicationError(err) from x
+            else:
+                handshake_response = "?"
+                if msg.data:
+                    serializer = serializers.serializers_by_id[msg.serializer_id]
+                    handshake_response = serializer.loads(msg.data)
+                if msg.type == protocol.MSG_CONNECTFAIL:
+                    error = "connection to %s rejected: %s" % (connect_location, handshake_response)
+                    conn.close()
+                    log.error(error)
+                    raise errors.CommunicationError(error)
+                elif msg.type == protocol.MSG_CONNECTOK:
+                    self.__processMetadata(handshake_response["meta"])
+                    handshake_response = handshake_response["handshake"]
+                    self._pyroConnection = conn
+                    if replaceUri:
+                        self._pyroUri = uri
+                    self._pyroValidateHandshake(handshake_response)
+                    log.debug("connected to %s - %s - %s", self._pyroUri, conn.family(), "SSL" if sslContext else "unencrypted")
+                    if msg.annotations:
+                        self._pyroResponseAnnotations(msg.annotations, msg.type)
+                else:
+                    conn.close()
+                    err = "cannot connect to %s: invalid msg type %d received" % (connect_location, msg.type)
+                    log.error(err)
+                    raise errors.ProtocolError(err)
+
         self.__check_owner()
         if self._pyroConnection is not None:
             return False  # already connected
@@ -278,68 +346,10 @@ class Proxy(object):
         conn = None
         log.debug("connecting to %s", uri)
         connect_location = uri.sockname or (uri.host, uri.port)
-        try:
-            if self._pyroConnection is not None:
-                return False  # already connected
-            if config.SSL:
-                sslContext = socketutil.get_ssl_context(clientcert=config.SSL_CLIENTCERT,
-                                                        clientkey=config.SSL_CLIENTKEY,
-                                                        keypassword=config.SSL_CLIENTKEYPASSWD,
-                                                        cacerts=config.SSL_CACERTS)
-            else:
-                sslContext = None
-            sock = socketutil.create_socket(connect=connect_location,
-                                            reuseaddr=config.SOCK_REUSE,
-                                            timeout=self.__pyroTimeout,
-                                            nodelay=config.SOCK_NODELAY,
-                                            sslContext=sslContext)
-            conn = socketutil.SocketConnection(sock, uri.object)
-            # Do handshake.
-            serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
-            data = {"handshake": self._pyroHandshake, "object": uri.object}
-            data = serializer.dumps(data)
-            msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id,
-                                          data, annotations=self.__annotations(False))
-            if config.LOGWIRE:
-                protocol.log_wiredata(log, "proxy connect sending", msg)
-            conn.send(msg.data)
-            msg = protocol.recv_stub(conn, [protocol.MSG_CONNECTOK, protocol.MSG_CONNECTFAIL])
-            if config.LOGWIRE:
-                protocol.log_wiredata(log, "proxy connect response received", msg)
-        except Exception as x:
-            if conn:
-                conn.close()
-            err = "cannot connect to %s: %s" % (connect_location, x)
-            log.error(err)
-            if isinstance(x, errors.CommunicationError):
-                raise
-            else:
-                raise errors.CommunicationError(err) from x
+        if connected_socket:
+            self._pyroConnection = socketutil.SocketConnection(connected_socket, uri.object, True)
         else:
-            handshake_response = "?"
-            if msg.data:
-                serializer = serializers.serializers_by_id[msg.serializer_id]
-                handshake_response = serializer.loads(msg.data)
-            if msg.type == protocol.MSG_CONNECTFAIL:
-                error = "connection to %s rejected: %s" % (connect_location, handshake_response)
-                conn.close()
-                log.error(error)
-                raise errors.CommunicationError(error)
-            elif msg.type == protocol.MSG_CONNECTOK:
-                self.__processMetadata(handshake_response["meta"])
-                handshake_response = handshake_response["handshake"]
-                self._pyroConnection = conn
-                if replaceUri:
-                    self._pyroUri = uri
-                self._pyroValidateHandshake(handshake_response)
-                log.debug("connected to %s - %s - %s", self._pyroUri, conn.family(), "SSL" if sslContext else "unencrypted")
-                if msg.annotations:
-                    self._pyroResponseAnnotations(msg.annotations, msg.type)
-            else:
-                conn.close()
-                err = "cannot connect to %s: invalid msg type %d received" % (connect_location, msg.type)
-                log.error(err)
-                raise errors.ProtocolError(err)
+            connect_and_handshake(conn)
         # obtain metadata if this feature is enabled, and the metadata is not known yet
         if self._pyroMethods or self._pyroAttrs:
             log.debug("reusing existing metadata")

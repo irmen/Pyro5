@@ -285,7 +285,7 @@ def create_socket(bind=None, connect=None, reuseaddr=False, keepalive=True,
             sock.bind(bind)
         try:
             sock.listen(100)
-        except Exception:
+        except (OSError, IOError):
             pass
     if connect:
         try:
@@ -422,11 +422,12 @@ except ImportError:
 
 class SocketConnection(object):
     """A wrapper class for plain sockets, containing various methods such as :meth:`send` and :meth:`recv`"""
-    def __init__(self, sock, objectId=None):
+    def __init__(self, sock, objectId=None, keep_open=False):
         self.sock = sock
         self.objectId = objectId
         self.pyroInstances = {}    # pyro objects for instance_mode=session
         self.tracked_resources = weakref.WeakSet()    # weakrefs to resources for this connection
+        self.keep_open = keep_open
 
     def __del__(self):
         self.close()
@@ -444,6 +445,8 @@ class SocketConnection(object):
         return receive_data(self.sock, size)
 
     def close(self):
+        if self.keep_open:
+            return
         try:
             self.sock.shutdown(socket.SHUT_RDWR)
         except:
@@ -487,7 +490,7 @@ def family_str(sock):
         return "IPv4"
     if f == socket.AF_INET6:
         return "IPv6"
-    if f == socket.AF_UNIX:
+    if hasattr(socket, "AF_UNIX") and f == socket.AF_UNIX:
         return "Unix"
     return "???"
 

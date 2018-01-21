@@ -8,6 +8,7 @@ import os
 import sys
 import uuid
 import time
+import socket
 import collections
 import threading
 import logging
@@ -15,8 +16,6 @@ import inspect
 import warnings
 import serpent
 from . import config, core, errors, serializers, socketutil, protocol, client
-from .svr_threads import SocketServer_Threadpool
-from .svr_multiplex import SocketServer_Multiplex
 
 
 __all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway"]
@@ -193,28 +192,38 @@ class Daemon(object):
     to the appropriate objects.
     """
 
-    def __init__(self, host=None, port=0, unixsocket=None, nathost=None, natport=None, interface=DaemonObject):
-        if host is None:
-            host = config.HOST
-        if nathost is None:
-            nathost = config.NATHOST
-        if natport is None:
-            natport = config.NATPORT or None
-        if nathost and unixsocket:
-            raise ValueError("cannot use nathost together with unixsocket")
-        if (nathost is None) ^ (natport is None):
-            raise ValueError("must provide natport with nathost")
-        if config.SERVERTYPE == "thread":
-            self.transportServer = SocketServer_Threadpool()
-        elif config.SERVERTYPE == "multiplex":
-            self.transportServer = SocketServer_Multiplex()
+    def __init__(self, host=None, port=0, unixsocket=None, nathost=None, natport=None, interface=DaemonObject, connected_socket=None):
+        if connected_socket:
+            nathost = natport = None
         else:
-            raise errors.PyroError("invalid server type '%s'" % config.SERVERTYPE)
+            if host is None:
+                host = config.HOST
+            if nathost is None:
+                nathost = config.NATHOST
+            if natport is None:
+                natport = config.NATPORT or None
+            if nathost and unixsocket:
+                raise ValueError("cannot use nathost together with unixsocket")
+            if (nathost is None) ^ (natport is None):
+                raise ValueError("must provide natport with nathost")
         self.__mustshutdown = threading.Event()
         self.__mustshutdown.set()
         self.__loopstopped = threading.Event()
         self.__loopstopped.set()
-        self.transportServer.init(self, host, port, unixsocket)
+        if connected_socket:
+            from .svr_existingconn import SocketServer_ExistingConnection
+            self.transportServer = SocketServer_ExistingConnection()
+            self.transportServer.init(self, connected_socket)
+        else:
+            if config.SERVERTYPE == "thread":
+                from .svr_threads import SocketServer_Threadpool
+                self.transportServer = SocketServer_Threadpool()
+            elif config.SERVERTYPE == "multiplex":
+                from .svr_multiplex import SocketServer_Multiplex
+                self.transportServer = SocketServer_Multiplex()
+            else:
+                raise errors.PyroError("invalid server type '%s'" % config.SERVERTYPE)
+            self.transportServer.init(self, host, port, unixsocket)
         #: The location (str of the form ``host:portnumber``) on which the Daemon is listening
         self.locationStr = self.transportServer.locationStr
         log.debug("daemon created on %s - %s (pid %d)", self.locationStr, socketutil.family_str(self.transportServer.sock), os.getpid())
@@ -423,7 +432,11 @@ class Daemon(object):
                 # normal deserialization of remote call arguments
                 objId, method, vargs, kwargs = serializer.loadsCall(msg.data)
             core.current_context.client = conn
-            core.current_context.client_sock_addr = conn.sock.getpeername()   # store, because on oneway calls, socket will be disconnected
+            try:
+                # store, because on oneway calls, socket will be disconnected:
+                core.current_context.client_sock_addr = conn.sock.getpeername()
+            except socket.error:
+                core.current_context.client_sock_addr = None  # sometimes getpeername() doesn't work...
             core.current_context.seq = msg.seq
             core.current_context.annotations = msg.annotations
             core.current_context.msg_flags = msg.flags
