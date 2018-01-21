@@ -190,7 +190,7 @@ def return_homepage(environ, start_response):
     index_page = index_page_template.format(ns_regex=pyro_app.ns_regex,
                                             name_server_contents_list="".join(nslist),
                                             pyro_version=__version__,
-                                            hostname=environ["SERVER_NAME"])
+                                            hostname=nameserver._pyroUri.location)
     return [index_page.encode("utf-8")]
 
 
