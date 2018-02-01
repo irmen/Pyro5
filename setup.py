@@ -28,7 +28,7 @@ setup(
 
     install_requires=[
         "serpent>=1.23",
-        "msgpack-python>=0.4.6"
+        "msgpack>=0.5"
     ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],

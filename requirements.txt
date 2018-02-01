@@ -1,2 +1,2 @@
 serpent>=1.23
-msgpack-python>=0.4.6
+msgpack>=0.5

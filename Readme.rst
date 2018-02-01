@@ -52,7 +52,7 @@ changes done based on original Pyro4 (release 4.62)
   A single thread is the sole "owner" of a proxy. Another thread can use proxy._pyroClaimOwnership to take over.
 - simplified serializers by moving the task of compressing data to the protocol module instead (where it belonged)
 - optimized wire messages (less code, sometimes less data copying by using memoryviews)
-- for now, requires msgpack-python to be installed as well as serpent.
+- for now, requires ``msgpack`` to be installed as well as ``serpent``.
 
 
 This library is still largely untested and in development.
