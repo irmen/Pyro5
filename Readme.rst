@@ -1,9 +1,9 @@
 Pyro5 - work in progress - use Pyro4 for now
 ============================================
 
-![say thanks](https://img.shields.io/badge/say-thanks-ff69b4.svg "Say Thanks")
-![Build Status](https://travis-ci.org/irmen/Pyro5.svg?branch=master "Build Status")
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1")
+[![saythanks](https://img.shields.io/badge/say-thanks-ff69b4.svg)]
+
+[![Build Status](https://travis-ci.org/irmen/Pyro5.svg?branch=master)](https://travis-ci.org/irmen/Pyro5)
 
 
 *Remote objects communication library for Python 3, fifth incarnation*
