@@ -1,6 +1,10 @@
 Pyro5 - work in progress - use Pyro4 for now
 ============================================
 
+[![saythanks](https://img.shields.io/badge/say-thanks-ff69b4.svg)](https://saythanks.io/to/irmen)
+[![Build Status](https://travis-ci.org/irmen/Pyro5.svg?branch=master)](https://travis-ci.org/irmen/Pyro5)
+
+
 *Remote objects communication library for Python 3, fifth incarnation*
 
 Pyro5 is an "overhauled and updated" Pyro4: more efficient, faster, simpler, streamlined, and cleaned up.
