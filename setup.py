@@ -27,7 +27,7 @@ setup(
     packages=['Pyro5'],
 
     install_requires=[
-        "serpent>=1.23",
+        "serpent>=1.24",
         "msgpack>=0.5.2"
     ],
     setup_requires=['pytest-runner'],
