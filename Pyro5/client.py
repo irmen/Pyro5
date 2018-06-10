@@ -242,7 +242,7 @@ class Proxy(object):
                     return msg
                 data = serializer.loads(msg.data)
                 if msg.flags & protocol.FLAGS_ITEMSTREAMRESULT:
-                    streamId = msg.annotations.get("STRM", b"").decode()
+                    streamId = bytes(msg.annotations.get("STRM", b"")).decode()
                     if not streamId:
                         raise errors.ProtocolError("result of call is an iterator, but the server is not configured to allow streaming")
                     return _StreamResultIterator(streamId, self)
