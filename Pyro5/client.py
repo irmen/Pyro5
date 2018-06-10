@@ -76,7 +76,10 @@ class Proxy(object):
 
     def __del__(self):
         if hasattr(self, "_pyroConnection"):
-            self._pyroRelease()
+            try:
+                self._pyroRelease()
+            except:
+                pass
 
     def __getattr__(self, name):
         if name in Proxy.__pyroAttributes:
