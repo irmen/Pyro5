@@ -112,18 +112,15 @@ class Proxy(object):
                                                           id(self), connected, self._pyroUri, self.__pyroOwnerThread)
 
     def __getstate_for_dict__(self):
-        # for backwards compatibility reasons we also put the timeout and maxretries into the state
-        return self._pyroUri.asString(), tuple(self._pyroOneway), tuple(self._pyroMethods), tuple(self._pyroAttrs),\
-            self.__pyroTimeout, self._pyroHandshake, self._pyroMaxRetries, self._pyroSerializer
+        return self._pyroUri.asString(), tuple(self._pyroOneway), tuple(self._pyroMethods), \
+               tuple(self._pyroAttrs), self._pyroHandshake, self._pyroSerializer
 
     def __setstate_from_dict__(self, state):
         uri = core.URI(state[0])
         oneway = set(state[1])
         methods = set(state[2])
         attrs = set(state[3])
-        handshake = state[4]
-        serializer = state[5]
-        self.__setstate__((uri, oneway, methods, attrs, handshake, serializer))
+        self.__setstate__((uri, oneway, methods, attrs, state[4], state[5]))
 
     def __getstate__(self):
         return self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, self._pyroHandshake, self._pyroSerializer
