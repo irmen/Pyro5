@@ -1,9 +1,5 @@
-from __future__ import print_function
 from time import sleep
-import sys
-
 from Pyro5.compatibility import Pyro4
-
 import Pyro4
 import Pyro4.errors
 

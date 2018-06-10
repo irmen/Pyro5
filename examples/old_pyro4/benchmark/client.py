@@ -1,4 +1,3 @@
-from __future__ import print_function
 import sys
 import time
 from Pyro5.compatibility import Pyro4
@@ -6,9 +5,6 @@ import Pyro4
 import bench
 
 Pyro4.config.SERIALIZER = "marshal"
-
-if sys.version_info < (3, 0):
-    input = raw_input
 
 uri = input("Uri of benchmark server? ").strip()
 obj = Pyro4.Proxy(uri)

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import time
 from Pyro5.compatibility import Pyro4
 import Pyro4

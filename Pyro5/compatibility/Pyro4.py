@@ -27,6 +27,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 import sys
 from .. import api
 from .. import errors
+from .. import serializers
 from .. import socketutil as socketutil_pyro5
 
 
@@ -127,6 +128,11 @@ class UtilModule:
     @staticmethod
     def formatTraceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
         return errors.format_traceback(ex_type, ex_value, ex_tb, detailed)
+
+    SerializerBase = serializers.SerializerBase
+
+    def excepthook(self, *args, **kwargs):
+        return errors.excepthook(*args, **kwargs)
 
 
 util = UtilModule()

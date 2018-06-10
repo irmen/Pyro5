@@ -1,13 +1,9 @@
-from __future__ import print_function
 import time
 import sys
 
 from Pyro5.compatibility import Pyro4
 import Pyro4
 
-
-if sys.version_info < (3, 0):
-    input = raw_input
 
 print("Autoreconnect using PYRO uri.")
 

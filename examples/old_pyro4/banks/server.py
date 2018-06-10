@@ -2,10 +2,10 @@
 #   The banks server
 #
 
-from __future__ import print_function
 from Pyro5.compatibility import Pyro4
 import Pyro4
 import banks
+
 
 with Pyro4.Daemon() as daemon:
     with Pyro4.locateNS() as ns:
