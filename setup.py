@@ -33,6 +33,16 @@ setup(
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
 
+    entry_points={
+        'console_scripts': [
+            'pyro5-ns = Pyro5.nameserver:main',
+            'pyro5-nsc = Pyro5.nsc:main',
+            'pyro5-echoserver = Pyro5.utils.echoserver:main',
+            'pyro5-check-config = Pyro5.config:dump',
+            'pyro5-httpgateway = Pyro5.utils.httpgateway:main'
+        ]
+    },
+
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
