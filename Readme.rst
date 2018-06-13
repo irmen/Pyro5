@@ -8,7 +8,7 @@ Pyro5 - work in progress - use Pyro4 for now
 
 .. image:: https://travis-ci.org/irmen/Pyro5.svg?branch=master
     :target: https://travis-ci.org/irmen/Pyro5
-    
+
 
 Pyro5 is an "overhauled and updated" Pyro4: more efficient, faster, simpler, streamlined, and cleaned up.
 This may or may not become the next major Pyro version. It requires Python 3.4 or later.
@@ -17,8 +17,8 @@ Feel free to report issues for suggestions or problems!
 **This is very much in development and can change or be canceled at any time. Use Pyro4 for real work instead.**
 
 
-changes done based on original Pyro4 (release 4.62)
----------------------------------------------------
+changes done based on original Pyro4
+------------------------------------
 
 - the Pyro5 API is redesigned and is incompatible with Pyro4 code (although everything should be familiar):
 

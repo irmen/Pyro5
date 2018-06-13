@@ -33,7 +33,7 @@ phase 2:
     The components are now distributed and we use Pyro to make them
     talk to each other. You have to start both component by itself
     (in separate console windows for instance):
-    - start a Pyro name server (python -m Pyro4.naming).
+    - start a Pyro name server (python -m Pyro5.nameserver).
     - start the stockmarket.py (it will create several different markets)
     - start the viewer.py to see the stream of quotes coming in.
 
@@ -47,17 +47,17 @@ phase 2:
 
 phase 3:
     Similar to phase2, but now we make two small changes:
-    a) we use the Pyro name server in such a way that it is accessible 
-    from other machines, and b) we run the stock market server in a way 
-    that the host is not "localhost" by default and can be accessed by 
-    different machines. To do this, create the daemon with the 
-    arguments 'host' and 'port' set (i.e. host=HOST_IP, port=HOST_PORT). 
-    Again, you have to start both component by itself (in separate 
+    a) we use the Pyro name server in such a way that it is accessible
+    from other machines, and b) we run the stock market server in a way
+    that the host is not "localhost" by default and can be accessed by
+    different machines. To do this, create the daemon with the
+    arguments 'host' and 'port' set (i.e. host=HOST_IP, port=HOST_PORT).
+    Again, you have to start both component by itself (in separate
     console windows for instance):
     - start a Pyro name server like this:
-    (python -m Pyro4.naming -n 192.168.1.99 -p 9091) or
-    (pyro4-ns -n 192.168.1.99 -p 9091)
-    - start the stockmarket.py (set HOST_IP and HOST_PORT accordingly. 
+    (python -m Pyro5.nameserver -n 192.168.1.99 -p 9091) or
+    (pyro5-ns -n 192.168.1.99 -p 9091)
+    - start the stockmarket.py (set HOST_IP and HOST_PORT accordingly.
     Also, make sure HOST_PORT is already open).
-    - start the viewer.py in different remote machines to see the stream 
+    - start the viewer.py in different remote machines to see the stream
     of quotes coming in on each window.
