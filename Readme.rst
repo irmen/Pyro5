@@ -59,6 +59,9 @@ changes done based on original Pyro4
   A single thread is the sole "owner" of a proxy. Another thread can use proxy._pyroClaimOwnership to take over.
 - simplified serializers by moving the task of compressing data to the protocol module instead (where it belonged)
 - optimized wire messages (less code, sometimes less data copying by using memoryviews)
+- annotations on the protocol message are stored as no-copy memoryviews now. A memoryview doesn't support all
+  methods you might expect so sometimes it may be required now to convert it to bytes or bytearray in your
+  own code first, before further processing. Note that this will create a copy again, so it's best avoided.
 - for now, requires ``msgpack`` to be installed as well as ``serpent``.
 
 

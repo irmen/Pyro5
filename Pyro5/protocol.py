@@ -159,7 +159,7 @@ class ReceivingMessage:
             while i < self.annotations_size:
                 annotation_id = bytes(payload[i:i+4]).decode("ascii")
                 length = int.from_bytes(payload[i+4:i+8], "big")
-                self.annotations[annotation_id] = payload[i+8:i+8+length]
+                self.annotations[annotation_id] = payload[i+8:i+8+length]     # note: it stores a memoryview!
                 i += 8 + length
             assert i == self.annotations_size
             self.data = payload[self.annotations_size:]

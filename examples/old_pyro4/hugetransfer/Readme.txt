@@ -22,10 +22,10 @@ Performance numbers with the various serializers on my local network:
 
 serializer | performance (string) | performance (bytes)
 -----------+---------------------------------------------
-   pickle  |     ? kb/sec     |   ? kb/sec
   marshal  |     ? kb/sec     |   ? kb/sec
      json  |     ? kb/sec     |   not supported
   serpent  |     ? kb/sec     |    ? kb/sec
+  msgpack  |     ? kb/sec     |    ? kb/sec
 
 
 Performance of the download via iterator is almost identical to

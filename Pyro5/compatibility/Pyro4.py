@@ -53,7 +53,7 @@ class NamespaceInterceptor:
         self.namespace = namespace
 
     def __getattr__(self, item):
-        raise NotImplementedError("The Pyro4 compatibility layer doesn't provide the Pyro4.{0} namespace, "
+        raise NotImplementedError("The Pyro4 compatibility layer doesn't provide the Pyro4.{0} module, "
                                   "first make sure the code only uses symbols from the Pyro4 package directly"
                                   .format(self.namespace))
 
