@@ -453,7 +453,6 @@ class Proxy(object):
             if self._pyroConnection is not None:
                 self._pyroConnection.close()
                 self._pyroConnection = None
-                log.debug("connection released to switch thread ownership")
             self.__pyroOwnerThread = get_ident()
 
     def __annotations(self, clear=True):
@@ -493,7 +492,8 @@ class Proxy(object):
 
     def __check_owner(self):
         if get_ident() != self.__pyroOwnerThread:
-            raise errors.PyroError("the calling thread is not the owner of this proxy")
+            raise errors.PyroError("the calling thread is not the owner of this proxy, "
+                                   "create a new proxy in this thread or transfer ownership.")
 
 
 class _RemoteMethod(object):

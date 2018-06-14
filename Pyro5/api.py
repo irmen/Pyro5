@@ -1,5 +1,5 @@
 """
-One stop API module.
+Single module that centralizes the main symbols from the Pyro5 API
 
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """

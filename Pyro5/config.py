@@ -28,7 +28,7 @@ POLLTIMEOUT = 2.0  # seconds
 MAX_RETRIES = 0
 SOCK_REUSE = True  # so_reuseaddr on server sockets?
 SOCK_NODELAY = False  # tcp_nodelay on socket?
-ONEWAY_THREADED = True  # oneway calls run in their own thread
+ONEWAY_THREADED = False  # oneway calls run in their own thread in the daemon?
 DETAILED_TRACEBACK = False
 THREADPOOL_SIZE = 40        # @todo still use this?
 THREADPOOL_SIZE_MIN = 4     # @todo still use this?
@@ -57,11 +57,12 @@ del _pyro_logfile
 del _pyro_loglevel
 
 
+__correct_configitems = {item for item in globals()
+                         if not item.startswith("_") and item not in {"os", "copy", "dump", "reset", "as_dict"}}
+
+
 def _config_items():
-    return {item for item in globals() if not item.startswith("_") and item not in {"os", "copy", "dump", "reset"}}
-
-
-__correct_configitems = set(_config_items())
+    return __correct_configitems
 
 
 def _check_configitems():
@@ -123,6 +124,10 @@ def reset(useenvironment=True):
         configitems[item] = copy.copy(value)
     if useenvironment:
         _read_env()  # environment variables overwrite config items
+
+
+def as_dict():
+    return {item: value for item, value in globals().items() if item in __correct_configitems}
 
 
 def dump():

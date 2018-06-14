@@ -71,14 +71,7 @@ oneway = api.oneway
 expose = api.expose
 behavior = api.behavior
 current_context = api.current_context
-
-
-def config_asDict():
-    raise NotImplementedError()  # @todo
-
-
-config.asDict = config_asDict
-del config_asDict
+config.asDict = config.as_dict
 
 
 class URI(api.URI):

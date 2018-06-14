@@ -38,9 +38,11 @@ changes done based on original Pyro4
 - Proxy moved from core to new client module
 - Daemon moved from core to new server module
 - no support for unsafe serializers AT ALL (pickle, dill, cloudpickle) - only safe serializers (serpent, marshal, json, msgpack)
+- no need anymore for the ability to configure the accepted serializers in a daemon, because of the previous change
 - removed all from future imports and all sys.version_info checks because we're Python 3 only
 - removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
 - moved test.echoserver to utils.echoserver (next to httpgateway)
+- oneway calls are no longer run in the deamon in a separate thread by default (ONEWAY_THREADED config item is now False by default)
 - threadpool module moved into the same module as threadpool-server
 - moved the multiplex and thread socketservers modules into main package
 - no custom futures module anymore (you should use Python's own concurrent.futures instead)

@@ -7,8 +7,6 @@ import Pyro4
 
 fmt = '%Y-%m-%d %H:%M:%S %Z%z'
 
-Pyro4.config.SERIALIZERS_ACCEPTED = {"pickle", "marshal", "json", "serpent"}
-
 
 @Pyro4.expose
 class Server(object):
