@@ -2,7 +2,7 @@ This example shows the use of a couple of advanced Pyro constructs to
 achieve a thread safe, per-user resource connection in the Pyro server.
 
 It utilizes:
-- instance_mode "session" (is the default since 4.47)
+- instance_mode "session"
 - annotations to pass the 'user token' from client to server
 - current_context to access the annotations in the server code
 - explicitly converting the annotation memoryview on the data to bytes for further processing

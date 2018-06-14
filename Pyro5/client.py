@@ -423,6 +423,7 @@ class Proxy(object):
         Override to return a dict with custom user annotations to be sent with each request message.
         Code using Pyro 4.56 or newer can skip this and instead set the annotations directly on the context object.
         """
+        # @todo remove this method!
         return {}
 
     def _pyroResponseAnnotations(self, annotations, msgtype):
@@ -432,6 +433,7 @@ class Proxy(object):
         and if you override the annotations method in the daemon, can contain your own annotations as well.
         Code using Pyro 4.56 or newer can skip this and instead read the response_annotations directly from the context object.
         """
+        # @todo remove this method!
         pass
 
     def _pyroValidateHandshake(self, response):

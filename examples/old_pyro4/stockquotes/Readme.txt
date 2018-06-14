@@ -41,7 +41,6 @@ phase 2:
     including attribute access and the use of generator functions.
     The only thing we had to change is to create properties for the
     attributes that are accessed, and adding an expose decorator.
-    Support for remote iterators/generators is available since Pyro 4.49.
     In the viewer we didn't hardcode the stock market names but instead
     we ask the name server for all available stock markets.
 

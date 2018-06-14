@@ -11,8 +11,12 @@ Pyro5 - work in progress - use Pyro4 for now
 
 
 Pyro5 is an "overhauled and updated" Pyro4: more efficient, faster, simpler, streamlined, and cleaned up.
-This may or may not become the next major Pyro version. It requires Python 3.4 or later.
-Feel free to report issues for suggestions or problems!
+It requires Python 3.4 or later!
+
+I'm aiming to separate the actual network logic and the protocol/messaging logic so that it will be possible
+to use the protocol logic in different network i/o setups (such as an async eventloop based solution).
+
+This may or may not become the next major Pyro version. Feel free to report issues for suggestions or problems!
 
 **This is very much in development and can change or be canceled at any time. Use Pyro4 for real work instead.**
 
@@ -20,7 +24,7 @@ Feel free to report issues for suggestions or problems!
 changes done based on original Pyro4
 ------------------------------------
 
-- the Pyro5 API is redesigned and is incompatible with Pyro4 code (although everything should be familiar):
+- the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
   - Pyro5 is the new package name (duh)
   - restructured the submodules, renamed some submodules (naming -> nameserver, configuration -> config,
@@ -28,6 +32,8 @@ changes done based on original Pyro4
   - most classes and method names are the same or at least similar but may have been shuffled around to other modules
   - all toplevel functions are renamed to pep8 code style (but class method names are unchanged from Pyro4 for now)
   - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
+  - *compatibility layer:* to make upgrading easier there's a (limited) Pyro4 compatibility layer,
+    enable this by ``from Pyro5.compatibility import Pyro4`` at the top of your modules. Read the docstring of this module for more details.
 
 - Proxy moved from core to new client module
 - Daemon moved from core to new server module
