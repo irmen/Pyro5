@@ -11,7 +11,7 @@ print("correlation id set to:", Pyro4.current_context.correlation_id)
 class CustomAnnotationProxy(Pyro4.Proxy):
     def __init__(self, uri):
         super(CustomAnnotationProxy, self).__init__(uri)
-        self._pyroHmacKey = b"secr3t_k3y"
+        self._pyroHmacKey = b"secr3t_k3y"   # @todo gone???
 
     # override the method that adds annotations and add our own
     def _pyroAnnotations(self):
@@ -60,7 +60,7 @@ print("\n------- get annotations via normal proxy and the call context... -----\
 input("press enter:")
 # the code below works as of Pyro 4.56.
 with Pyro4.Proxy(uri) as proxy:
-    proxy._pyroHmacKey = b"secr3t_k3y"
+    proxy._pyroHmacKey = b"secr3t_k3y"  # @todo gone???
     print("normal call")
 
     Pyro4.current_context.annotations = {"XYZZ": b"custom annotation from client via new way(1)"}

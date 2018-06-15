@@ -32,7 +32,7 @@ class CustomDaemon(Pyro4.Daemon):
 
 
 with CustomDaemon() as daemon:
-    daemon._pyroHmacKey = b"secr3t_k3y"
+    daemon._pyroHmacKey = b"secr3t_k3y"   # @todo gone????
     uri = daemon.register(EchoServer, "example.context")  # provide a logical name ourselves
     print("Server is ready. You can use the following URI to connect:")
     print(uri)

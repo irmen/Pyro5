@@ -2,10 +2,7 @@ import string
 import time
 from collections import Counter
 from itertools import cycle
-try:
-    from itertools import izip_longest as zip_longest
-except ImportError:
-    from itertools import zip_longest
+from itertools import zip_longest
 import Pyro4
 import Pyro4.errors
 
