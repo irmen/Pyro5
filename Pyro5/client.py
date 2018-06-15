@@ -179,7 +179,6 @@ class Proxy(object):
         if self._pyroConnection is not None:
             self._pyroConnection.close()
             self._pyroConnection = None
-            log.debug("connection released")
 
     def _pyroBind(self):
         """
@@ -241,7 +240,6 @@ class Proxy(object):
                     core.current_context.response_annotations = msg.annotations
                     self._pyroResponseAnnotations(msg.annotations, msg.type)
                 if self._pyroRawWireResponse:
-                    msg.decompress_if_needed()
                     return msg
                 data = serializer.loads(msg.data)
                 if msg.flags & protocol.FLAGS_ITEMSTREAMRESULT:
@@ -351,9 +349,7 @@ class Proxy(object):
         else:
             connect_and_handshake(conn)
         # obtain metadata if this feature is enabled, and the metadata is not known yet
-        if self._pyroMethods or self._pyroAttrs:
-            log.debug("reusing existing metadata")
-        else:
+        if not self._pyroMethods and not self._pyroAttrs:
             self._pyroGetMetadata(uri.object)
         return True
 

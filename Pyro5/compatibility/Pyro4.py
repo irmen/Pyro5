@@ -60,6 +60,7 @@ class NamespaceInterceptor:
 
 naming = NamespaceInterceptor("naming")
 core = NamespaceInterceptor("core")
+message = NamespaceInterceptor("message")
 
 
 # compatibility wrappers for the other symbols:
@@ -144,8 +145,36 @@ class SocketUtilModule:
     def getInterfaceAddress(ip_address):
         return socketutil_pyro5.get_interface_address(ip_address)
 
+    @staticmethod
+    def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
+                     timeout=socketutil_pyro5._GLOBAL_DEFAULT_TIMEOUT, noinherit=False,
+                     ipv6=False, nodelay=True, sslContext=None):
+        return socketutil_pyro5.create_socket(bind, connect, reuseaddr, keepalive,
+                                              timeout, noinherit, ipv6, nodelay, sslContext)
+
+    @staticmethod
+    def createBroadcastSocket(bind=None, reuseaddr=False, timeout=socketutil_pyro5._GLOBAL_DEFAULT_TIMEOUT, ipv6=False):
+        return socketutil_pyro5.create_bc_socket(bind, reuseaddr, timeout, ipv6)
+
+    @staticmethod
+    def receiveData(sock, size):
+        return socketutil_pyro5.receive_data(sock, size)
+
+    @staticmethod
+    def sendData(sock, data):
+        return socketutil_pyro5.send_data(sock, data)
+
 
 socketutil = SocketUtilModule()
+
+
+class ConstantsModule:
+    from .. import __version__ as VERSION
+    from ..core import DAEMON_NAME, NAMESERVER_NAME
+    from ..protocol import PROTOCOL_VERSION
+
+
+constants = ConstantsModule()
 
 
 # make sure that subsequent  from Pyro4 import ...  will work:
@@ -155,3 +184,5 @@ sys.modules["Pyro4.core"] = core
 sys.modules["Pyro4.naming"] = naming
 sys.modules["Pyro4.util"] = util
 sys.modules["Pyro4.socketutil"] = socketutil
+sys.modules["Pyro4.constants"] = constants
+sys.modules["Pyro4.message"] = message
