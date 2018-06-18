@@ -10,3 +10,4 @@
 /.cache/
 /.eggs/
 /.mypy_cache/
+/.pytest_cache/

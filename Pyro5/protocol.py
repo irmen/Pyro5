@@ -97,8 +97,8 @@ class SendingMessage:
             if len(k) != 4:
                 raise errors.ProtocolError("annotation identifier must be 4 ascii characters")
             annotation_data.append(struct.pack("!4sI", k.encode("ascii"), len(v)))
-            if not isinstance(v, (bytes, bytearray)):
-                raise errors.ProtocolError("annotation data must be bytes")
+            if not isinstance(v, (bytes, bytearray, memoryview)):
+                raise errors.ProtocolError("annotation data must be bytes, bytearray, or memoryview", type(v))
             annotation_data.append(v)    # note: annotations are not compressed by Pyro
         self.data = header_data + b"".join(annotation_data) + payload
 

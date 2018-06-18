@@ -18,7 +18,5 @@ with Pyro5.api.Proxy("PYRONAME:example.blobdispatcher") as dispatcher:
             break
         # create our custom data object and send it through the dispatcher
         data = CustomData(42, "hello world", datetime.datetime.now())
-
-        # @todo FIX THIS -- CRASHES WITH SOCKET ERROR NOT ENOUGH DATA
         dispatcher.process_blob(Pyro5.api.SerializedBlob(topic, data))
         print("processed")
