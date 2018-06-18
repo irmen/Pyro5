@@ -44,7 +44,6 @@ changes done based on original Pyro4
 - removed all from future imports and all sys.version_info checks because we're Python 3 only
 - removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
 - moved test.echoserver to utils.echoserver (next to httpgateway)
-  @todo find a better solution for this. Stick them in a queue perhaps?  I don't want to spawn threads (and this is disabled by default now) but this now blocks a proxy that does subsequent oneway calls
 - threadpool module moved into the same module as threadpool-server
 - moved the multiplex and thread socketservers modules into main package
 - no custom futures module anymore (you should use Python's own concurrent.futures instead)
@@ -64,7 +63,8 @@ changes done based on original Pyro4
 - rest of util module renamed to serializers module
 - replaced deprecated usages of optparse with argparse
 - moved metadata search in the name server to a separate yplookup method (instead of using list as well)
-- wire protocol changed: much larger annotations possible (4Gb instead of 64Kb), no more checksumming
+- wire protocol changed: much larger annotations possible (4Gb instead of 64Kb) so it can be (ab)used for things like efficient binary data transfer
+- no more checksumming on the wire protocol, it's a bit useless
 - proxy doesn't have a thread lock anymore and no can longer be shared across different threads.
   A single thread is the sole "owner" of a proxy. Another thread can use proxy._pyroClaimOwnership to take over.
 - simplified serializers by moving the task of compressing data to the protocol module instead (where it belonged)
