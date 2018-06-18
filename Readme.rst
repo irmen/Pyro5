@@ -40,6 +40,7 @@ changes done based on original Pyro4
 - no support for unsafe serializers AT ALL (pickle, dill, cloudpickle) - only safe serializers (serpent, marshal, json, msgpack)
 - for now, requires ``msgpack`` to be installed as well as ``serpent``.
 - no need anymore for the ability to configure the accepted serializers in a daemon, because of the previous change
+- removed some other obscure config items
 - removed all from future imports and all sys.version_info checks because we're Python 3 only
 - removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
 - moved test.echoserver to utils.echoserver (next to httpgateway)
@@ -73,11 +74,12 @@ changes done based on original Pyro4
   own code first, before further processing. Note that this will create a copy again, so it's best avoided.
 
 
-This library is still largely untested and in development.
+*This library is still largely untested and in alpha development stage. Anything may change.*
 
-You should use Pyro4 instead for now: https://github.com/irmen/Pyro4
+For serious code, you should still use Pyro4 instead: https://github.com/irmen/Pyro4
 
 
 @TODO:
+
 - create an alternative for Pyro4's async proxy, and fix the examples that use it: distributed-computing2, distributed-mandelbrot
 - better handling of oneway messages, to avoid client-blocking,  now that they're not handled in a thread by default anymore
