@@ -43,7 +43,6 @@ changes done based on original Pyro4
 - removed all from future imports and all sys.version_info checks because we're Python 3 only
 - removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
 - moved test.echoserver to utils.echoserver (next to httpgateway)
-- oneway calls are no longer run in the deamon in a separate thread by default (ONEWAY_THREADED config item is now False by default)
   @todo find a better solution for this. Stick them in a queue perhaps?  I don't want to spawn threads (and this is disabled by default now) but this now blocks a proxy that does subsequent oneway calls
 - threadpool module moved into the same module as threadpool-server
 - moved the multiplex and thread socketservers modules into main package

@@ -28,7 +28,6 @@ POLLTIMEOUT = 2.0  # seconds
 MAX_RETRIES = 0
 SOCK_REUSE = True  # so_reuseaddr on server sockets?
 SOCK_NODELAY = False  # tcp_nodelay on socket?
-ONEWAY_THREADED = False  # oneway calls run in their own thread in the daemon?
 DETAILED_TRACEBACK = False
 THREADPOOL_SIZE = 40        # @todo still use this?
 THREADPOOL_SIZE_MIN = 4     # @todo still use this?
@@ -81,7 +80,7 @@ def _save_defaults():
 
 
 __defaults = _save_defaults()
-assert len(__defaults) == 38
+assert len(__defaults) == 37
 del _save_defaults
 
 

@@ -21,8 +21,7 @@ completed = serv.getcount()
 print("Number of completed calls in the server: %d" % completed)
 print("  (this should be 0, because all 5 calls are still busy in the background)")
 if completed > 0:
-    print("  !!! The oneway calls were not running in the background !!!")
-    print("  ??? Are you sure ONEWAY_THREADED=True on the server ???")     # @todo fix this
+    raise SystemExit("error: oneway calls should run in the background!")
 print()
 print("Calling normal delay 5 times. They will all be processed by the same server thread because we're using the same proxy.")
 r = serv.delay()

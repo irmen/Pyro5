@@ -472,9 +472,9 @@ class Daemon(object):
                         data = set_exposed_property_value(obj, vargs[0], vargs[1])
                     else:
                         method = get_attribute(obj, method)
-                        if request_flags & protocol.FLAGS_ONEWAY and config.ONEWAY_THREADED:
-                            # oneway call to be run inside its own thread
-                            # @todo find a better solution for this. Stick them in a queue perhaps?  I don't want to spawn threads (and this is disabled by default now) but this now blocks a proxy that does subsequent oneway calls
+                        if request_flags & protocol.FLAGS_ONEWAY:
+                            # oneway call to be run inside its own thread, otherwise client blocking can still occur
+                            #    on the next call on the same proxy
                             _OnewayCallThread(target=method, args=vargs, kwargs=kwargs).start()
                         else:
                             isCallback = getattr(method, "_pyroCallback", False)

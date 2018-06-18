@@ -3,10 +3,6 @@ from Pyro5.api import expose, oneway, Daemon
 import Pyro5.config
 
 
-# set the oneway behavior to run inside a new thread
-Pyro5.config.ONEWAY_THREADED = True
-
-
 @expose
 class Server(object):
     def __init__(self):
@@ -39,8 +35,6 @@ class Server(object):
             time.sleep(1)
         print("work's done!")
 
-
-# main program
 
 Daemon.serveSimple({
     Server: "example.oneway"
