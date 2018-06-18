@@ -1,7 +1,7 @@
-Pyro5 - work in progress - use Pyro4 for now
-============================================
+Pyro5 [work in progress]
+========================
 
-*Remote objects communication library for Python 3, fifth incarnation*
+*Remote objects communication library, fifth incarnation*
 
 .. image:: https://img.shields.io/badge/say-thanks-ff69b4.svg
     :target: https://saythanks.io/to/irmen
@@ -10,15 +10,15 @@ Pyro5 - work in progress - use Pyro4 for now
     :target: https://travis-ci.org/irmen/Pyro5
 
 
-Pyro5 is an "overhauled and updated" Pyro4: more efficient, faster, simpler, streamlined, and cleaned up.
-It requires Python 3.4 or later!
+Pyro5 is an "overhauled, updated and modernized" Pyro4 (https://github.com/irmen/Pyro4):
+more efficient, faster, simpler, streamlined, and cleaned up. It requires Python 3.4 or later!
 
 I'm aiming to separate the actual network logic and the protocol/messaging logic so that it will be possible
 to use the protocol logic in different network i/o setups (such as an async eventloop based solution).
 
-This may or may not become the next major Pyro version. Feel free to report issues for suggestions or problems!
+This may or may not become the actual next major Pyro version. Feel free to report issues for suggestions or problems!
 
-**This is very much in development and can change or be canceled at any time. Use Pyro4 for real work instead.**
+**This is very much in development and can change or be canceled at any time. Use Pyro4 https://github.com/irmen/Pyro4 for real work instead.**
 
 
 changes done based on original Pyro4
@@ -74,12 +74,7 @@ changes done based on original Pyro4
   own code first, before further processing. Note that this will create a copy again, so it's best avoided.
 
 
-*This library is still largely untested and in alpha development stage. Anything may change.*
-
-For serious code, you should still use Pyro4 instead: https://github.com/irmen/Pyro4
-
-
 @TODO:
 
 - create an alternative for Pyro4's async proxy, and fix the examples that use it: distributed-computing2, distributed-mandelbrot
-- better handling of oneway messages, to avoid client-blocking,  now that they're not handled in a thread by default anymore
+- separate protocol and network i/o logic to allow for async server implementation.
