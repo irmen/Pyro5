@@ -80,6 +80,5 @@ try:
         # this will raise the proper zerodivision exception once we're about
         # to process the batch result from the divide by 0 call.
 except ZeroDivisionError:
-    # @todo FIX THIS a serialization error is thrown rather than the divide by zero error we expect... unsupported serialized class: Pyro5.core._ExceptionWrapper
     print("A divide by zero error occurred during the batch! (expected)")
     print("".join(get_pyro_traceback()))

@@ -190,11 +190,10 @@ class SerializerBase(object):
         if "__" in classname:
             raise errors.SecurityError("refused to deserialize types with double underscores in their name: " + classname)
         # for performance, the constructors below are hardcoded here instead of added on a per-class basis to the dict-to-class registry
-        if classname.startswith("Pyro5.core."):
-            if classname == "Pyro5.core.URI":
-                uri = core.URI.__new__(core.URI)
-                uri.__setstate_from_dict__(data["state"])
-                return uri
+        if classname == "Pyro5.core.URI":
+            uri = core.URI.__new__(core.URI)
+            uri.__setstate_from_dict__(data["state"])
+            return uri
         elif classname == "Pyro5.client.Proxy":
             proxy = client.Proxy.__new__(client.Proxy)
             proxy.__setstate_from_dict__(data["state"])

@@ -1,10 +1,10 @@
 import timeit
-import uuid
 import Pyro5.api
-import Pyro5.core
+import Pyro5.config
 
 
-# Pyro5.core.current_context.correlation_id = uuid.uuid1()
+Pyro5.config.SERIALIZER = 'marshal'
+
 
 num_iterations = 3000
 num_tries = 10
@@ -14,7 +14,7 @@ ns._pyroBind()
 
 
 def test():
-    ns.list("Pyro.NameServer", return_metadata=True)
+    ns.list("Pyro.NameServer", return_metadata=False)
 
 
 print("running %d tries..." % num_tries)

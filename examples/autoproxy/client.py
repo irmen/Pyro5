@@ -13,7 +13,7 @@ thing3 = factory.createSomething(3)
 print(repr(thing1))
 
 # interact with them on the server.
-print("Speaking stuff.")
+print("Speaking stuff (see output on server).")
 thing1.speak("I am the first")
 thing2.speak("I am second")
 thing3.speak("I am last then...")
