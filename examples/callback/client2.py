@@ -25,8 +25,7 @@ class CallbackHandler(object):
     @callback
     def call2(self):
         print("\n\ncallback 2 received from server!")
-        print("going to crash - but you will see the exception here too")
-        # @todo FIX THIS-- THE EXCEPTION DOESNT OCCUR HERE
+        print("going to crash - but you will see the exception printed here too:")
         return self.crash()
 
 

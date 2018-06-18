@@ -78,3 +78,7 @@ This library is still largely untested and in development.
 
 You should use Pyro4 instead for now: https://github.com/irmen/Pyro4
 
+
+@TODO:
+- create an alternative for Pyro4's async proxy, and fix the examples that use it: distributed-computing2, distributed-mandelbrot
+- better handling of oneway messages, to avoid client-blocking,  now that they're not handled in a thread by default anymore

@@ -11,12 +11,6 @@ def get_user_token():
     return "user123"
 
 
-class CustomAnnotationProxy(Pyro5.api.Proxy):
-    # override the method that adds annotations and add our own custom user token annotation
-    def _pyroAnnotations(self):
-        return {"USER": get_user_token().encode("utf-8")}
-
-
 class DbAccessor(threading.Thread):
     def __init__(self, uri):
         super(DbAccessor, self).__init__()
@@ -24,9 +18,10 @@ class DbAccessor(threading.Thread):
         self.daemon = True
 
     def run(self):
-        proxy = CustomAnnotationProxy(self.uri)
+        proxy = Pyro5.api.Proxy(self.uri)
         for i in range(3):
             try:
+                Pyro5.api.current_context.annotations = {"USER": get_user_token().encode("utf-8")}
                 proxy.store("number", 100+i)
                 num = proxy.retrieve("number")
                 print("[%s] num=%s" % (self.name, num))
@@ -36,16 +31,19 @@ class DbAccessor(threading.Thread):
 
 
 print("\n***** Sequential access using multiple proxies on the Session-Bound Database... (no issues)")
-with CustomAnnotationProxy("PYRONAME:example.usersession.sessiondb") as p1,\
-        CustomAnnotationProxy("PYRONAME:example.usersession.sessiondb") as p2:
+
+with Pyro5.api.Proxy("PYRONAME:example.usersession.sessiondb") as p1, \
+        Pyro5.api.Proxy("PYRONAME:example.usersession.sessiondb") as p2:
+    Pyro5.api.current_context.annotations = {"USER": get_user_token().encode("utf-8")}
     p1.store("number", 42)
     p1.retrieve("number")
     p2.store("number", 43)
     p2.retrieve("number")
 
 print("\n***** Sequential access using multiple proxies on the Singleton Database... (no issues)")
-with CustomAnnotationProxy("PYRONAME:example.usersession.singletondb") as p1,\
-        CustomAnnotationProxy("PYRONAME:example.usersession.singletondb") as p2:
+with Pyro5.api.Proxy("PYRONAME:example.usersession.singletondb") as p1, \
+        Pyro5.api.Proxy("PYRONAME:example.usersession.singletondb") as p2:
+    Pyro5.api.current_context.annotations = {"USER": get_user_token().encode("utf-8")}
     p1.store("number", 42)
     p1.retrieve("number")
     p2.store("number", 43)

@@ -26,8 +26,6 @@ class Proxy(object):
     .. automethod:: _pyroBind
     .. automethod:: _pyroRelease
     .. automethod:: _pyroReconnect
-    .. automethod:: _pyroAnnotations
-    .. automethod:: _pyroResponseAnnotations
     .. automethod:: _pyroValidateHandshake
     .. autoattribute:: _pyroTimeout
     .. attribute:: _pyroMaxRetries
@@ -69,7 +67,9 @@ class Proxy(object):
         self.__pyroOwnerThread = get_ident()     # the thread that owns this proxy
         if config.SERIALIZER not in serializers.serializers:
             raise ValueError("unknown serializer configured")
-        core.current_context.annotations = {}
+        # note: we're not clearing the client annotations dict here.
+        #       that is because otherwise it will be wiped if a new proxy is needed to connect PYRONAME uris.
+        #       clearing the response annotations is okay.
         core.current_context.response_annotations = {}
         if connected_socket:
             self.__pyroCreateConnection(False, connected_socket)
@@ -209,7 +209,7 @@ class Proxy(object):
             self.__pyroCreateConnection()
         serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
         objectId = objectId or self._pyroConnection.objectId
-        annotations = self.__annotations()
+        annotations = core.current_context.annotations
         if vargs and isinstance(vargs[0], SerializedBlob):
             # special serialization of a 'blob' that stays serialized
             data, flags = self.__serializeBlobArgs(vargs, kwargs, annotations, flags, objectId, methodname, serializer)
@@ -238,7 +238,6 @@ class Proxy(object):
                     raise errors.SerializeError(error)
                 if msg.annotations:
                     core.current_context.response_annotations = msg.annotations
-                    self._pyroResponseAnnotations(msg.annotations, msg.type)
                 if self._pyroRawWireResponse:
                     return msg
                 data = serializer.loads(msg.data)
@@ -294,7 +293,7 @@ class Proxy(object):
                 data = {"handshake": self._pyroHandshake, "object": uri.object}
                 data = serializer.dumps(data)
                 msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id,
-                                              data, annotations=self.__annotations(False))
+                                              data, annotations=core.current_context.annotations)
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "proxy connect sending", msg)
                 conn.send(msg.data)
@@ -329,7 +328,7 @@ class Proxy(object):
                     self._pyroValidateHandshake(handshake_response)
                     log.debug("connected to %s - %s - %s", self._pyroUri, conn.family(), "SSL" if sslContext else "unencrypted")
                     if msg.annotations:
-                        self._pyroResponseAnnotations(msg.annotations, msg.type)
+                        core.current_context.response_annotations = msg.annotations
                 else:
                     conn.close()
                     err = "cannot connect to %s: invalid msg type %d received" % (connect_location, msg.type)
@@ -414,24 +413,6 @@ class Proxy(object):
             flags |= protocol.FLAGS_ONEWAY
         return self._pyroInvoke("<batch>", calls, None, flags)
 
-    def _pyroAnnotations(self):
-        """
-        Override to return a dict with custom user annotations to be sent with each request message.
-        Code using Pyro 4.56 or newer can skip this and instead set the annotations directly on the context object.
-        """
-        # @todo remove this method!
-        return {}
-
-    def _pyroResponseAnnotations(self, annotations, msgtype):
-        """
-        Process any response annotations (dictionary set by the daemon).
-        Usually this contains the internal Pyro annotations such as correlation id,
-        and if you override the annotations method in the daemon, can contain your own annotations as well.
-        Code using Pyro 4.56 or newer can skip this and instead read the response_annotations directly from the context object.
-        """
-        # @todo remove this method!
-        pass
-
     def _pyroValidateHandshake(self, response):
         """
         Process and validate the initial connection handshake response data received from the daemon.
@@ -450,13 +431,6 @@ class Proxy(object):
                 self._pyroConnection.close()
                 self._pyroConnection = None
             self.__pyroOwnerThread = get_ident()
-
-    def __annotations(self, clear=True):
-        annotations = core.current_context.annotations
-        annotations.update(self._pyroAnnotations())
-        if clear:
-            core.current_context.annotations = {}
-        return annotations
 
     def __serializeBlobArgs(self, vargs, kwargs, annotations, flags, objectId, methodname, serializer):
         """

@@ -17,7 +17,7 @@ class EchoServer(object):
         print("  context.serializer_id: ", ctx.serializer_id)
         print("  context.correlation_id:", ctx.correlation_id)
         if "XYZZ" in ctx.annotations:
-            print("  custom annotation 'XYZZ':", ctx.annotations["XYZZ"])
+            print("  custom annotation 'XYZZ':", bytes(ctx.annotations["XYZZ"]))
         return message
 
     @Pyro5.api.oneway
