@@ -63,13 +63,12 @@ changes done based on original Pyro4
 - rest of util module renamed to serializers module
 - replaced deprecated usages of optparse with argparse
 - moved metadata search in the name server to a separate yplookup method (instead of using list as well)
-- wire protocol changed: much larger annotations possible (4Gb instead of 64Kb) so it can be (ab)used for things like efficient binary data transfer
-- no more checksumming on the wire protocol, it's a bit useless
 - proxy doesn't have a thread lock anymore and no can longer be shared across different threads.
   A single thread is the sole "owner" of a proxy. Another thread can use proxy._pyroClaimOwnership to take over.
 - simplified serializers by moving the task of compressing data to the protocol module instead (where it belonged)
-- optimized wire messages (less code, sometimes less data copying by using memoryviews)
-- annotations on the protocol message are stored as no-copy memoryviews now. A memoryview doesn't support all
+- optimized wire messages (less code, sometimes less data copying by using memoryviews, no more checksumming)
+- much larger annotations possible (4Gb instead of 64Kb) so it can be (ab)used for things like efficient binary data transfer
+- annotations on the protocol message are now stored as no-copy memoryviews. A memoryview doesn't support all
   methods you might expect so sometimes it may be required now to convert it to bytes or bytearray in your
   own code first, before further processing. Note that this will create a copy again, so it's best avoided.
 
