@@ -117,7 +117,6 @@ def behavior(instance_mode="session", instance_creator=None):
     """
     Decorator to specify the server behavior of your Pyro class.
     """
-    # @todo concurrency_mode?
     def _behavior(clazz):
         if not inspect.isclass(clazz):
             raise TypeError("behavior decorator can only be used on a class")

@@ -19,7 +19,7 @@ except ImportError:
 from . import config
 from .errors import CommunicationError, TimeoutError, ConnectionClosedError
 
-# @todo: use ipaddress module
+# @todo: use ipaddress module instead of custom parsing
 
 
 # Note: other interesting errnos are EPERM, ENOBUFS, EMFILE

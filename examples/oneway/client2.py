@@ -22,4 +22,4 @@ with Proxy("PYRONAME:example.oneway2") as serv:
         counter2 = serv.getcount()
         print("counter is now: ", counter2)
     else:
-        print("!? the oneway calls have not been processed in the background!?")  # XXX FIX THIS
+        raise SystemExit("!? the oneway calls have not been processed in the background!?")
