@@ -1,5 +1,10 @@
 import re
+import sys
 from setuptools import setup
+
+
+if sys.version_info < (3, 4):
+    raise SystemExit("Pyro5 requires Python 3.4 or newer")
 
 
 with open("Readme.rst", encoding="utf-8") as f:
@@ -16,7 +21,7 @@ with open("Pyro5/__init__.py") as f:
 setup(
     name='Pyro5',
     version=pyro_version,
-    description='Remote object communication library, fifth incarnation',
+    description='Remote object communication library, fifth major version',
     long_description=long_description,
     url='https://github.com/irmen/Pyro5',
     author='Irmen de Jong',

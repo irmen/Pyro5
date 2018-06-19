@@ -1,7 +1,7 @@
 Pyro5 [work in progress]
 ========================
 
-*Remote objects communication library, fifth incarnation*
+*Remote objects communication library, fifth major version*
 
 .. image:: https://img.shields.io/badge/say-thanks-ff69b4.svg
     :target: https://saythanks.io/to/irmen
