@@ -4,11 +4,11 @@ PYTHON=python3
 all:
 	@echo "targets include sdist, wheel, docs, upload, install, clean"
 
-sdist: 
+sdist:
 	$(PYTHON) setup.py sdist
 	@echo "Look in the dist/ directory"
 
-wheel: 
+wheel:
 	$(PYTHON) setup.py bdist_wheel
 	@echo "Look in the dist/ directory"
 
@@ -22,11 +22,11 @@ install:
 	$(PYTHON) setup.py install
 
 test:
-	PYTHONPATH=. python3 -m pytest tests    
+	PYTHONPATH=. python3 -m pytest tests
 
 clean:
-	@echo "Removing tox dirs, logfiles, Pyro URI dumps, .pyo/.pyc files..."
-	rm -rf .tox
+	@echo "Removing tox dirs, logfiles, temp files, .pyo/.pyc files..."
+	rm -rf .tox .eggs .cache .pytest_cache *.egg-info
 	find . -name __pycache__ -print0 | xargs -0 rm -rf
 	find . -name \*_log -print0 | xargs -0  rm -f
 	find . -name \*.log -print0 | xargs -0  rm -f
