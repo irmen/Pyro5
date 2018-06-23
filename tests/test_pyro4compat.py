@@ -20,3 +20,8 @@ def test_compat_layer():
     p = Pyro4.Proxy("PYRO:test@localhost:5555")
     Pyro4.BatchProxy(p)
     Pyro4.Daemon()
+    with pytest.raises(NotImplementedError):
+        _ = p._pyroHmacKey
+    with pytest.raises(NotImplementedError):
+        p._pyroHmacKey = b"fail"
+

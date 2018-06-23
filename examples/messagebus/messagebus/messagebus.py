@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS Subscription(
     def add_subscriber(self, topic, subscriber):
         if not hasattr(subscriber, "_pyroUri"):
             raise ValueError("can only store subscribers that are a Pyro proxy")
-        uri = subscriber._pyroUri.asString()
+        uri = str(subscriber._pyroUri)
         conn = self.dbconn()
         conn.execute("PRAGMA foreign_keys=ON")
         with closing(conn.cursor()) as cursor:
@@ -300,7 +300,7 @@ CREATE TABLE IF NOT EXISTS Subscription(
     def remove_subscriber(self, topic, subscriber):
         conn = self.dbconn()
         conn.execute("PRAGMA foreign_keys=ON")
-        uri = subscriber._pyroUri.asString()
+        uri = str(subscriber._pyroUri)
         with closing(conn.cursor()) as cursor:
             cursor.execute("DELETE FROM Subscription WHERE topic=(SELECT id FROM Topic WHERE topic=?) AND subscriber=?", [topic, uri])
         conn.commit()

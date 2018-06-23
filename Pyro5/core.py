@@ -110,19 +110,14 @@ class URI(object):
         else:
             return None
 
-    def asString(self):
-        """the string representation of this object"""
+    def __str__(self):
         if self.protocol == "PYROMETA":
             result = "PYROMETA:" + ",".join(self.object)
         else:
             result = self.protocol + ":" + self.object
-        location = self.location
-        if location:
-            result += "@" + location
+        if self.location:
+            return result + "@" + self.location
         return result
-
-    def __str__(self):
-        return self.asString()
 
     def __repr__(self):
         return "<%s.%s at 0x%x; %s>" % (self.__class__.__module__, self.__class__.__name__, id(self), str(self))
@@ -130,26 +125,19 @@ class URI(object):
     def __eq__(self, other):
         if not isinstance(other, URI):
             return False
-        return (self.protocol, self.object, self.sockname, self.host, self.port) ==\
-               (other.protocol, other.object, other.sockname, other.host, other.port)
+        return self.__getstate__() == other.__getstate__()
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.protocol, str(self.object), self.sockname, self.host, self.port))
+        return hash(self.__getstate__())
 
     def __getstate__(self):
         return self.protocol, self.object, self.sockname, self.host, self.port
 
     def __setstate__(self, state):
         self.protocol, self.object, self.sockname, self.host, self.port = state
-
-    def __getstate_for_dict__(self):
-        return self.__getstate__()
-
-    def __setstate_from_dict__(self, state):
-        self.__setstate__(state)
 
 
 class _ExceptionWrapper(object):

@@ -123,9 +123,9 @@ def format_traceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
                     return "<ERROR>"
 
         try:
-            result = ["-" * 52 + "\n"]
-            result.append(" EXCEPTION %s: %s\n" % (ex_type, ex_value))
-            result.append(" Extended stacktrace follows (most recent call last)\n")
+            result = ["-" * 52 + "\n",
+                      " EXCEPTION %s: %s\n" % (ex_type, ex_value),
+                      " Extended stacktrace follows (most recent call last)\n"]
             skipLocals = True  # don't print the locals of the very first stack frame
             while ex_tb:
                 frame = ex_tb.tb_frame
@@ -159,7 +159,7 @@ def format_traceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
             result.append(" EXCEPTION %s: %s\n" % (ex_type, ex_value))
             result.append("-" * 52 + "\n")
             return result
-        except Exception:
+        except:
             return ["-" * 52 + "\nError building extended traceback!!! :\n",
                     "".join(traceback.format_exception(*sys.exc_info())) + '-' * 52 + '\n',
                     "Original Exception follows:\n",
@@ -171,5 +171,5 @@ def format_traceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
 
 def excepthook(ex_type, ex_value, ex_tb):
     """An exception hook you can use for ``sys.excepthook``, to automatically print remote Pyro tracebacks"""
-    traceback = "".join(get_pyro_traceback(ex_type, ex_value, ex_tb))
-    sys.stderr.write(traceback)
+    tb = "".join(get_pyro_traceback(ex_type, ex_value, ex_tb))
+    sys.stderr.write(tb)

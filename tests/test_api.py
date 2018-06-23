@@ -12,3 +12,4 @@ def test_api():
     assert Pyro5.api.Proxy is Pyro5.client.Proxy
     assert Pyro5.api.Daemon is Pyro5.server.Daemon
     assert Pyro5.api.start_ns is Pyro5.nameserver.start_ns
+    assert Pyro5.api.current_context is Pyro5.core.current_context

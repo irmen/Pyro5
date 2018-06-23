@@ -114,22 +114,18 @@ class Proxy(object):
         return "<%s.%s at 0x%x; %s; for %s; owner %s>" % (self.__class__.__module__, self.__class__.__name__,
                                                           id(self), connected, self._pyroUri, self.__pyroOwnerThread)
 
-    def __getstate_for_dict__(self):
-        return self._pyroUri.asString(), tuple(self._pyroOneway), tuple(self._pyroMethods), \
+    def __getstate__(self):
+        # make sure a tuple of just primitive types are used to allow for proper serialization
+        return str(self._pyroUri), tuple(self._pyroOneway), tuple(self._pyroMethods), \
                tuple(self._pyroAttrs), self._pyroHandshake, self._pyroSerializer
 
-    def __setstate_from_dict__(self, state):
-        uri = core.URI(state[0])
-        oneway = set(state[1])
-        methods = set(state[2])
-        attrs = set(state[3])
-        self.__setstate__((uri, oneway, methods, attrs, state[4], state[5]))
-
-    def __getstate__(self):
-        return self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, self._pyroHandshake, self._pyroSerializer
-
     def __setstate__(self, state):
-        self._pyroUri, self._pyroOneway, self._pyroMethods, self._pyroAttrs, self._pyroHandshake, self._pyroSerializer = state
+        self._pyroUri = core.URI(state[0])
+        self._pyroOneway = set(state[1])
+        self._pyroMethods = set(state[2])
+        self._pyroAttrs = set(state[3])
+        self._pyroHandshake = state[4]
+        self._pyroSerializer = state[5]
         self.__pyroTimeout = config.COMMTIMEOUT
         self._pyroMaxRetries = config.MAX_RETRIES
         self._pyroConnection = None
@@ -138,14 +134,9 @@ class Proxy(object):
         self.__pyroOwnerThread = get_ident()
 
     def __copy__(self):
-        uriCopy = core.URI(self._pyroUri)
-        p = type(self)(uriCopy)
-        p._pyroOneway = set(self._pyroOneway)
-        p._pyroMethods = set(self._pyroMethods)
-        p._pyroAttrs = set(self._pyroAttrs)
-        p._pyroSerializer = self._pyroSerializer
+        p = object.__new__(type(self))
+        p.__setstate__(self.__getstate__())
         p._pyroTimeout = self._pyroTimeout
-        p._pyroHandshake = self._pyroHandshake
         p._pyroRawWireResponse = self._pyroRawWireResponse
         p._pyroMaxRetries = self._pyroMaxRetries
         return p

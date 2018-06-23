@@ -30,8 +30,7 @@ _private_dunder_methods = frozenset([
     "__dir__", "__enter__", "__exit__", "__copy__", "__deepcopy__", "__sizeof__",
     "__getattr__", "__setattr__", "__hasattr__", "__getattribute__", "__delattr__",
     "__instancecheck__", "__subclasscheck__", "__getinitargs__", "__getnewargs__",
-    "__getstate__", "__setstate__", "__reduce__", "__reduce_ex__",
-    "__getstate_for_dict__", "__setstate_from_dict__", "__subclasshook__"
+    "__getstate__", "__setstate__", "__reduce__", "__reduce_ex__", "__subclasshook__"
 ])
 
 
@@ -790,13 +789,7 @@ class Daemon(object):
     def __getstate__(self):
         # A little hack to make it possible to serialize Pyro objects, because they can reference a daemon,
         # but it is not meant to be able to properly serialize/deserialize Daemon objects.
-        return {}
-
-    def __getstate_for_dict__(self):
-        return tuple(self.__getstate__())
-
-    def __setstate_from_dict__(self, state):
-        pass
+        return tuple()
 
     __lazy_dict_iterator_types = (type({}.keys()), type({}.values()), type({}.items()))
 

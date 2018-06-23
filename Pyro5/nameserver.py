@@ -302,7 +302,7 @@ class NameServer(object):
         """Register a name with an URI. If safe is true, name cannot be registered twice.
         The uri can be a string or an URI object. Metadata must be None, or a collection of strings."""
         if isinstance(uri, core.URI):
-            uri = uri.asString()
+            uri = str(uri)
         elif not isinstance(uri, str):
             raise TypeError("only URIs or strings can be registered")
         else:

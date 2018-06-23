@@ -76,18 +76,24 @@ config.asDict = config.as_dict
 
 
 class URI(api.URI):
-    # @todo check class methods
     pass
 
 
 class Proxy(api.Proxy):
-    # @todo check class methods
     def _pyroAsync(self, asynchronous=True):
         raise NotImplementedError("async proxy is no longer available in Pyro5")
 
+    @property
+    def _pyroHmacKey(self):
+        raise NotImplementedError("pyro5 doesn't have hmacs anymore")
+
+    def __setattr__(self, name, value):
+        if name == "_pyroHmacKey":
+            raise NotImplementedError("pyro5 doesn't have hmacs anymore")
+        return super().__setattr__(name, value)
+
 
 class Daemon(api.Daemon):
-    # @todo check class methods
     pass
 
 

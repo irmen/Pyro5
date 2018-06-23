@@ -53,7 +53,7 @@ def pyro_class_serpent_serializer(obj, serializer, stream, level):
 def serialize_pyro_object_to_dict(obj):
     return {
         "__class__": "{:s}.{:s}".format(obj.__module__, obj.__class__.__name__),
-        "state": obj.__getstate_for_dict__()
+        "state": obj.__getstate__()
     }
 
 
