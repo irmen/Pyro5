@@ -25,6 +25,8 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 # from Pyro4.futures import Future
 
 import sys
+import ipaddress
+
 from .. import api
 from .. import errors
 from .. import serializers
@@ -141,25 +143,25 @@ util = UtilModule()
 class SocketUtilModule:
     @staticmethod
     def getIpVersion(hostnameOrAddress):
-        return socketutil_pyro5.get_ip_version(hostnameOrAddress)
+        return ipaddress.ip_address(hostnameOrAddress).version
 
     @staticmethod
     def getIpAddress(hostname, workaround127=False, ipVersion=None):
-        return socketutil_pyro5.get_ip_address(hostname, workaround127, ipVersion)
+        return str(socketutil_pyro5.get_ip_address(hostname, workaround127, ipVersion))
 
     @staticmethod
     def getInterfaceAddress(ip_address):
-        return socketutil_pyro5.get_interface_address(ip_address)
+        return str(socketutil_pyro5.get_interface(ip_address).ip)
 
     @staticmethod
     def createSocket(bind=None, connect=None, reuseaddr=False, keepalive=True,
-                     timeout=socketutil_pyro5._GLOBAL_DEFAULT_TIMEOUT, noinherit=False,
+                     timeout=-1, noinherit=False,
                      ipv6=False, nodelay=True, sslContext=None):
         return socketutil_pyro5.create_socket(bind, connect, reuseaddr, keepalive,
                                               timeout, noinherit, ipv6, nodelay, sslContext)
 
     @staticmethod
-    def createBroadcastSocket(bind=None, reuseaddr=False, timeout=socketutil_pyro5._GLOBAL_DEFAULT_TIMEOUT, ipv6=False):
+    def createBroadcastSocket(bind=None, reuseaddr=False, timeout=-1, ipv6=False):
         return socketutil_pyro5.create_bc_socket(bind, reuseaddr, timeout, ipv6)
 
     @staticmethod

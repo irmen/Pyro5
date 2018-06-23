@@ -9,17 +9,16 @@ import platform
 import socket
 import errno
 import time
-import sys
 import select
+import ipaddress
 import weakref
+from typing import Union, Optional, Tuple, Dict, Type, Any
 try:
     import ssl
 except ImportError:
-    ssl = None
+    pass
 from . import config
 from .errors import CommunicationError, TimeoutError, ConnectionClosedError
-
-# @todo: use ipaddress module instead of custom parsing
 
 
 # Note: other interesting errnos are EPERM, ENOBUFS, EMFILE
@@ -54,61 +53,55 @@ if hasattr(errno, "WSAEADDRINUSE"):
 USE_MSG_WAITALL = hasattr(socket, "MSG_WAITALL") and platform.system() != "Windows"  # waitall is not reliable on windows
 
 
-def get_ip_version(hostnameOrAddress):
-    """
-    Determine what the IP version is of the given hostname or ip address (4 or 6).
-    First, it resolves the hostname or address to get an IP address.
-    Then, if the resolved IP contains a ':' it is considered to be an ipv6 address,
-    and if it contains a '.', it is ipv4.
-    """
-    address = get_ip_address(hostnameOrAddress)
-    if "." in address:
-        return 4
-    elif ":" in address:
-        return 6
-    else:
-        raise CommunicationError("Unknown IP address format" + address)
-
-
-def get_ip_address(hostname, workaround127=False, ipVersion=None):
+def get_ip_address(hostname: str, workaround127: bool=False, version: int=None) \
+        -> Union[ipaddress.IPv4Address, ipaddress.IPv6Address]:
     """
     Returns the IP address for the given host. If you enable the workaround,
     it will use a little hack if the ip address is found to be the loopback address.
     The hack tries to discover an externally visible ip address instead (this only works for ipv4 addresses).
     Set ipVersion=6 to return ipv6 addresses, 4 to return ipv4, 0 to let OS choose the best one or None to use config.PREFER_IP_VERSION.
     """
+    if not workaround127:
+        try:
+            addr = ipaddress.ip_address(hostname)
+            return addr
+        except ValueError:
+            pass
 
-    def getaddr(ipVersion):
-        if ipVersion == 6:
+    def getaddr(ip_version):
+        if ip_version == 6:
             family = socket.AF_INET6
-        elif ipVersion == 4:
+        elif ip_version == 4:
             family = socket.AF_INET
-        elif ipVersion == 0:
+        elif ip_version == 0:
             family = socket.AF_UNSPEC
         else:
             raise ValueError("unknown value for argument ipVersion.")
         ip = socket.getaddrinfo(hostname or socket.gethostname(), 80, family, socket.SOCK_STREAM, socket.SOL_TCP)[0][4][0]
         if workaround127 and (ip.startswith("127.") or ip == "0.0.0.0"):
-            ip = get_interface_address("4.2.2.2")
-        return ip
+            return get_interface("4.2.2.2").ip
+        return ipaddress.ip_address(ip)
 
     try:
-        if hostname and ':' in hostname and ipVersion is None:
-            ipVersion = 0
-        return getaddr(config.PREFER_IP_VERSION) if ipVersion is None else getaddr(ipVersion)
+        if hostname and ':' in hostname and version is None:
+            version = 0
+        return getaddr(config.PREFER_IP_VERSION) if version is None else getaddr(version)
     except socket.gaierror:
-        if ipVersion == 6 or (ipVersion is None and config.PREFER_IP_VERSION == 6):
+        if version == 6 or (version is None and config.PREFER_IP_VERSION == 6):
             raise socket.error("unable to determine IPV6 address")
         return getaddr(0)
 
 
-def get_interface_address(ip_address):
-    """tries to find the ip address of the interface that connects to the given host's address"""
-    family = socket.AF_INET if get_ip_version(ip_address) == 4 else socket.AF_INET6
+def get_interface(ip_address: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]) \
+        -> Union[ipaddress.IPv4Interface, ipaddress.IPv6Interface]:
+    """tries to find the network interface that connects to the given host's address"""
+    if isinstance(ip_address, str):
+        ip_address = get_ip_address(ip_address)
+    family = socket.AF_INET if ip_address.version == 4 else socket.AF_INET6
     sock = socket.socket(family, socket.SOCK_DGRAM)
     try:
-        sock.connect((ip_address, 53))  # 53=dns
-        return sock.getsockname()[0]
+        sock.connect((str(ip_address), 53))  # 53=dns
+        return ipaddress.ip_interface(sock.getsockname()[0])
     finally:
         sock.close()
 
@@ -125,7 +118,7 @@ def __retrydelays():
         d += 0.1
 
 
-def receive_data(sock, size):
+def receive_data(sock: socket.socket, size: int) -> bytes:
     """Retrieve a given number of bytes from a socket.
     It is expected the socket is able to supply that number of bytes.
     If it isn't, an exception is raised (you will not get a zero length result
@@ -179,7 +172,7 @@ def receive_data(sock, size):
         raise TimeoutError("receiving: timeout")
 
 
-def send_data(sock, data):
+def send_data(sock: socket.socket, data: bytes) -> None:
     """
     Send some data over a socket.
     Some systems have problems with ``sendall()`` when the socket is in non-blocking mode.
@@ -211,15 +204,15 @@ def send_data(sock, data):
                 time.sleep(next(delays))  # a slight delay to wait before retrying
 
 
-_GLOBAL_DEFAULT_TIMEOUT = object()
-
-
-def create_socket(bind=None, connect=None, reuseaddr=False, keepalive=True,
-                  timeout=_GLOBAL_DEFAULT_TIMEOUT, noinherit=False, ipv6=False, nodelay=True, sslContext=None):
+def create_socket(bind: Union[Tuple, str]=None,
+                  connect: Union[Tuple, str]=None,
+                  reuseaddr: bool=False, keepalive: bool=True,
+                  timeout: Optional[float]=-1, noinherit: bool=False,
+                  ipv6: bool=False, nodelay: bool=True, sslContext: ssl.SSLContext=None) -> socket.socket:
     """
     Create a socket. Default socket options are keepalive and IPv4 family, and nodelay (nagle disabled).
     If 'bind' or 'connect' is a string, it is assumed a Unix domain socket is requested.
-    Otherwise, a normal tcp/ip socket is used.
+    Otherwise, a normal tcp/ip socket tuple (addr, port, ...) is used.
     Set ipv6=True to create an IPv6 socket rather than IPv4.
     Set ipv6=None to use the PREFER_IP_VERSION config setting.
     """
@@ -230,29 +223,31 @@ def create_socket(bind=None, connect=None, reuseaddr=False, keepalive=True,
         family = socket.AF_UNIX
     elif not bind and not connect:
         family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
-    elif type(bind) is tuple:
+    elif isinstance(bind, tuple):
         if not bind[0]:
             family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
         else:
-            if get_ip_version(bind[0]) == 4:
+            addr = get_ip_address(bind[0])
+            if addr.version == 4:
                 if forceIPv6:
                     raise ValueError("IPv4 address is used bind argument with forceIPv6 argument:" + bind[0] + ".")
                 family = socket.AF_INET
-            elif get_ip_version(bind[0]) == 6:
+            elif addr.version == 6:
                 family = socket.AF_INET6
                 # replace bind addresses by their ipv6 counterparts (4-tuple)
                 bind = (bind[0], bind[1], 0, 0)
             else:
                 raise ValueError("unknown bind format.")
-    elif type(connect) is tuple:
+    elif isinstance(connect, tuple):
         if not connect[0]:
             family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
         else:
-            if get_ip_version(connect[0]) == 4:
+            addr = get_ip_address(connect[0])
+            if addr.version == 4:
                 if forceIPv6:
-                    raise ValueError("IPv4 address is used in connect argument with forceIPv6 argument:" + bind[0] + ".")
+                    raise ValueError("IPv4 address is used in connect argument with forceIPv6 argument:" + connect[0] + ".")
                 family = socket.AF_INET
-            elif get_ip_version(connect[0]) == 6:
+            elif addr.version == 6:
                 family = socket.AF_INET6
                 # replace connect addresses by their ipv6 counterparts (4-tuple)
                 connect = (connect[0], connect[1], 0, 0)
@@ -274,10 +269,11 @@ def create_socket(bind=None, connect=None, reuseaddr=False, keepalive=True,
         set_reuseaddr(sock)
     if noinherit:
         set_noinherit(sock)
-    if timeout == 0:
-        timeout = None
-    if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
-        sock.settimeout(timeout)
+    if timeout is not None:
+        if timeout == 0:
+            timeout = None
+        elif timeout >= 0:
+            sock.settimeout(timeout)
     if bind:
         if type(bind) is tuple and bind[1] == 0:
             bind_unused_port(sock, bind[0])
@@ -297,8 +293,11 @@ def create_socket(bind=None, connect=None, reuseaddr=False, keepalive=True,
             # essentially rebuilding a blocking connect() call.
             errno = getattr(xv, "errno", 0)
             if errno in ERRNO_RETRIES:
-                if timeout is _GLOBAL_DEFAULT_TIMEOUT or timeout < 0.1:
-                    timeout = 0.1
+                if timeout:
+                    if timeout < 0:
+                        timeout = None
+                    elif timeout < 0.1:
+                        timeout = 0.1
                 while True:
                     try:
                         sr, sw, se = select.select([], [sock], [sock], timeout)
@@ -317,7 +316,8 @@ def create_socket(bind=None, connect=None, reuseaddr=False, keepalive=True,
     return sock
 
 
-def create_bc_socket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TIMEOUT, ipv6=False):
+def create_bc_socket(bind: Union[Tuple, str]=None, reuseaddr: bool=False,
+                     timeout: Optional[float]=-1, ipv6: bool=False) -> socket.socket:
     """
     Create a udp broadcast socket.
     Set ipv6=True to create an IPv6 socket rather than IPv4.
@@ -326,15 +326,16 @@ def create_bc_socket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TIMEOUT
     forceIPv6 = ipv6 or (ipv6 is None and config.PREFER_IP_VERSION == 6)
     if not bind:
         family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
-    elif type(bind) is tuple:
+    elif isinstance(bind, tuple):
         if not bind[0]:
             family = socket.AF_INET6 if forceIPv6 else socket.AF_INET
         else:
-            if get_ip_version(bind[0]) == 4:
+            addr = get_ip_address(bind[0])
+            if addr.version == 4:
                 if forceIPv6:
                     raise ValueError("IPv4 address is used with forceIPv6 option:" + bind[0] + ".")
                 family = socket.AF_INET
-            elif get_ip_version(bind[0]) == 6:
+            elif addr.version == 6:
                 family = socket.AF_INET6
                 bind = (bind[0], bind[1], 0, 0)
             else:
@@ -349,7 +350,7 @@ def create_bc_socket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TIMEOUT
     if timeout is None:
         sock.settimeout(None)
     else:
-        if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
+        if timeout >= 0:
             sock.settimeout(timeout)
     if bind:
         host = bind[0] or ""
@@ -366,7 +367,7 @@ def create_bc_socket(bind=None, reuseaddr=False, timeout=_GLOBAL_DEFAULT_TIMEOUT
     return sock
 
 
-def set_reuseaddr(sock):
+def set_reuseaddr(sock: socket.socket) -> None:
     """sets the SO_REUSEADDR option on the socket, if possible."""
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -374,7 +375,7 @@ def set_reuseaddr(sock):
         pass
 
 
-def set_nodelay(sock):
+def set_nodelay(sock: socket.socket) -> None:
     """sets the TCP_NODELAY option on the socket (to disable Nagle's algorithm), if possible."""
     try:
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -382,7 +383,7 @@ def set_nodelay(sock):
         pass
 
 
-def set_keepalive(sock):
+def set_keepalive(sock: socket.socket) -> None:
     """sets the SO_KEEPALIVE option on the socket, if possible."""
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -393,7 +394,7 @@ def set_keepalive(sock):
 try:
     import fcntl
 
-    def set_noinherit(sock):
+    def set_noinherit(sock: socket.socket) -> None:
         """Mark the given socket fd as non-inheritable to child processes"""
         fd = sock.fileno()
         flags = fcntl.fcntl(fd, fcntl.F_GETFD)
@@ -408,25 +409,25 @@ except ImportError:
         _SetHandleInformation.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.DWORD]
         _SetHandleInformation.restype = wintypes.BOOL  # don't need this, but might as well
 
-        def set_noinherit(sock):
+        def set_noinherit(sock: socket.socket) -> None:
             """Mark the given socket fd as non-inheritable to child processes"""
             if not _SetHandleInformation(sock.fileno(), 1, 0):
                 raise WinError()
 
     except (ImportError, NotImplementedError):
         # nothing available, define a dummy function
-        def set_noinherit(sock):
+        def set_noinherit(sock: socket.socket) -> None:
             """Mark the given socket fd as non-inheritable to child processes (dummy)"""
             pass
 
 
 class SocketConnection(object):
     """A wrapper class for plain sockets, containing various methods such as :meth:`send` and :meth:`recv`"""
-    def __init__(self, sock, objectId=None, keep_open=False):
+    def __init__(self, sock: socket.socket, objectId: str=None, keep_open: bool=False) -> None:
         self.sock = sock
         self.objectId = objectId
-        self.pyroInstances = {}    # pyro objects for instance_mode=session
-        self.tracked_resources = weakref.WeakSet()    # weakrefs to resources for this connection
+        self.pyroInstances = {}    # type: Dict[Type, Any]   # pyro objects for instance_mode=session
+        self.tracked_resources = weakref.WeakSet()   # type: weakref.WeakSet[Any]  # weakrefs to resources for this connection
         self.keep_open = keep_open
 
     def __del__(self):
@@ -438,13 +439,13 @@ class SocketConnection(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def send(self, data):
+    def send(self, data: bytes) -> None:
         send_data(self.sock, data)
 
-    def recv(self, size):
+    def recv(self, size: int) -> bytes:
         return receive_data(self.sock, size)
 
-    def close(self):
+    def close(self) -> None:
         if self.keep_open:
             return
         try:
@@ -463,28 +464,28 @@ class SocketConnection(object):
                 pass
         self.tracked_resources.clear()
 
-    def fileno(self):
+    def fileno(self) -> int:
         return self.sock.fileno()
 
-    def family(self):
+    def family(self) -> str:
         return family_str(self.sock)
 
-    def settimeout(self, timeout):
+    def settimeout(self, timeout: float) -> None:
         self.sock.settimeout(timeout)
 
-    def gettimeout(self):
+    def gettimeout(self) -> float:
         return self.sock.gettimeout()
 
-    def getpeercert(self):
+    def getpeercert(self) -> Optional[dict]:
         try:
-            return self.sock.getpeercert()
+            return self.sock.getpeercert()      # type: ignore
         except AttributeError:
             return None
 
     timeout = property(gettimeout, settimeout)
 
 
-def family_str(sock):
+def family_str(sock) -> str:
     f = sock.family
     if f == socket.AF_INET:
         return "IPv4"
@@ -495,7 +496,7 @@ def family_str(sock):
     return "???"
 
 
-def find_probably_unused_port(family=socket.AF_INET, socktype=socket.SOCK_STREAM):
+def find_probably_unused_port(family: int=socket.AF_INET, socktype: int=socket.SOCK_STREAM) -> int:
     """Returns an unused port that should be suitable for binding (likely, but not guaranteed).
     This code is copied from the stdlib's test.test_support module."""
     tempsock = socket.socket(family, socktype)
@@ -505,7 +506,7 @@ def find_probably_unused_port(family=socket.AF_INET, socktype=socket.SOCK_STREAM
         tempsock.close()
 
 
-def bind_unused_port(sock, host='localhost'):
+def bind_unused_port(sock: socket.socket, host: str='localhost') -> int:
     """Bind the socket to a free port and return the port number.
     This code is based on the code in the stdlib's test.test_support module."""
     if sock.family in (socket.AF_INET, socket.AF_INET6) and sock.type == socket.SOCK_STREAM:
@@ -525,14 +526,14 @@ def bind_unused_port(sock, host='localhost'):
         else:
             sock.bind((host, 0, 0, 0))
     else:
-        raise CommunicationError("unsupported socket family: " + sock.family)
+        raise CommunicationError("unsupported socket family: " + str(sock.family))
     return sock.getsockname()[1]
 
 
-def interrupt_socket(address):
+def interrupt_socket(address: Tuple[str, int]) -> None:
     """bit of a hack to trigger a blocking server to get out of the loop, useful at clean shutdowns"""
     try:
-        sock = create_socket(connect=address, keepalive=False, timeout=None)
+        sock = create_socket(connect=address, keepalive=False, timeout=-1)
         try:
             sock.sendall(b"!" * 16)
         except (socket.error, AttributeError):
@@ -550,14 +551,10 @@ __ssl_server_context = None
 __ssl_client_context = None
 
 
-def get_ssl_context(servercert="", serverkey="", clientcert="", clientkey="", cacerts="", keypassword=""):
+def get_ssl_context(servercert: str="", serverkey: str="", clientcert: str="", clientkey: str="",
+                    cacerts: str="", keypassword: str="") -> ssl.SSLContext:
     """creates an SSL context and caches it, so you have to set the parameters correctly before doing anything"""
     global __ssl_client_context, __ssl_server_context
-    if not ssl:
-        raise ValueError("SSL requested but ssl module is not available")
-    else:
-        if sys.version_info < (3, 4, 4):
-            raise RuntimeError("need Python 3.4.4 or newer to properly use SSL")
     if servercert:
         if clientcert:
             raise ValueError("can't have both server cert and client cert")
@@ -569,7 +566,7 @@ def get_ssl_context(servercert="", serverkey="", clientcert="", clientkey="", ca
         if serverkey and not os.path.isfile(serverkey):
             raise IOError("server key file not found")
         __ssl_server_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        __ssl_server_context.load_cert_chain(servercert, serverkey or None, keypassword or None)
+        __ssl_server_context.load_cert_chain(servercert, serverkey or None, keypassword or None)    # type: ignore
         if cacerts:
             if os.path.isdir(cacerts):
                 __ssl_server_context.load_verify_locations(capath=cacerts)
@@ -588,7 +585,7 @@ def get_ssl_context(servercert="", serverkey="", clientcert="", clientkey="", ca
         if clientcert:
             if not os.path.isfile(clientcert):
                 raise IOError("client cert file not found")
-            __ssl_client_context.load_cert_chain(clientcert, clientkey or None, keypassword or None)
+            __ssl_client_context.load_cert_chain(clientcert, clientkey or None, keypassword or None)    # type: ignore
         if cacerts:
             if os.path.isdir(cacerts):
                 __ssl_client_context.load_verify_locations(capath=cacerts)

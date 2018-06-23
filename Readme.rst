@@ -11,7 +11,7 @@ Pyro5 [work in progress]
 
 
 Pyro5 is an "overhauled, updated and modernized" Pyro4 (https://github.com/irmen/Pyro4):
-more efficient, faster, simpler, streamlined, and cleaned up. It requires Python 3.4 or later!
+more efficient, faster, simpler, streamlined, and cleaned up. It requires Python 3.5 or later!
 
 I'm aiming to separate the actual network logic and the protocol/messaging logic so that it will be possible
 to use the protocol logic in different network i/o setups (such as an async eventloop based solution).

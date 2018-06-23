@@ -14,7 +14,7 @@ from collections import MutableMapping
 try:
     import sqlite3
 except ImportError:
-    sqlite3 = None
+    pass
 from . import config, core, socketutil, server, errors
 from .errors import NamingError, PyroError, ProtocolError
 
@@ -631,8 +631,8 @@ class BroadcastServer(object):
                 if responsedata.host == "0.0.0.0":
                     # replace INADDR_ANY address by the interface IP address that connects to the requesting client
                     try:
-                        interface_ip = socketutil.get_interface_address(addr[0])
-                        responsedata.host = interface_ip
+                        interface_ip = socketutil.get_interface(addr[0]).ip
+                        responsedata.host = str(interface_ip)
                     except socket.error:
                         pass
                 log.debug("responding to broadcast request from %s: interface %s", addr[0], responsedata.host)

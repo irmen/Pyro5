@@ -3,8 +3,8 @@ import sys
 from setuptools import setup
 
 
-if sys.version_info < (3, 4):
-    raise SystemExit("Pyro5 requires Python 3.4 or newer")
+if sys.version_info < (3, 5):
+    raise SystemExit("Pyro5 requires Python 3.5 or newer")
 
 
 with open("Readme.rst", encoding="utf-8") as f:
@@ -56,7 +56,6 @@ setup(
         "Natural Language :: Dutch",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",

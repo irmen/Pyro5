@@ -27,51 +27,39 @@ class TestSocketutil:
     def testGetIP(self):
         config.PREFER_IP_VERSION = 4
         myip = socketutil.get_ip_address("")
-        assert len(myip) > 4
+        assert len(str(myip)) > 4
         myip = socketutil.get_ip_address("", workaround127=True)
-        assert len(myip) > 4
-        assert not myip.startswith("127.")
-        assert "127.0.0.1" == socketutil.get_ip_address("127.0.0.1", workaround127=False)
-        assert "127.0.0.1" != socketutil.get_ip_address("127.0.0.1", workaround127=True)
+        assert len(str(myip)) > 4
+        assert not str(myip).startswith("127.")
+        addr = socketutil.get_ip_address("127.0.0.1", workaround127=False)
+        assert "127.0.0.1" == str(addr)
+        assert addr.version == 4
+        addr = socketutil.get_ip_address("127.0.0.1", workaround127=True)
+        assert "127.0.0.1" != str(addr)
+        assert addr.version == 4
 
     def testGetIP6(self):
         if not has_ipv6:
             pytest.skip("no ipv6 capability")
-        assert ":" in socketutil.get_ip_address("::1", ipVersion=6)
-        assert ":" in socketutil.get_ip_address("localhost", ipVersion=6)
+        addr = socketutil.get_ip_address("::1", version=6)
+        assert addr.version == 6
+        assert ":" in str(addr)
+        addr = socketutil.get_ip_address("localhost", version=6)
+        assert addr.version == 6
+        assert ":" in str(addr)
 
-    def testGetIpVersion4(self):
-        version = config.PREFER_IP_VERSION
-        try:
-            config.PREFER_IP_VERSION = 4
-            assert 4 == socketutil.get_ip_version("127.0.0.1")
-            assert 4 == socketutil.get_ip_version("localhost")
-            config.PREFER_IP_VERSION = 0
-            assert 4 == socketutil.get_ip_version("127.0.0.1")
-        finally:
-            config.PREFER_IP_VERSION = version
-
-    def testGetIpVersion6(self):
-        if not has_ipv6:
-            pytest.skip("no ipv6 capability")
-        version = config.PREFER_IP_VERSION
-        try:
-            config.PREFER_IP_VERSION = 6
-            assert 6 == socketutil.get_ip_version("::1")
-            assert 6 == socketutil.get_ip_version("localhost")
-            config.PREFER_IP_VERSION = 4
-            assert 4 == socketutil.get_ip_version("127.0.0.1")
-            assert 6 == socketutil.get_ip_version("::1")
-            config.PREFER_IP_VERSION = 0
-            assert 4 == socketutil.get_ip_version("127.0.0.1")
-            assert 6 == socketutil.get_ip_version("::1")
-        finally:
-            config.PREFER_IP_VERSION = version
-
-    def testGetInterfaceAddress(self):
-        assert socketutil.get_interface_address("localhost").startswith("127.")
+    def testGetInterface(self):
+        addr = socketutil.get_interface("localhost")
+        assert addr.version == 4
+        assert str(addr).startswith("127.")
+        assert str(addr.ip).startswith("127.0")
+        assert str(addr.network).startswith("127.0")
         if has_ipv6:
-            assert ":" in socketutil.get_interface_address("::1")
+            addr = socketutil.get_interface("::1")
+            assert addr.version == 6
+            assert ":" in str(addr)
+            assert ":" in str(addr.ip)
+            assert ":" in str(addr.network)
 
     def testUnusedPort(self):
         port1 = socketutil.find_probably_unused_port()
