@@ -5,6 +5,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
 __version__ = "5.1"
+__author__ = "Irmen de Jong"
 
 
 def __configure_logging():
