@@ -22,7 +22,11 @@ def test_compat_layer():
     Pyro4.Daemon()
     assert socketutil.getIpAddress("localhost", ipVersion=4).startswith("127.0")
     if socket.has_ipv6:
-        assert ":" in socketutil.getIpAddress("localhost", ipVersion=6)
+        try:
+            assert ":" in socketutil.getIpAddress("localhost", ipVersion=6)
+        except socket.error as x:
+            if str(x) != "unable to determine IPV6 address":
+                raise
     assert "127.0.0.1" == socketutil.getIpAddress("127.0.0.1")
     assert "::1" == socketutil.getIpAddress("::1")
     assert "127.0.0.1" == socketutil.getInterfaceAddress("127.0.0.1")
