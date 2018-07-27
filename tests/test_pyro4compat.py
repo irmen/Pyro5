@@ -1,3 +1,4 @@
+import socket
 import pytest
 from Pyro5.compatibility import Pyro4
 
@@ -20,7 +21,8 @@ def test_compat_layer():
     Pyro4.BatchProxy(p)
     Pyro4.Daemon()
     assert socketutil.getIpAddress("localhost", ipVersion=4).startswith("127.0")
-    assert ":" in socketutil.getIpAddress("localhost", ipVersion=6)
+    if socket.has_ipv6:
+        assert ":" in socketutil.getIpAddress("localhost", ipVersion=6)
     assert "127.0.0.1" == socketutil.getIpAddress("127.0.0.1")
     assert "::1" == socketutil.getIpAddress("::1")
     assert "127.0.0.1" == socketutil.getInterfaceAddress("127.0.0.1")
