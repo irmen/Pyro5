@@ -3,6 +3,15 @@ import pytest
 from Pyro5.compatibility import Pyro4
 
 
+def test_compat_config():
+    import Pyro4
+    conf = Pyro4.config.asDict()
+    assert conf["NS_PORT"] == 9090
+    Pyro4.config.NS_PORT = 12345
+    conf = Pyro4.config.asDict()
+    assert conf["NS_PORT"] == 12345
+
+
 def test_compat_layer():
     from Pyro4 import naming
     from Pyro4 import socketutil

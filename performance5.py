@@ -1,6 +1,5 @@
 import timeit
 import Pyro5.api
-import Pyro5.config
 
 
 Pyro5.config.SERIALIZER = 'marshal'

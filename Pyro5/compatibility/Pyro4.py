@@ -31,6 +31,7 @@ from .. import api
 from .. import errors
 from .. import serializers
 from .. import socketutil as socketutil_pyro5
+from ..configure import Configuration
 
 
 __all__ = ["config", "URI", "Proxy", "Daemon", "callback", "batch",
@@ -68,13 +69,19 @@ message = NamespaceInterceptor("message")
 # compatibility wrappers for the other symbols:
 
 __version__ = api.__version__
-config = api.config
 callback = api.callback
 oneway = api.oneway
 expose = api.expose
 behavior = api.behavior
 current_context = api.current_context
-config.asDict = config.as_dict
+
+
+class CompatConfiguration(Configuration):
+    def asDict(self):
+        return self.as_dict()
+
+
+config = CompatConfiguration()
 
 
 class URI(api.URI):

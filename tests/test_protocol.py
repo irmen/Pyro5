@@ -1,5 +1,4 @@
 import pytest
-import Pyro5.config
 import Pyro5.protocol
 import Pyro5.errors
 

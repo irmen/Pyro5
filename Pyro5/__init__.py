@@ -41,3 +41,5 @@ def __configure_logging():
 
 
 _pyro_logfile, _pyro_loglevel = __configure_logging()
+
+from .configure import global_config as config

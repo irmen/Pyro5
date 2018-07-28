@@ -40,8 +40,6 @@ import uuid
 from . import config, errors
 
 
-__all__ = ["Message"]
-
 log = logging.getLogger("Pyro5.protocol")
 
 MSG_CONNECT = 1

@@ -11,7 +11,6 @@ import io
 import Pyro5.utils.httpgateway
 import Pyro5.errors
 import Pyro5.core
-import Pyro5.config as config
 from Pyro5.nameserver import NameServer
 
 
@@ -108,10 +107,10 @@ def wsgiserver():
     ws = WSGITestBase()
     old_get_ns = Pyro5.utils.httpgateway.get_nameserver
     Pyro5.utils.httpgateway.get_nameserver = lambda: NameServerDummyProxy()
-    config.COMMTIMEOUT = 0.3
+    Pyro5.config.COMMTIMEOUT = 0.3
     yield ws
     Pyro5.utils.httpgateway.get_nameserver = old_get_ns
-    config.COMMTIMEOUT = 0.0
+    Pyro5.config.COMMTIMEOUT = 0.0
 
 
 class TestHttpGateway:

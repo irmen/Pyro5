@@ -27,7 +27,7 @@ changes done based on original Pyro4
 - the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
   - Pyro5 is the new package name (duh)
-  - restructured the submodules, renamed some submodules (naming -> nameserver, configuration -> config,
+  - restructured the submodules, renamed some submodules (naming -> nameserver,
     message -> protocol, util -> serializers)
   - most classes and method names are the same or at least similar but may have been shuffled around to other modules
   - all toplevel functions are renamed to pep8 code style (but class method names are unchanged from Pyro4 for now)
