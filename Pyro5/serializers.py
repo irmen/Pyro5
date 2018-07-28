@@ -192,15 +192,15 @@ class SerializerBase(object):
         # for performance, the constructors below are hardcoded here instead of added on a per-class basis to the dict-to-class registry
         if classname == "Pyro5.core.URI":
             uri = core.URI.__new__(core.URI)
-            uri.__setstate_from_dict__(data["state"])
+            uri.__setstate__(data["state"])
             return uri
         elif classname == "Pyro5.client.Proxy":
             proxy = client.Proxy.__new__(client.Proxy)
-            proxy.__setstate_from_dict__(data["state"])
+            proxy.__setstate__(data["state"])
             return proxy
         elif classname == "Pyro5.server.Daemon":
             daemon = server.Daemon.__new__(server.Daemon)
-            daemon.__setstate_from_dict__(data["state"])
+            daemon.__setstate__(data["state"])
             return daemon
         elif classname.startswith("Pyro5.util."):
             if classname == "Pyro5.util.SerpentSerializer":

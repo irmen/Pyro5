@@ -791,6 +791,9 @@ class Daemon(object):
         # but it is not meant to be able to properly serialize/deserialize Daemon objects.
         return tuple()
 
+    def __setstate__(self, state):
+        assert len(state) == 0
+
     __lazy_dict_iterator_types = (type({}.keys()), type({}.values()), type({}.items()))
 
     def _streamResponse(self, data, client):
