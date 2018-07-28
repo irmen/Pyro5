@@ -197,8 +197,12 @@ class Daemon(object):
         else:
             if host is None:
                 host = config.HOST
+            elif not isinstance(host, str):
+                host = str(host)  # take care of the occasion where host is an ipaddress.IpAddress
             if nathost is None:
                 nathost = config.NATHOST
+            elif not isinstance(nathost, str):
+                nathost = str(nathost)  # take care of the occasion where host is an ipaddress.IpAddress
             if natport is None:
                 natport = config.NATPORT or None
             if nathost and unixsocket:

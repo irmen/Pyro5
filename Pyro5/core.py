@@ -261,6 +261,8 @@ def locate_ns(host=None, port=None, broadcast=True):
         # broadcast failed or skipped, try PYRO directly on specific host
         host = config.NS_HOST
         port = config.NS_PORT
+    elif not isinstance(host, str):
+        host = str(host)    # take care of the occasion where host is an ipaddress.IpAddress
     # pyro direct lookup
     if not port:
         port = config.NS_PORT

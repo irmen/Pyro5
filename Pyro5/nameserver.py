@@ -442,10 +442,14 @@ class NameServerDaemon(server.Daemon):
     def __init__(self, host=None, port=None, unixsocket=None, nathost=None, natport=None, storage=None):
         if host is None:
             host = config.HOST
+        elif not isinstance(host, str):
+            host = str(host)  # take care of the occasion where host is an ipaddress.IpAddress
         if port is None:
             port = config.NS_PORT
         if nathost is None:
             nathost = config.NATHOST
+        elif not isinstance(nathost, str):
+            nathost = str(nathost)  # take care of the occasion where host is an ipaddress.IpAddress
         if natport is None:
             natport = config.NATPORT or None
         storage = storage or "memory"
@@ -580,6 +584,8 @@ class BroadcastServer(object):
             bcport = config.NS_BCPORT
         if bchost is None:
             bchost = config.NS_BCHOST
+        elif not isinstance(bchost, str):
+            bchost = str(bchost)  # take care of the occasion where host is an ipaddress.IpAddress
         if ":" in nsUri.host or ipv6:   # match nameserver's ip version
             bchost = bchost or "::"
             self.sock = socketutil.create_bc_socket((bchost, bcport, 0, 0), reuseaddr=config.SOCK_REUSE, timeout=2.0)

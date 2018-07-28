@@ -506,7 +506,7 @@ def find_probably_unused_port(family: int=socket.AF_INET, socktype: int=socket.S
         tempsock.close()
 
 
-def bind_unused_port(sock: socket.socket, host: str='localhost') -> int:
+def bind_unused_port(sock: socket.socket, host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]='localhost') -> int:
     """Bind the socket to a free port and return the port number.
     This code is based on the code in the stdlib's test.test_support module."""
     if sock.family in (socket.AF_INET, socket.AF_INET6) and sock.type == socket.SOCK_STREAM:
@@ -515,6 +515,8 @@ def bind_unused_port(sock: socket.socket, host: str='localhost') -> int:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
             except socket.error:
                 pass
+    if not isinstance(host, str):
+        host = str(host)
     if sock.family == socket.AF_INET:
         if host == 'localhost':
             sock.bind(('127.0.0.1', 0))
