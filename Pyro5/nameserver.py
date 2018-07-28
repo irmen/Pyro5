@@ -6,11 +6,15 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 import warnings
 import re
+import sys
 import logging
 import socket
 import time
 import threading
-from collections import MutableMapping
+if sys.version_info <= (3, 4):
+    from collections import MutableMapping
+else:
+    from collections.abc import MutableMapping
 try:
     import sqlite3
 except ImportError:
