@@ -1,4 +1,3 @@
-import Pyro5.config
 import Pyro5.errors
 import Pyro5.api
 

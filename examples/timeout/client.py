@@ -1,7 +1,6 @@
 import time
 import sys
 import Pyro5.errors
-import Pyro5.config
 from Pyro5.api import Proxy
 
 

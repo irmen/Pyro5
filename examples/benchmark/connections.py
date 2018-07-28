@@ -1,6 +1,5 @@
 import time
-from Pyro5.api import Proxy
-import Pyro5.config
+from Pyro5.api import Proxy, config
 
 
 uri = input("Uri of benchmark server? ").strip()
@@ -41,4 +40,4 @@ for loop in range(ITERATIONS):
     p.oneway()
 duration = time.time() - begin
 print("%d calls in %.3f sec = %.0f calls/sec" % (ITERATIONS, duration, ITERATIONS / duration))
-print("Serializer used:", Pyro5.config.SERIALIZER)
+print("Serializer used:", config.SERIALIZER)

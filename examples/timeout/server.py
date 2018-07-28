@@ -1,6 +1,5 @@
 import time
-from Pyro5.api import expose, locate_ns, Daemon
-import Pyro5.config
+from Pyro5.api import expose, locate_ns, Daemon, config
 
 
 @expose
@@ -12,7 +11,7 @@ class TimeoutServer(object):
         return "slept %d seconds" % amount
 
 
-Pyro5.config.COMMTIMEOUT = 0  # the server won't be using timeouts
+config.COMMTIMEOUT = 0  # the server won't be using timeouts
 
 ns = locate_ns()
 daemon = Daemon()

@@ -1,16 +1,15 @@
 import serpent
-from Pyro5.api import expose, Daemon
+from Pyro5.api import expose, Daemon, config
 import Pyro5.socketutil
-import Pyro5.config
 
 
-# Pyro5.config.COMMTIMEOUT=2
+# config.COMMTIMEOUT=2
 
 
 class Testclass(object):
     @expose
     def transfer(self, data):
-        if Pyro5.config.SERIALIZER == "serpent" and type(data) is dict:
+        if config.SERIALIZER == "serpent" and type(data) is dict:
             data = serpent.tobytes(data)  # in case of serpent encoded bytes
         print("received %d bytes" % len(data))
         return len(data)

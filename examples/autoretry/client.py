@@ -1,5 +1,4 @@
 from time import sleep
-import Pyro5.config
 import Pyro5.api
 
 
@@ -22,7 +21,7 @@ try:
 except Exception as e:
     print("Got exception %r as expected." % repr(e))
 
-print("Now, let's enable the auto retry")
+print("\nNow, let's enable the auto retry on the proxy")
 obj._pyroRelease()
 obj._pyroMaxRetries = 2
 

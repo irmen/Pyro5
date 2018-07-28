@@ -1,9 +1,8 @@
 import time
-import Pyro5.config
-from Pyro5.api import expose, Daemon
+from Pyro5.api import expose, Daemon, config
 
 
-if Pyro5.config.ITER_STREAMING:
+if config.ITER_STREAMING:
     print("Note: iter-streaming has been enabled in the Pyro config.")
 else:
     print("Note: iter-streaming has not been enabled in the Pyro config (PYRO_ITER_STREAMING).")

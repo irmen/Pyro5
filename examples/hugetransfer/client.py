@@ -1,13 +1,12 @@
 import time
 import warnings
 import serpent
-from Pyro5.api import Proxy
-import Pyro5.config
+from Pyro5.api import Proxy, config
 
 
 warnings.filterwarnings("ignore")
 
-# Pyro5.config.COMMTIMEOUT=2
+# config.COMMTIMEOUT = 10
 
 print("Enter the server's uri that was printed:")
 uri = input().strip()
@@ -33,7 +32,7 @@ def do_test(data):
         totalsize = float(totalsize)
         print("It took %.2f seconds to transfer %d mb." % (duration, totalsize / 1024 / 1024))
         print("That is %.0f kb/sec. = %.1f mb/sec. (serializer: %s)" %
-              (totalsize / 1024 / duration, totalsize / 1024 / 1024 / duration, Pyro5.config.SERIALIZER))
+              (totalsize / 1024 / duration, totalsize / 1024 / 1024 / duration, config.SERIALIZER))
 
 
 def do_test_chunks():
@@ -47,9 +46,9 @@ def do_test_chunks():
         assert totalsize == datasize*10
         duration = time.time() - begin
         totalsize = float(totalsize)
-        print("It took %.2f seconds to transfer %d mb." % (duration, totalsize / 1024 / 1024))
+        print("\nIt took %.2f seconds to transfer %d mb." % (duration, totalsize / 1024 / 1024))
         print("That is %.0f kb/sec. = %.1f mb/sec. (serializer: %s)" %
-              (totalsize / 1024 / duration, totalsize / 1024 / 1024 / duration, Pyro5.config.SERIALIZER))
+              (totalsize / 1024 / duration, totalsize / 1024 / 1024 / duration, config.SERIALIZER))
 
 
 data = 'x' * datasize
@@ -63,4 +62,4 @@ print("\n\n----test with bytearray data----")
 do_test(data)
 print("\n\n----test download via iterator----")
 do_test_chunks()
-print("\n\n   (tip: also see the 'filetransfer' example for more efficient ways to transfer large amoungs of binary data)")
+print("\n\n (tip: also see the 'filetransfer' example for more efficient ways to transfer large amoungs of binary data)")

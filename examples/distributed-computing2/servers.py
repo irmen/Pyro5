@@ -2,8 +2,7 @@ import string
 import time
 from collections import Counter
 from itertools import cycle, zip_longest
-from Pyro5.api import expose, Daemon, locate_ns, Proxy
-import Pyro5.config
+from Pyro5.api import expose, Daemon, locate_ns, Proxy, config
 import Pyro5.errors
 
 
@@ -39,11 +38,11 @@ class Dispatcher(object):
     def count(self, lines):
         # use the name server's prefix lookup to get all registered wordcounters
         with locate_ns() as ns:
-            all_counters = ns.list(prefix="example.dc.wordcount.")
+            all_counters = ns.list(prefix="example.dc2.wordcount.")
         counters = [Proxy(uri) for uri in all_counters.values()]
         #for c in counters:
         #    c._pyroAsync()   # set proxy in asynchronous mode
-        # @todo alternative for ASYNC
+        # @todo alternative for ASYNC to run it in parallel
         roundrobin_counters = cycle(counters)
 
         # chop the text into chunks that can be distributed across the workers
@@ -63,7 +62,7 @@ class Dispatcher(object):
         totals = Counter()
         for result in async_results:
             try:
-                totals.update(result)     # @todo alternative for ASYNC results
+                totals.update(result)     # @todo alternative for ASYNC results to run it in parallel
             except Pyro5.errors.CommunicationError as x:
                 raise Pyro5.errors.PyroError("Something went wrong in the server when collecting the async responses: "+str(x))
         for proxy in counters:
@@ -73,14 +72,14 @@ class Dispatcher(object):
 
 if __name__ == "__main__":
     print("Spinning up 5 wordcounters, and 1 dispatcher.")
-    Pyro5.config.SERVERTYPE = "thread"
+    config.SERVERTYPE = "thread"
     Daemon.serveSimple(
         {
-            WordCounter(): "example.dc.wordcount.1",
-            WordCounter(): "example.dc.wordcount.2",
-            WordCounter(): "example.dc.wordcount.3",
-            WordCounter(): "example.dc.wordcount.4",
-            WordCounter(): "example.dc.wordcount.5",
-            Dispatcher:    "example.dc.dispatcher"
+            WordCounter(): "example.dc2.wordcount.1",
+            WordCounter(): "example.dc2.wordcount.2",
+            WordCounter(): "example.dc2.wordcount.3",
+            WordCounter(): "example.dc2.wordcount.4",
+            WordCounter(): "example.dc2.wordcount.5",
+            Dispatcher:    "example.dc2.dispatcher"
         }, verbose=False
     )

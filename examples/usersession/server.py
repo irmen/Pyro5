@@ -1,9 +1,8 @@
-import Pyro5.config
-from Pyro5.api import behavior, expose, current_context, Daemon
+from Pyro5.api import behavior, expose, current_context, Daemon, config
 from database import DummyDatabase
 
 
-Pyro5.config.SERVERTYPE = "thread"
+config.SERVERTYPE = "thread"
 database = DummyDatabase()
 
 

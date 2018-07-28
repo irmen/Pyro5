@@ -1,12 +1,11 @@
 import random
-import Pyro5.config
-from Pyro5.api import expose, Daemon, Proxy
+from Pyro5.api import expose, Daemon, Proxy, config
 
 
 # We need to set either a socket communication timeout,
 # or use the select based server. Otherwise the daemon requestLoop
 # will block indefinitely and is never able to evaluate the loopCondition.
-Pyro5.config.COMMTIMEOUT = 0.5
+config.COMMTIMEOUT = 0.5
 
 NUM_WORKERS = 5
 

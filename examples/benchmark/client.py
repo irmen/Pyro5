@@ -1,9 +1,8 @@
 import time
-import Pyro5.config
-from Pyro5.api import Proxy
+from Pyro5.api import Proxy, config
 
 
-Pyro5.config.SERIALIZER = "marshal"
+config.SERIALIZER = "marshal"
 
 uri = input("Uri of benchmark server? ").strip()
 obj = Proxy(uri)
@@ -44,4 +43,4 @@ amount = len(funcs) * iters
 print('total method calls: %d' % amount)
 avg_pyro_msec = 1000.0 * duration / amount
 print('avg. time per method call: %.3f msec (%d/sec) (serializer: %s)'
-      % (avg_pyro_msec, amount / duration, Pyro5.config.SERIALIZER))
+      % (avg_pyro_msec, amount / duration, config.SERIALIZER))

@@ -9,14 +9,13 @@ import time
 import select
 from tkinter import *
 import tkinter.simpledialog as simpledialog
-import Pyro5.config
-from Pyro5.api import expose, Daemon
+from Pyro5.api import expose, Daemon, config
 
 
 # Set the Pyro servertype to the multiplexing select-based server that doesn't
 # use a threadpool to service method calls. This way the method calls are
 # handled inside the main thread as well.
-Pyro5.config.SERVERTYPE = "multiplex"
+config.SERVERTYPE = "multiplex"
 
 # The frequency with which the GUI loop calls the Pyro event handler.
 PYRO_EVENTLOOP_HZ = 50
@@ -44,7 +43,7 @@ class PyroGUI(object):
         buttonframe.pack(fill=X)
         rlabel = Label(frame, text="Pyro server messages:")
         rlabel.pack(fill=X)
-        self.msg = Message(frame, anchor=NW, width=500, aspect=80, background="white", relief="sunken")
+        self.msg = Message(frame, anchor=NW, width=500, aspect=80, background="white", fg="black", relief="sunken")
         self.msg.pack(fill=BOTH, expand=1)
         frame.pack(fill=BOTH)
         self.serveroutput = []

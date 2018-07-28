@@ -5,9 +5,8 @@ import io
 import os
 import threading
 import zlib
-from Pyro5.api import expose, current_context, Daemon
+from Pyro5.api import expose, current_context, Daemon, config
 import Pyro5.socketutil
-import Pyro5.config
 
 
 datafiles = {}      # temporary files
@@ -38,9 +37,9 @@ class FileServer(object):
         filesize = f.tell()
         f.seek(os.SEEK_SET, 0)
         # return the file data via annotation stream (remote iterator)
-        print("transmitting file via annotations stream (%d bytes)..." % filesize)
+        annotation_size = 500000
+        print("transmitting file via annotations stream (%d bytes in chunks of %d)..." % (filesize, annotation_size))
         with f:
-            annotation_size = 65000  # leave some room for Pyro's internal annotation chunks
             while True:
                 chunk = f.read(annotation_size)
                 if not chunk:
@@ -77,7 +76,7 @@ class FileServerDaemon(Daemon):
     def __init__(self, host=None, port=0):
         super(FileServerDaemon, self).__init__(host, port)
         host, _ = self.transportServer.sock.getsockname()
-        self.blobsocket = Pyro5.socketutil.create_socket(bind=(host, 0), timeout=Pyro5.config.COMMTIMEOUT, nodelay=False)
+        self.blobsocket = Pyro5.socketutil.create_socket(bind=(host, 0), timeout=config.COMMTIMEOUT, nodelay=False)
         print("Blob socket available on:", self.blobsocket.getsockname())
 
     def close(self):

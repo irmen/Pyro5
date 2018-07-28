@@ -6,16 +6,15 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
 from optparse import OptionParser
-import Pyro5.config
-from Pyro5.api import Daemon, locate_ns
+from Pyro5.api import Daemon, locate_ns, config
 from . import PYRO_MSGBUS_NAME
 from .messagebus import make_messagebus, MessageBus
 
 
-Pyro5.config.COMMTIMEOUT = 20.0
-Pyro5.config.POLLTIMEOUT = 10.0
-Pyro5.config.MAX_MESSAGE_SIZE = 256*1024     # 256 kb
-Pyro5.config.MAX_RETRIES = 3
+config.COMMTIMEOUT = 20.0
+config.POLLTIMEOUT = 10.0
+config.MAX_MESSAGE_SIZE = 256*1024     # 256 kb
+config.MAX_RETRIES = 3
 
 
 if __name__ == "__main__":

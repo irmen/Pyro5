@@ -1,12 +1,11 @@
 import sys
 import random
-import Pyro5.config
-from Pyro5.api import expose, oneway, SerializerBase, Daemon, Proxy
+from Pyro5.api import expose, oneway, SerializerBase, Daemon, Proxy, config
 import robot
 import remote
 
 
-Pyro5.config.SERVERTYPE = "multiplex"  # to make sure all calls run in the same thread
+config.SERVERTYPE = "multiplex"  # to make sure all calls run in the same thread
 
 
 class DrunkenGameObserver(remote.GameObserver):
@@ -15,6 +14,7 @@ class DrunkenGameObserver(remote.GameObserver):
     def world_update(self, iteration, world, robotdata):
         # change directions randomly
         if random.random() > 0.8:
+            self.robot._pyroClaimOwnership()   # lets our thread do the proxy calls
             if random.random() >= 0.5:
                 dx, dy = random.randint(-1, 1), 0
             else:
@@ -34,6 +34,7 @@ class AngryGameObserver(remote.GameObserver):
     @expose
     def world_update(self, iteration, world, robotdata):
         # move in a loop yelling angry stuff
+        self.robot._pyroClaimOwnership()  # lets our thread do the proxy calls
         if iteration % 50 == 0:
             self.robot.emote("I'll kill you all! GRR")
         if iteration % 10 == 0:
@@ -57,6 +58,7 @@ class ScaredGameObserver(remote.GameObserver):
     @expose
     def world_update(self, iteration, world, robotdata):
         if iteration % 50 == 0:
+            self.robot._pyroClaimOwnership()   # lets our thread do the proxy calls
             self.robot.emote("I'm scared!")
 
 

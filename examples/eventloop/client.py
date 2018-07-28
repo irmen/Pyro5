@@ -1,7 +1,7 @@
 from Pyro5.api import Proxy
 
 
-with Proxy("PYRONAME:example.embedded.server") as proxy:
+with Proxy("PYRONAME:example.eventloop.server") as proxy:
     print("5*11=%d" % proxy.multiply(5, 11))
     print("'x'*10=%s" % proxy.multiply('x', 10))
 

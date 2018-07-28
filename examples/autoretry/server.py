@@ -1,5 +1,4 @@
-from Pyro5.api import Daemon, expose
-import Pyro5.config
+from Pyro5.api import expose, Daemon, config
 
 
 @expose
@@ -9,7 +8,7 @@ class CalcServer(object):
         return num1 + num2
 
 
-Pyro5.config.COMMTIMEOUT = 0.5  # the server should time out easily now
+config.COMMTIMEOUT = 0.5  # the server should time out easily now
 
 Daemon.serveSimple({
     CalcServer: "example.autoretry"

@@ -1,13 +1,12 @@
 import logging
-from Pyro5.api import expose, Daemon
-import Pyro5.config
+from Pyro5.api import expose, Daemon, config
 
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("Pyro5").setLevel(logging.DEBUG)
 
-Pyro5.config.COMMTIMEOUT = 5.0
-Pyro5.config.POLLTIMEOUT = 5.0  # only used for multiplexing server
+config.COMMTIMEOUT = 5.0
+config.POLLTIMEOUT = 5.0  # only used for multiplexing server
 
 
 class TestDisconnect(object):

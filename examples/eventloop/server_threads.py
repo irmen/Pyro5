@@ -1,7 +1,6 @@
 import socket
 import select
 import time
-import Pyro5.config
 import Pyro5.socketutil
 import Pyro5.api
 
@@ -32,7 +31,7 @@ serveruri = pyrodaemon.register(EmbeddedServer())
 print("server uri=%s" % serveruri)
 
 # register it with the embedded nameserver
-nameserverDaemon.nameserver.register("example.embedded.server", serveruri)
+nameserverDaemon.nameserver.register("example.eventloop.server", serveruri)
 
 print("")
 

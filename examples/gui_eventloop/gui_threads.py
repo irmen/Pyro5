@@ -47,7 +47,7 @@ class PyroGUI(object):
         buttonframe.pack(fill=X)
         rlabel = Label(frame, text="Pyro server messages:")
         rlabel.pack(fill=X)
-        self.msg = Message(frame, anchor=NW, width=500, aspect=80, background="white", relief="sunken")
+        self.msg = Message(frame, anchor=NW, width=500, aspect=80, background="white", fg="black", relief="sunken")
         self.msg.pack(fill=BOTH, expand=1)
         frame.pack(fill=BOTH)
         self.serveroutput = []

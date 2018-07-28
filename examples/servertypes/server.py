@@ -1,7 +1,6 @@
 import time
 import threading
-from Pyro5.api import expose, behavior, oneway, Daemon
-import Pyro5.config
+from Pyro5.api import expose, behavior, oneway, Daemon, config
 
 
 @expose
@@ -17,7 +16,7 @@ class Server(object):
         return self.callcount  # the number of completed calls
 
     def getconfig(self):
-        return Pyro5.config.as_dict()
+        return config.as_dict()
 
     def delay(self):
         threadname = threading.current_thread().getName()
@@ -36,12 +35,12 @@ class Server(object):
 
 # main program
 
-Pyro5.config.SERVERTYPE = "undefined"
+config.SERVERTYPE = "undefined"
 servertype = input("Servertype threaded or multiplex (t/m)?")
 if servertype == "t":
-    Pyro5.config.SERVERTYPE = "thread"
+    config.SERVERTYPE = "thread"
 else:
-    Pyro5.config.SERVERTYPE = "multiplex"
+    config.SERVERTYPE = "multiplex"
 
 
 Daemon.serveSimple({

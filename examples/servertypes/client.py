@@ -49,7 +49,7 @@ if serverconfig["SERVERTYPE"] == "thread":
     print("The time this will take is 1 second (every thread takes 1 second in parallel).")
     print("You will see that the requests are handled by different server threads.")
 elif serverconfig["SERVERTYPE"] == "multiplex":
-    print("Servertype is multiplex. The threads will need to get in line.")
+    print("Servertype is multiplex. The calls will need to get in line.")
     print("The time this will take is 5 seconds (every thread takes 1 second sequentially).")
     print("You will see that the requests are handled by a single server thread.")
 else:

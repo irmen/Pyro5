@@ -1,6 +1,6 @@
 import datetime
-from Pyro5.api import Proxy
-import Pyro5.config
+import traceback
+from Pyro5.api import Proxy, config
 
 
 uri = input("What is the server uri? ").strip()
@@ -11,42 +11,51 @@ print("local time without timezone: ", datetime.datetime.now().strftime(fmt))
 def test():
     with Proxy(uri) as serv:
         print("\nFIRST: no timezone")
-        date1 = serv.echo(datetime.datetime.now())
-        print("{0}\n  {1} ({2})".format(date1, repr(date1), type(date1)))
-        if hasattr(date1, "tzinfo"):
-            print("    tzinfo =", date1.tzinfo)
-        else:
-            print("    no tzinfo attribute")
+        try:
+            date1 = serv.echo(datetime.datetime.now())
+            print("Got from server:", date1)
+            print("{0}\n  {1} ({2})".format(date1, repr(date1), type(date1)))
+            if isinstance(date1, datetime.datetime):
+                if hasattr(date1, "tzinfo"):
+                    print("    tzinfo =", date1.tzinfo)
+                else:
+                    print("    no tzinfo attribute")
+        except:
+            print("ERROR!")
+            traceback.print_exc()
 
         print("\nSECOND: PyTz timezones")
-        date1 = serv.pytz()
-        assert isinstance(date1.tzinfo, datetime.tzinfo)
-        print("{0}\n  {1} ({2})\n    {3}".format(date1, date1.tzinfo, type(date1.tzinfo), date1.strftime(fmt)))
-        date2 = serv.echo(date1)
-        print("{0}\n  {1} ({2})\n    {3}".format(date2, date2.tzinfo, type(date2.tzinfo), date2.strftime(fmt)))
-        assert date1 == date2
+        try:
+            date1 = serv.pytz()
+            print("Got from server:", date1)
+            if isinstance(date1, datetime.datetime):
+                assert isinstance(date1.tzinfo, datetime.tzinfo)
+                print("{0}\n  {1} ({2})\n    {3}".format(date1, date1.tzinfo, type(date1.tzinfo), date1.strftime(fmt)))
+                date2 = serv.echo(date1)
+                print("{0}\n  {1} ({2})\n    {3}".format(date2, date2.tzinfo, type(date2.tzinfo), date2.strftime(fmt)))
+                assert date1 == date2
+        except:
+            print("ERROR!")
+            traceback.print_exc()
 
         print("\nTHIRD: DateUtil timezones")
-        date1 = serv.dateutil()
-        assert isinstance(date1.tzinfo, datetime.tzinfo)
-        print("{0}\n  {1} ({2})\n    {3}".format(date1, date1.tzinfo, type(date1.tzinfo), date1.strftime(fmt)))
-        date2 = serv.echo(date1)
-        print("{0}\n  {1} ({2})\n    {3}".format(date2, date2.tzinfo, type(date2.tzinfo), date2.strftime(fmt)))
-        assert date1 == date2
+        try:
+            date1 = serv.dateutil()
+            print("Got from server:", date1)
+            if isinstance(date1, datetime.datetime):
+                assert isinstance(date1.tzinfo, datetime.tzinfo)
+                print("{0}\n  {1} ({2})\n    {3}".format(date1, date1.tzinfo, type(date1.tzinfo), date1.strftime(fmt)))
+                date2 = serv.echo(date1)
+                print("{0}\n  {1} ({2})\n    {3}".format(date2, date2.tzinfo, type(date2.tzinfo), date2.strftime(fmt)))
+                assert date1 == date2
+        except:
+            print("ERROR!")
+            traceback.print_exc()
 
-
-# msgpack.
-print("\n******* msgpack *******")
-Pyro5.config.SERIALIZER = "msgpack"
-try:
-    test()
-except:
-    import traceback
-    traceback.print_exc()
 
 # serpent.
 print("\n******* serpent *******")
-Pyro5.config.SERIALIZER = "serpent"
+config.SERIALIZER = "serpent"
 try:
     test()
 except:
@@ -55,7 +64,16 @@ except:
 
 # json.
 print("\n******* json *******")
-Pyro5.config.SERIALIZER = "json"
+config.SERIALIZER = "json"
+try:
+    test()
+except:
+    import traceback
+    traceback.print_exc()
+
+# msgpack.
+print("\n******* msgpack *******")
+config.SERIALIZER = "msgpack"
 try:
     test()
 except:
@@ -64,7 +82,7 @@ except:
 
 # marshal.
 print("\n******* marshal *******")
-Pyro5.config.SERIALIZER = "marshal"
+config.SERIALIZER = "marshal"
 try:
     test()
 except:

@@ -2,6 +2,7 @@ import time
 import threading
 import socket
 import zlib
+import sys
 import serpent
 from Pyro5.api import Proxy, current_context
 
@@ -78,7 +79,7 @@ def raw_socket(uri):
             sock.connect(tuple(blob_address))
             sock.sendall(file_id.encode())
             size = 0
-            chunk = "dummy"
+            chunk = b"dummy"
             while chunk:
                 chunk = sock.recv(60000)
                 size += len(chunk)

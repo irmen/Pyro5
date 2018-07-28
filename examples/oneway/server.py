@@ -1,6 +1,5 @@
 import time
 from Pyro5.api import expose, oneway, Daemon
-import Pyro5.config
 
 
 @expose
