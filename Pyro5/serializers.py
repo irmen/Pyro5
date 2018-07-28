@@ -215,6 +215,8 @@ class SerializerBase(object):
             errortype = getattr(errors, classname.split('.', 2)[2])
             if issubclass(errortype, errors.PyroError):
                 return SerializerBase.make_exception(errortype, data)
+        elif classname == "struct.error":
+            return SerializerBase.make_exception(struct.error, data)
         elif classname == "Pyro5.core._ExceptionWrapper":
             ex = data["exception"]
             if isinstance(ex, dict) and "__class__" in ex:

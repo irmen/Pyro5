@@ -18,11 +18,11 @@ The header format is::
 0x08   H   2   message flags
 0x0a   H   2   sequence number   (to identify proper request-reply sequencing)
 0x0c   I   4   data length   (max 4 Gb)
-0x10   H   2   annotations length (total of all chunks, 0 if no annotation chunks present)
-0x12   16s 16  correlation uuid
-0x22   H   2   (reserved)
-0x24   H   2   magic number 0x4dc5
-total size: 0x26 (38 bytes)
+0x10   I   4   annotations length (max 4 Gb, total of all chunks, 0 if no annotation chunks present)
+0x14   16s 16  correlation uuid
+0x24   H   2   (reserved)
+0x26   H   2   magic number 0x4dc5
+total size: 0x28 (40 bytes)
 
 After the header, zero or more annotation chunks may follow, of the format::
 
@@ -57,9 +57,9 @@ FLAGS_KEEPSERIALIZED = 1 << 5
 FLAGS_CORR_ID = 1 << 6
 
 # wire protocol version. Note that if this gets updated, Pyrolite might need an update too.
-PROTOCOL_VERSION = 501
+PROTOCOL_VERSION = 502
 _magic_number = 0x4dc5
-_header_format = '!4sHBBHHIH16sHH'
+_header_format = '!4sHBBHHII16sHH'
 _header_size = struct.calcsize(_header_format)
 _magic_number_bytes = _magic_number.to_bytes(2, "big")
 _protocol_version_bytes = PROTOCOL_VERSION.to_bytes(2, "big")
@@ -142,7 +142,7 @@ class ReceivingMessage:
             raise errors.ProtocolError("invalid data")
         if ld >= 6 and data[4:6] != _protocol_version_bytes:
             raise errors.ProtocolError("invalid protocol version: {:d}".format(int.from_bytes(data[4:6], "big")))
-        if ld >= _header_size and data[36:38] != _magic_number_bytes:
+        if ld >= _header_size and data[38:40] != _magic_number_bytes:
             raise errors.ProtocolError("invalid magic number")
 
     def add_payload(self, payload):
