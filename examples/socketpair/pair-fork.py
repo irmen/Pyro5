@@ -20,7 +20,7 @@ if pid == 0:
             print("server got message: ", message)
             return "thank you"
 
-    # create a daemon with some Pyro objectrunning on our custom server socket
+    # create a daemon with some Pyro object running on our custom server socket
     daemon = Daemon(connected_socket=sock1)
     daemon.register(Echo, "echo")
     print("Process PID={:d}: Pyro daemon running on {:s}\n".format(os.getpid(), daemon.locationStr))

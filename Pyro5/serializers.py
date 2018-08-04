@@ -4,6 +4,7 @@ The various serializers.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
+import array
 import builtins
 import uuid
 import logging
@@ -321,6 +322,8 @@ class MarshalSerializer(SerializerBase):
     serializer_id = 2  # never change this
 
     def dumpsCall(self, obj, method, vargs, kwargs):
+        vargs = [self.convert_obj_into_marshallable(value) for value in vargs]
+        kwargs = {key: self.convert_obj_into_marshallable(value) for key, value in kwargs.items()}
         return marshal.dumps((obj, method, vargs, kwargs))
 
     def dumps(self, data):
@@ -339,6 +342,13 @@ class MarshalSerializer(SerializerBase):
     def loads(self, data):
         data = self._convertToBytes(data)
         return self.recreate_classes(marshal.loads(data))
+
+    def convert_obj_into_marshallable(self, obj):
+        marshalable_types = {str, int, float, type(None), bool, complex, bytes, bytearray,
+                             array.array, tuple, set, frozenset, list, dict}
+        if type(obj) in marshalable_types:
+            return obj
+        return self.class_to_dict(obj)
 
     @classmethod
     def class_to_dict(cls, obj):
@@ -389,6 +399,8 @@ class JsonSerializer(SerializerBase):
             return obj.isoformat()
         if isinstance(obj, decimal.Decimal):
             return str(obj)
+        if isinstance(obj, array.array):
+            return list(obj)
         return self.class_to_dict(obj)
 
     @classmethod
@@ -438,6 +450,8 @@ class MsgpackSerializer(SerializerBase):
             return str(obj)
         if isinstance(obj, numbers.Number):
             return msgpack.ExtType(0x31, str(obj).encode("ascii"))     # long
+        if isinstance(obj, array.array):
+            return list(obj)
         return self.class_to_dict(obj)
 
     def object_hook(self, obj):

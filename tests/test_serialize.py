@@ -1,3 +1,5 @@
+import array
+import uuid
 import Pyro5.serializers
 from Pyro5.api import URI, Proxy, Daemon
 
@@ -35,6 +37,17 @@ class TestSerpentSerializer:
             daemon2 = self.serializer.loads(ser)
             assert isinstance(daemon2, Daemon)
 
+    def testSerializeDumpsAndDumpsCall(self):
+        self.serializer.dumps(uuid.uuid4())
+        self.serializer.dumps(URI("PYRO:test@test:4444"))
+        self.serializer.dumps(Proxy("PYRONAME:foobar"))
+        self.serializer.dumpsCall("obj", "method", (1, 2, 3), {"arg1": 999})
+        self.serializer.dumpsCall("obj", "method", (1, 2, array.array('i', [1, 2, 3])), {"arg1": 999})
+        self.serializer.dumpsCall("obj", "method", (1, 2, array.array('i', [1, 2, 3])), {"arg1": array.array('i', [1, 2, 3])})
+        self.serializer.dumpsCall("obj", "method", (1, 2, URI("PYRO:test@test:4444")), {"arg1": 999})
+        self.serializer.dumpsCall("obj", "method", (1, 2, URI("PYRO:test@test:4444")), {"arg1": URI("PYRO:test@test:4444")})
+        self.serializer.dumpsCall("obj", "method", (1, 2, Proxy("PYRONAME:foobar")), {"arg1": 999})
+        self.serializer.dumpsCall("obj", "method", (1, 2, Proxy("PYRONAME:foobar")), {"arg1": Proxy("PYRONAME:foobar")})
 
 class TestMarshalSerializer(TestSerpentSerializer):
     serializer = Pyro5.serializers.serializers["marshal"]
