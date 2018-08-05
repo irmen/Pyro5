@@ -49,6 +49,42 @@ class TestSerpentSerializer:
         self.serializer.dumpsCall("obj", "method", (1, 2, Proxy("PYRONAME:foobar")), {"arg1": 999})
         self.serializer.dumpsCall("obj", "method", (1, 2, Proxy("PYRONAME:foobar")), {"arg1": Proxy("PYRONAME:foobar")})
 
+    def testArrays(self):
+        a1 = array.array('u', "hello")
+        ser = self.serializer.dumps(a1)
+        a2 = self.serializer.loads(ser)
+        if type(a2) is array.array:
+            assert a2 == a1
+        else:
+            assert a2 == "hello"
+        a1 = array.array('h', [222, 333, 444, 555])
+        ser = self.serializer.dumps(a1)
+        a2 = self.serializer.loads(ser)
+        if type(a2) is array.array:
+            assert a2 == a1
+        else:
+            assert a2 == [222, 333, 444, 555]
+
+    def testArrays2(self):
+        a1 = array.array('u', "hello")
+        ser = self.serializer.dumpsCall("obj", "method", [a1], {})
+        a2 = self.serializer.loads(ser)
+        print("ser", a2)
+        a2 = a2["params"][0] if self.serializer.serializer_id == 3 else a2[2][0]      # 3=json serializer
+        if type(a2) is array.array:
+            assert a2 == a1
+        else:
+            assert a2 == "hello"
+        a1 = array.array('h', [222, 333, 444, 555])
+        ser = self.serializer.dumpsCall("obj", "method", [a1], {})
+        a2 = self.serializer.loads(ser)
+        a2 = a2["params"][0] if self.serializer.serializer_id == 3 else a2[2][0]      # 3=json serializer
+        if type(a2) is array.array:
+            assert a2 == a1
+        else:
+            assert a2 == [222, 333, 444, 555]
+
+
 class TestMarshalSerializer(TestSerpentSerializer):
     serializer = Pyro5.serializers.serializers["marshal"]
 

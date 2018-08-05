@@ -33,6 +33,9 @@ ver = tuple(map(int, ver.split(".")))
 if ver < (1, 27):
     raise RuntimeError("requires serpent 1.27 or better")
 
+if msgpack.version < (0, 5, 2):
+    raise RuntimeError("requires msgpack 0.5.2 or better")
+
 
 all_exceptions = {}
 for name, t in vars(builtins).items():
@@ -327,10 +330,7 @@ class MarshalSerializer(SerializerBase):
         return marshal.dumps((obj, method, vargs, kwargs))
 
     def dumps(self, data):
-        try:
-            return marshal.dumps(data)
-        except (ValueError, TypeError):
-            return marshal.dumps(self.class_to_dict(data))
+        return marshal.dumps(self.convert_obj_into_marshallable(data))
 
     def loadsCall(self, data):
         data = self._convertToBytes(data)
@@ -344,9 +344,15 @@ class MarshalSerializer(SerializerBase):
         return self.recreate_classes(marshal.loads(data))
 
     def convert_obj_into_marshallable(self, obj):
-        marshalable_types = {str, int, float, type(None), bool, complex, bytes, bytearray,
-                             array.array, tuple, set, frozenset, list, dict}
-        if type(obj) in marshalable_types:
+        marshalable_types = (str, int, float, type(None), bool, complex, bytes, bytearray,
+                             tuple, set, frozenset, list, dict)
+        if isinstance(obj, array.array):
+            if obj.typecode == 'c':
+                return obj.tostring()
+            if obj.typecode == 'u':
+                return obj.tounicode()
+            return obj.tolist()
+        if isinstance(obj, marshalable_types):
             return obj
         return self.class_to_dict(obj)
 
@@ -400,7 +406,11 @@ class JsonSerializer(SerializerBase):
         if isinstance(obj, decimal.Decimal):
             return str(obj)
         if isinstance(obj, array.array):
-            return list(obj)
+            if obj.typecode == 'c':
+                return obj.tostring()
+            if obj.typecode == 'u':
+                return obj.tounicode()
+            return obj.tolist()
         return self.class_to_dict(obj)
 
     @classmethod
@@ -451,7 +461,11 @@ class MsgpackSerializer(SerializerBase):
         if isinstance(obj, numbers.Number):
             return msgpack.ExtType(0x31, str(obj).encode("ascii"))     # long
         if isinstance(obj, array.array):
-            return list(obj)
+            if obj.typecode == 'c':
+                return obj.tostring()
+            if obj.typecode == 'u':
+                return obj.tounicode()
+            return obj.tolist()
         return self.class_to_dict(obj)
 
     def object_hook(self, obj):
