@@ -69,7 +69,6 @@ class TestSerpentSerializer:
         a1 = array.array('u', "hello")
         ser = self.serializer.dumpsCall("obj", "method", [a1], {})
         a2 = self.serializer.loads(ser)
-        print("ser", a2)
         a2 = a2["params"][0] if self.serializer.serializer_id == 3 else a2[2][0]      # 3=json serializer
         if type(a2) is array.array:
             assert a2 == a1
