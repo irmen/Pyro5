@@ -49,11 +49,11 @@ class Configuration:
         self.SOCK_REUSE = True  # so_reuseaddr on server sockets?
         self.SOCK_NODELAY = False  # tcp_nodelay on socket?
         self.DETAILED_TRACEBACK = False
-        self.THREADPOOL_SIZE = 40        # @todo still use this?
-        self.THREADPOOL_SIZE_MIN = 4     # @todo still use this?
+        self.THREADPOOL_SIZE = 80
+        self.THREADPOOL_SIZE_MIN = 4
         self.MAX_MESSAGE_SIZE = 1024 * 1024 * 1024  # 1 gigabyte
         self.BROADCAST_ADDRS = ["<broadcast>", "0.0.0.0"]
-        self.PREFER_IP_VERSION = 0  # 4, 6 or 0 (let OS choose according to RFC 3484)
+        self.PREFER_IP_VERSION = 0  # 4, 6 or 0 (0=let OS choose according to RFC 3484)
         self.SERIALIZER = "serpent"
         self.LOGWIRE = False
         self.ITER_STREAMING = True
