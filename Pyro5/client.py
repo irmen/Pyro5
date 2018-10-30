@@ -415,12 +415,12 @@ class Proxy(object):
     def _pyroClaimOwnership(self):
         """
         The current thread claims the ownership of this proxy from another thread.
-        Any existing connection will be closed first.
+        Any existing connection will remain active!
         """
         if get_ident() != self.__pyroOwnerThread:
-            if self._pyroConnection is not None:
-                self._pyroConnection.close()
-                self._pyroConnection = None
+            # if self._pyroConnection is not None:
+            #     self._pyroConnection.close()
+            #     self._pyroConnection = None
             self.__pyroOwnerThread = get_ident()
 
     def __serializeBlobArgs(self, vargs, kwargs, annotations, flags, objectId, methodname, serializer):
@@ -582,6 +582,7 @@ class BatchProxy(object):
                 yield result  # it is a regular result object, yield that and continue.
 
     def __call__(self, oneway=False):
+        self.__proxy._pyroClaimOwnership()
         results = self.__proxy._pyroInvokeBatch(self.__calls, oneway)
         self.__calls = []  # clear for re-use
         if not oneway:

@@ -31,6 +31,7 @@ def zoom():
     duration = 30.0
     wallclock_start = time.time()
     frames = 0
+    fps = 0
     cls()
     print("This is a mandelbrot zoom animation running without Pyro, in a single Python process.")
     time.sleep(2)

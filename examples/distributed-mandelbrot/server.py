@@ -1,15 +1,5 @@
-import math
 from Pyro5.api import expose, Daemon, locate_ns
-
-
-# A note about the abs(z) calls below not using abs(z),
-# but instead squaring the imaginary and real components itself:
-#
-# This is because using abs(z) triggers a performance issue on pypy on windows,
-# where it is much slower than it could have been. This seems to be an issue
-# with the hypot() function in Microsoft's 32 bits runtime library.
-# See bug report https://bitbucket.org/pypy/pypy/issues/2401
-# The problem doesn't occur on other Pypy implementations.
+import sys
 
 
 @expose
@@ -39,7 +29,7 @@ class Mandelbrot(object):
     def iterations(self, z):
         c = z
         for n in range(self.maxiters):
-            if z.real*z.real + z.imag*z.imag > 4:      # abs(z) > 2
+            if abs(z) > 2:
                 return n
             z = z*z + c
         return self.maxiters
@@ -62,25 +52,31 @@ class MandelbrotColorPixels(object):
         zi *= res_y/res_x  # aspect correction
         z = complex(zr, zi)
         c = z
+        iters = 0
         for iters in range(self.maxiters+1):
-            if z.real*z.real + z.imag*z.imag > 4:      # abs(z) > 2
+            if abs(z) > 2:
                 break
             z = z*z + c
         if iters >= self.maxiters:
             return 0, 0, 0
-        abs_z = math.sqrt(z.real*z.real + z.imag*z.imag)     # abs(z)
         r = (iters+32) % 255
-        g = (iters - math.log(abs_z)) % 255
-        b = (abs_z*iters) % 255
+        g = iters % 255
+        b = (iters+40) % 255
         return int(r), int(g), int(b)
 
 
 if __name__ == "__main__":
+    # spawn a Pyro daemon process
+    # (can't use threads, because of the GIL)
+    if len(sys.argv) != 2:
+        raise SystemExit("give argument: server_id number")
+
+    server_id = int(sys.argv[1])
     with Daemon() as d:
-        uri_1 = d.register(Mandelbrot)
-        uri_2 = d.register(MandelbrotColorPixels)
         with locate_ns() as ns:
-            ns.register(Mandelbrot._pyroId, uri_1, safe=True, metadata={"class:mandelbrot_calc"})
-            ns.register(MandelbrotColorPixels._pyroId, uri_2, safe=True, metadata={"class:mandelbrot_calc_color"})
-        print("Mandelbrot calculation server ready.")
+            mandel_server = d.register(Mandelbrot)
+            mandel_color_server = d.register(MandelbrotColorPixels)
+            ns.register("mandelbrot_"+str(server_id), mandel_server, safe=True, metadata={"class:mandelbrot_calc"})
+            ns.register("mandelbrot_color_"+str(server_id), mandel_color_server, safe=True, metadata={"class:mandelbrot_calc_color"})
+        print("Mandelbrot calculation server #{} ready.".format(server_id))
         d.requestLoop()

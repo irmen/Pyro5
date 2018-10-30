@@ -1,8 +1,8 @@
 # ascii animation of zooming a mandelbrot fractal,  z=z^2+c
 import os
 import time
-import threading
 import platform
+from concurrent import futures
 from Pyro5.api import locate_ns, Proxy, BatchProxy
 
 
@@ -11,44 +11,30 @@ class MandelZoomer(object):
     res_y = 40
 
     def __init__(self):
-        self.num_lines_lock = threading.Lock()
-        self.num_lines_ready = 0
-        self.all_lines_ready = threading.Event()
         self.result = []
         with locate_ns() as ns:
             mandels = ns.yplookup(meta_any={"class:mandelbrot_calc"})
-            mandels = list(mandels.items())
-        print("{0} mandelbrot calculation servers found.".format(len(mandels)))
+            self.mandels = [uri for _, (uri, meta) in mandels.items()]
+        print("{0} mandelbrot calculation servers found.".format(len(self.mandels)))
         if not mandels:
             raise ValueError("launch at least one mandelbrot calculation server before starting this")
         time.sleep(2)
-        self.mandels = [Proxy(uri) for _, (uri, meta) in mandels]
-
-    def batch_result(self, results):
-        num_result_lines = 0
-        for linenr, line in results:
-            self.result[linenr] = line
-            num_result_lines += 1
-        with self.num_lines_lock:
-            self.num_lines_ready += num_result_lines
-            if self.num_lines_ready >= self.res_y:
-                self.all_lines_ready.set()
 
     def screen(self, start, width):
         dr = width / self.res_x
         di = dr*(self.res_x/self.res_y)
         di *= 0.8   # aspect ratio correction
-        self.num_lines_ready = 0
-        self.all_lines_ready.clear()
         self.result = ["?"] * self.res_y
-        servers = [BatchProxy(proxy) for proxy in self.mandels]
-        for i in range(self.res_y):
-            server = servers[i % len(servers)]
-            server.calc_line(start, self.res_x, i*di, dr, i)
-        for batch in servers:
-            results = batch() # @todo the batched calls in the client are processed sequentially because Pyro5 no longer has async proxies itself - FIX THIS
-            self.batch_result(results)
-        self.all_lines_ready.wait(timeout=5)
+        servers = [BatchProxy(Proxy(uri)) for uri in self.mandels]
+        with futures.ThreadPoolExecutor(max_workers=len(servers)*2) as pool:
+            for i in range(self.res_y):
+                server = servers[i % len(servers)]
+                server.calc_line(start, self.res_x, i*di, dr, i)
+            tasks = [pool.submit(server) for server in servers]
+            for task in futures.as_completed(tasks):
+                lines = task.result()
+                for (linenr, line) in lines:
+                    self.result[linenr] = line
         return "\n".join(self.result)
 
     def cls(self):
