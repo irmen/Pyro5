@@ -38,6 +38,7 @@ class Mandelbrot(object):
 @expose
 class MandelbrotColorPixels(object):
     maxiters = 500
+
     def calc_photoimage_line(self, y, res_x, res_y):
         line = []
         for x in range(res_x):

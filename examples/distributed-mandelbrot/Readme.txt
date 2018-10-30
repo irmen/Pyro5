@@ -7,7 +7,7 @@ NOTE: use the "launch_servers.sh" shell script to launch the name server
 
 First, a few notes:
 - The ascii animation runs at 100x40 resolution so make sure your console window is large enough.
-- The maximum iteration count is set to a quite high value to make the calculcations
+- The maximum iteration count is set to a quite high value to make the calculations
   more time consuming. If you want you can change both maxiter values in server.py down
   to something more reasonable such as 256.
 - try using Pypy instead of CPython to improve the speed dramatically
