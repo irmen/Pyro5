@@ -4,7 +4,7 @@ python:
   - 3.5
   - 3.6
   - 3.7
-  - pypy3
+  - pypy3.5
 matrix:
   fast_finish: true
 
