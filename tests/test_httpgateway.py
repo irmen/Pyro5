@@ -104,6 +104,9 @@ def wsgiserver():
         def _pyroInvokeBatch(self, calls, oneway=False):
             return ["Name1"]
 
+        def _pyroClaimOwnership(self):
+            pass
+
     ws = WSGITestBase()
     old_get_ns = Pyro5.utils.httpgateway.get_nameserver
     Pyro5.utils.httpgateway.get_nameserver = lambda: NameServerDummyProxy()
