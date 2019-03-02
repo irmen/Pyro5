@@ -13,6 +13,11 @@ import time
 import threading
 import os
 from . import config, socketutil, errors
+try:
+    # first try selectors2 as it has better semantics when dealing with interrupted system calls
+    import selectors2 as selectors
+except ImportError:
+    import selectors
 
 log = logging.getLogger("Pyro5.threadpoolserver")
 _client_disconnect_lock = threading.Lock()
@@ -103,6 +108,7 @@ class SocketServer_Threadpool(object):
         self.daemon = self.sock = self._socketaddr = self.locationStr = self.pool = None
         self.shutting_down = False
         self.housekeeper = None
+        self._selector = selectors.DefaultSelector()
 
     def init(self, daemon, host, port, unixsocket=None):
         log.info("starting thread pool socketserver")
@@ -140,6 +146,7 @@ class SocketServer_Threadpool(object):
         self.pool = Pool()
         self.housekeeper = Housekeeper(daemon)
         self.housekeeper.start()
+        self._selector.register(self.sock, selectors.EVENT_READ, self)
 
     def __del__(self):
         if self.sock is not None:
@@ -183,6 +190,9 @@ class SocketServer_Threadpool(object):
         # all other (client) sockets are owned by their individual threads.
         assert self.sock in eventsockets
         try:
+            events = self._selector.select(config.POLLTIMEOUT)
+            if not events:
+                return
             csock, caddr = self.sock.accept()
             if self.shutting_down:
                 csock.close()

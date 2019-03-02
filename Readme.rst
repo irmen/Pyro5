@@ -20,6 +20,9 @@ This may or may not become the actual next major Pyro version. Feel free to repo
 
 **This is very much in development and can change or be canceled at any time. Use Pyro4 https://github.com/irmen/Pyro4 for real work instead.**
 
+Docs (Pyro4) are here: https://pyro4.readthedocs.io/
+
+Most stuff is still the same in Pyro5, but some things have changed. Here are the major changes over Pyro4:
 
 changes done based on original Pyro4
 ------------------------------------
