@@ -1,2 +1,15 @@
 include Readme.rst
 include LICENSE
+recursive-include certs *
+recursive-include tests *
+recursive-include examples *
+global-exclude */.svn/*
+global-exclude */.idea/*
+global-exclude *.class
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.coverage
+global-exclude .git
+global-exclude .gitignore
+global-exclude .tox
+global-exclude __pycache__
