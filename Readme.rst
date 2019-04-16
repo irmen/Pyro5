@@ -78,5 +78,4 @@ changes done based on original Pyro4
 
 @TODO:
 
-- create an alternative for Pyro4's async proxy, and fix the examples that use it: distributed-computing2, distributed-mandelbrot
 - separate protocol and network i/o logic to allow for async server implementation.
