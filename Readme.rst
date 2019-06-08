@@ -13,18 +13,15 @@ Pyro5 [work in progress]
 Pyro5 is an "overhauled, updated and modernized" Pyro4 (https://github.com/irmen/Pyro4):
 more efficient, faster, simpler, streamlined, and cleaned up. It requires Python 3.5 or later!
 
-I'm aiming to separate the actual network logic and the protocol/messaging logic so that it will be possible
-to use the protocol logic in different network i/o setups (such as an async eventloop based solution).
-
-This may or may not become the actual next major Pyro version. Feel free to report issues for suggestions or problems!
-
-**This is very much in development and can change or be canceled at any time. Use Pyro4 https://github.com/irmen/Pyro4 for real work instead.**
-
 Docs are here: https://pyro5.readthedocs.io/  (they are still being converted from Pyro4 to Pyro5)
+
+**Pyro5 is still in beta status and it is likely to receive a few changes in the near future. Use Pyro4 for production code for now.**
 
 
 What has changed since Pyro4
 ----------------------------
+
+If you're familiar with Pyro4, most of the things are the same in Pyro5. These are the changes though:
 
 - the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
