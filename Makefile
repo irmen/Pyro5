@@ -2,21 +2,17 @@
 PYTHON=python3
 
 all:
-	@echo "targets include sdist, wheel, docs, upload, install, clean"
-
-sdist:
-	$(PYTHON) setup.py sdist
-	@echo "Look in the dist/ directory"
-
-wheel:
-	$(PYTHON) setup.py bdist_wheel
-	@echo "Look in the dist/ directory"
+	@echo "targets include dist, docs, upload, install, clean"
 
 docs:
 	$(PYTHON) setup.py build_sphinx
 
-upload:
-	$(PYTHON) setup.py sdist bdist_wheel upload
+dist:
+	$(PYTHON) setup.py sdist bdist_wheel
+
+upload: dist
+	@echo "Uploading to Pypi using twine...."
+	twine upload dist/*
 
 install:
 	$(PYTHON) setup.py install
