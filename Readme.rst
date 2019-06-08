@@ -20,12 +20,11 @@ This may or may not become the actual next major Pyro version. Feel free to repo
 
 **This is very much in development and can change or be canceled at any time. Use Pyro4 https://github.com/irmen/Pyro4 for real work instead.**
 
-Docs (Pyro4) are here: https://pyro4.readthedocs.io/
+Docs are here: https://pyro5.readthedocs.io/  (they are still being converted from Pyro4 to Pyro5)
 
-Most stuff is still the same in Pyro5, but some things have changed. Here are the major changes over Pyro4:
 
-changes done based on original Pyro4
-------------------------------------
+What has changed since Pyro4
+----------------------------
 
 - the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
