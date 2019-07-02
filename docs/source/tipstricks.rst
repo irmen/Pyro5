@@ -13,11 +13,6 @@ Best practices
 
 .. index:: circular topology
 
-Avoid using insecure features.
-------------------------------
-
-Avoid using the ``pickle`` (and ``dill``, and ``cloudpickle``) serializers, they will make your solution insecure.
-
 Make as little as possible remotely accessible.
 -----------------------------------------------
 
@@ -70,8 +65,6 @@ Pyro is not designed to efficiently transfer large amounts of binary data over t
 Try to find another protocol that better suits this requirement.
 Read :ref:`binarytransfer` for some more details about this.
 How to deal with Numpy data (large *or* small) is explained here :ref:`numpy`.
-
-Note that Pyro has a 2 gigabyte message size limitation at this time.
 
 
 .. index:: object graphs
@@ -156,23 +149,6 @@ from all possible interfaces), sometimes it is possible to run only the name ser
 The success ratio of all this depends heavily on your network setup.
 
 
-.. index:: same Python version
-
-Same major Python version required when using pickle, cloudpickle, dill or marshal
-==================================================================================
-
-When Pyro is configured to use pickle, cloudpickle, dill or marshal as its serialization format, it is required to have the same *major* Python versions
-on your clients and your servers. Otherwise the different parties cannot decipher each others serialized data.
-This means you cannot let Python 2.x talk to Python 3.x with Pyro when using these serializers. However
-it should be fine to have Python 3.5 talk to Python 3.6 for instance.
-It may still be required to specify the pickle or dill protocol version though, because that needs to be the same on both ends as well.
-For instance, Python 3.4 introduced version 4 of the pickle protocol and as such won't be able to talk to Python 3.3 which is stuck
-on version 3 pickle protocol. You'll have to tell the Python 3.4 side to step down to protocol 3. There is a config item for that. The same will apply for dill protocol versions. If you are using cloudpickle, you can just set the pickle protocol version (as pickle is used under the hood).
-
-The implementation independent serialization protocols serpent and json don't have these limitations.
-
-
-
 .. index:: wire protocol version
 
 .. _wireprotocol:
@@ -213,55 +189,6 @@ To find out the protocol version that your client code is using, you can use thi
 
     $ python -c "import Pyro4.constants as c; print(c.PROTOCOL_VERSION)"
 
-
-
-.. index:: asynchronous, futures
-
-.. _future-functions:
-
-Asynchronous ('future') normal function calls
-=============================================
-Pyro provides an asynchronous proxy to call remote methods asynchronously, see :ref:`async-calls`.
-For normal Python code, Python provides a similar mechanism in the form of the
-:py:class:`Pyro4.futures.Future` class (also available as ``Pyro4.Future``).
-With a syntax that is slightly different from normal method calls,
-it provides the same asynchronous function calls as the asynchronous proxy has.
-Note that Python itself has a similar thing in the standard library since version 3.2, see
-http://docs.python.org/3/library/concurrent.futures.html#future-objects . However Pyro's Future
-object is available on older Python versions too. It works slightly differently and perhaps
-a little bit easier as well.
-
-You create a ``Future`` object for a callable that you want to execute in the background,
-and receive its results somewhere in the future::
-
-    def add(x,y):
-        return x+y
-
-    futurecall = Pyro4.Future(add)
-    result = futurecall(4,5)
-    # do some other stuff... then access the value
-    summation = result.value
-
-Actually calling the `Future` object returns control immediately and results in a :py:class:`Pyro4.futures.FutureResult`
-object. This is the exact same class as with the asynchrnous proxy. The most important attributes are ``value``, ``ready``
-and the ``wait`` method. See :ref:`async-calls` for more details.
-
-You can also chain multiple calls, so that the whole call chain is executed sequentially in the background.
-You can do this directly on the ``Future`` object,
-with the :py:meth:`Pyro4.futures.Future.then` method. It has the same signature as the ``then`` method from
-the ``FutureResult`` class::
-
-    futurecall = Pyro4.Future(something) \
-        .then(somethingelse, 44) \
-        .then(lastthing, optionalargument="something")
-
-There's also a :py:meth:`Pyro4.futures.Future.iferror` method that allows you to register a callback to be invoked
-when an exception occurs. This method also exists on the ``FutureResult`` class.
-See the :file:`futures` example for more details and example code.
-
-You can delay the execution of the future for a number of seconds via the :py:meth:`Pyro4.futures.Future.delay` method,
-and you can cancel it altogether via the :py:meth:`Pyro4.futures.Future.cancel` method (which only works if the future
-hasn't been evaluated yet).
 
 
 .. index:: DNS
@@ -387,7 +314,6 @@ over a 1000 Mbps LAN connection:
 ========== ========== ============= ================ ====================
 serializer str mb/sec bytes mb/sec  bytearray mb/sec bytearray w/iterator
 ========== ========== ============= ================ ====================
-pickle     77.8       79.6          69.9             35.0
 marshal    71.0       73.0          73.0             37.8
 serpent    25.0       14.1          13.5             13.5
 json       31.5       not supported not supported    not supported
@@ -395,25 +321,7 @@ json       31.5       not supported not supported    not supported
 
 The json serializer only works with strings, it can't serialize binary data at all.
 The serpent serializer can, but read the note above about why it's quite inefficent there.
-Marshal and pickle are relatively efficient, speed-wise. But beware, when using ``pickle``,
-there's quite a difference in dealing with various types:
-
-**pickle datatype differences**
-
-``str``
-    *Python 2.x:* efficient; directly encoded as a byte sequence, because that's what it is.
-    *Python 3.x:* inefficient; encoded in UTF-8 on the wire, because it is a unicode string.
-
-``bytes``
-    *Python 2.x:* same as ``str`` (Python 2.7)
-    *Python 3.x:* efficient; directly encoded as a byte sequence.
-
-``bytearray``
-    Inefficient; encoded as UTF-8 on the wire (pickle does this in both Python 2.x and 3.x)
-
-``array("B")`` (array of unsigned ints of size 1)
-    *Python 2.x:* very inefficient; every element is encoded as a separate token+value.
-    *Python 3.x:* efficient; uses machine type encoding on the wire (a byte sequence).
+Marshal is relatively efficient, speed-wise.
 
 ``numpy arrays``
     usually cannot be transferred directly, see :ref:`numpy`.
@@ -520,10 +428,6 @@ Choose one of the following options:
     the shape of the array separately.
 #.  If possible don't return the whole array. Redesign your API so that you might perhaps only return a single element from it,
     or a few, if that is all the client really needs.
-#.  Tell Pyro to use :py:mod:`pickle`, :py:mod:`cloudpickle` or :py:mod:`dill` as serializer. These serializers
-    *can* deal with numpy datatypes out of the box. However they have security implications.
-    See :doc:`security`. (If you choose to use them anyway, also be aware that you must tell your name server
-    about it as well, see :ref:`nameserver-pickle`)
 
 
 .. index::
@@ -887,9 +791,7 @@ object in the daemon you want to connect to. So don't use a PYRO or PYRONAME pre
 
 Closing the proxy or the daemon will *not* close the underlying user-supplied socket so you can use it again
 for another proxy (to access a different object). You created the socket(s) yourself,
-and you also have to close the socket(s) yourself. Also because the socketpair is internal
-to the process that created it, it's safe to use the pickle
-serializer on this connection. This can improve communication performance even further.
+and you also have to close the socket(s) yourself.
 
 See the ``socketpair`` example for two example programs (one using threads, the other using fork
 to create a child process).

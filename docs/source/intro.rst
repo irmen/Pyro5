@@ -18,6 +18,14 @@ To allow graceful upgrading, both versions can co-exist due to the new package n
 (this happened years ago as well when I upgraded Pyro 3 to Pyro4).
 
 
+Python 2.7 support will end
+===========================
+Because Python 2.7 will reach End Of Life in `January 2020 <https://devguide.python.org/#status-of-python-branches>`_
+I am strongly considering making Pyro5 only support Python 3.5 and newer somewhere down the line.
+If you still use Python 2.7 and need to use Pyro on that version, you'll have to stick to Pyro4 or one of the
+earlier Pyro5 versions.
+
+
 .. index:: features
 
 About Pyro: feature overview
@@ -34,12 +42,11 @@ Pyro is a pure Python library and runs on many different platforms and Python ve
 
 Here's a quick overview of Pyro's features:
 
-- written in 100% Python so extremely portable, runs on Python 2.7, Python 3.4 and newer, IronPython, Pypy 2 and 3.
+- written in 100% Python so extremely portable, runs on Python 2.7 (for now), Python 3.5 and newer, and Pypy
 - works between different system architectures and operating systems.
 - able to communicate between different Python versions transparently.
 - defaults to a safe serializer (`serpent <https://pypi.python.org/pypi/serpent>`_) that supports many Python data types.
-- supports different serializers (serpent, json, marshal, msgpack, pickle, cloudpickle, dill).
-- support for all Python data types that are serializable when using the 'pickle', 'cloudpickle' or 'dill' serializers [1]_.
+- supports different serializers (serpent, json, marshal, msgpack).
 - can use IPv4, IPv6 and Unix domain sockets.
 - optional secure connections via SSL/TLS (encryption, authentication and integrity), including certificate validation on both ends (2-way ssl).
 - lightweight client library available for .NET and Java native code ('Pyrolite', provided separately).
@@ -265,15 +272,3 @@ Results do vary depending on many factors such as:
 - python version being used
 
 Experiment with the ``benchmark``, ``batchedcalls`` and ``hugetransfer`` examples to see what results you get on your own setup.
-
-
-.. rubric:: Footnotes
-
-.. [1] When configured to use the :py:mod:`pickle`, :py:mod:`cloudpickle` or :py:mod:`dill` serializer,
-    your system may be vulnerable
-    because of the security risks of these serialization protocols (possibility of arbitrary
-    code execution).
-    Pyro does have some security measures in place to mitigate this risk somewhat.
-    They are described in the :doc:`security` chapter. It is strongly advised to read it.
-    By default, Pyro is configured to use the safe `serpent` serializer, so you won't have
-    to deal with these issues unless you configure it explicitly to use one of the other serializers.
