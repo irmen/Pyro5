@@ -9,7 +9,7 @@ Pyro5
 .. image:: https://travis-ci.org/irmen/Pyro5.svg?branch=master
     :target: https://travis-ci.org/irmen/Pyro5
 
-.. image:: https://img.shields.io/pypi/v/Pyro4.svg
+.. image:: https://img.shields.io/pypi/v/Pyro5.svg
     :target: https://pypi.python.org/pypi/Pyro5
 
 .. image:: https://anaconda.org/conda-forge/pyro5/badges/version.svg
@@ -22,9 +22,10 @@ Pyro5
     :target: https://lgtm.com/projects/g/irmen/Pyro5/alerts
 
 
+Pyro enables you to build applications in which objects can talk to each other over the network, with minimal programming effort. You can just use normal Python method calls to call objects on other machines. Pyro is a pure Python library so it runs on many different platforms and Python versions.
 
-Pyro5 is an "overhauled, updated and modernized" Pyro4 (https://github.com/irmen/Pyro4)
-It is more efficient, faster, simpler, more streamlined, and cleaner. It requires Python 3.5 or later.
+Pyro5 is the next major version of the Pyro library and requires Python 3.5 or later.
+
 
 Documentation
 -------------
