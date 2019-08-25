@@ -50,7 +50,8 @@ ERRNO_EADDRINUSE = [errno.EADDRINUSE]
 if hasattr(errno, "WSAEADDRINUSE"):
     ERRNO_EADDRINUSE.append(errno.WSAEADDRINUSE)
 
-USE_MSG_WAITALL = hasattr(socket, "MSG_WAITALL") and platform.system() != "Windows"  # waitall is not reliable on windows
+# msg_waitall has proven to be unreliable on windows
+USE_MSG_WAITALL = hasattr(socket, "MSG_WAITALL") and platform.system() != "Windows"
 
 
 def get_ip_address(hostname: str, workaround127: bool=False, version: int=None) \

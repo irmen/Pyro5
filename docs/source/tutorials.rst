@@ -234,26 +234,22 @@ on a particular warehouse. Here is the code (:file:`person.py`)::
     from __future__ import print_function
     import sys
 
-    if sys.version_info < (3, 0):
-        input = raw_input
-
-
     class Person(object):
         def __init__(self, name):
             self.name = name
-			
+
         def visit(self, warehouse):
             print("This is {0}.".format(self.name))
             self.deposit(warehouse)
             self.retrieve(warehouse)
             print("Thank you, come again!")
-			
+
         def deposit(self, warehouse):
             print("The warehouse contains:", warehouse.list_contents())
             item = input("Type a thing you want to store (or empty): ").strip()
             if item:
                 warehouse.store(self.name, item)
-				
+
         def retrieve(self, warehouse):
             print("The warehouse contains:", warehouse.list_contents())
             item = input("Type something you want to take (or empty): ").strip()
@@ -376,9 +372,6 @@ warehouse object to the remote object, and return the results to your code. So t
     import sys
     import Pyro4
     from person import Person
-
-    if sys.version_info<(3,0):
-        input = raw_input
 
     uri = input("Enter the uri of the warehouse: ").strip()
     warehouse = Pyro4.Proxy(uri)
@@ -787,11 +780,11 @@ phase 3: running it on different machines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before presenting the changes in phase 3, let's introduce some additional notions when working with Pyro.
 
-It's important for you to understand that, for security reasons, Pyro runs stuff on localhost by default. 
-If you want to access things from different machines, you'll have to tell Pyro to do that explicitly. 
+It's important for you to understand that, for security reasons, Pyro runs stuff on localhost by default.
+If you want to access things from different machines, you'll have to tell Pyro to do that explicitly.
 Here we show you how you can do this:
 
-Let's assume that you want to start the *name server* in such a way that it is accessible from other machines. 
+Let's assume that you want to start the *name server* in such a way that it is accessible from other machines.
 To do that, type in the console one of two options (with an appropriate -n argument):
 
     $ python -m Pyro4.naming -n your_hostname    # i.e. your_hostname = "192.168.1.99"
@@ -800,15 +793,15 @@ or simply:
 
     $ pyro4-ns -n your_hostname
 
-If you want to implement this concept on the *warehouse server*, you'll have to modify :file:`warehouse.py`. 
-Then, right before the ``serveSimple`` call, you have to tell it to bind the daemon on your hostname instead 
+If you want to implement this concept on the *warehouse server*, you'll have to modify :file:`warehouse.py`.
+Then, right before the ``serveSimple`` call, you have to tell it to bind the daemon on your hostname instead
 of localhost. One way to do this is by setting the ``HOST`` config item::
 
     Pyro4.config.HOST = "your_hostname_here"
     Pyro4.Daemon.serveSimple(...)
 
-Optionally, you can choose to leave the code alone, and instead set the ``PYRO_HOST`` environment variable 
-before starting the warehouse server. Another choice is to pass the required host (and perhaps even port) 
+Optionally, you can choose to leave the code alone, and instead set the ``PYRO_HOST`` environment variable
+before starting the warehouse server. Another choice is to pass the required host (and perhaps even port)
 arguments to ``serveSimple``::
 
     Pyro4.Daemon.serveSimple(
@@ -820,10 +813,10 @@ arguments to ``serveSimple``::
 
 Remember that if you want more details, refer to the chapters in this manual about the relevant Pyro components.
 
-Now, back on the new version of the *stock market server*, notice that this example already creates a daemon 
-object instead of using the :py:meth:`serveSimple` call. You'll have to modify :file:`stockmarket.py` because 
-that is the one creating a daemon. But you'll only have to add the proper ``host``and ``port`` arguments to 
-the construction of the Daemon, to set it to your machine name instead of the default of localhost. Let's see 
+Now, back on the new version of the *stock market server*, notice that this example already creates a daemon
+object instead of using the :py:meth:`serveSimple` call. You'll have to modify :file:`stockmarket.py` because
+that is the one creating a daemon. But you'll only have to add the proper ``host``and ``port`` arguments to
+the construction of the Daemon, to set it to your machine name instead of the default of localhost. Let's see
 the few minor changes that are required in the code:
 
     ...
@@ -833,7 +826,7 @@ the few minor changes that are required in the code:
     with Pyro4.Daemon(host=HOST_IP, port=HOST_PORT) as daemon:
     ...
 
-Of course, you could also change the ``HOST`` config item (either in the code itself, or by setting 
+Of course, you could also change the ``HOST`` config item (either in the code itself, or by setting
 the ``PYRO_HOST`` environment variable before launching).
 
 Other means of creating connections

@@ -10,13 +10,9 @@ import time
 import sys
 import logging
 import os
+import selectors
 from collections import defaultdict
 from . import config, socketutil, errors
-try:
-    # first try selectors2 as it has better semantics when dealing with interrupted system calls
-    import selectors2 as selectors
-except ImportError:
-    import selectors
 
 log = logging.getLogger("Pyro5.multiplexserver")
 
@@ -25,9 +21,6 @@ class SocketServer_Multiplex(object):
     """Multiplexed transport server for socket connections (uses select, poll, kqueue, ...)"""
     def __init__(self):
         self.sock = self.daemon = self.locationStr = None
-        if selectors is None:
-            raise RuntimeError("This Python installation doesn't have the 'selectors2' or 'selectors34' module installed, " +
-                               "which is required to use Pyro's multiplex server. Install it, or use the threadpool server instead.")
         self.selector = selectors.DefaultSelector()
         self.shutting_down = False
 

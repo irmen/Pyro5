@@ -493,10 +493,6 @@ class _StreamResultIterator(object):
     def __iter__(self):
         return self
 
-    def next(self):
-        # python 2.x support
-        return self.__next__()
-
     def __next__(self):
         if self.proxy is None:
             raise StopIteration

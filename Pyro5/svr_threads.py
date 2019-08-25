@@ -12,12 +12,8 @@ import sys
 import time
 import threading
 import os
+import selectors
 from . import config, socketutil, errors
-try:
-    # first try selectors2 as it has better semantics when dealing with interrupted system calls
-    import selectors2 as selectors
-except ImportError:
-    import selectors
 
 log = logging.getLogger("Pyro5.threadpoolserver")
 _client_disconnect_lock = threading.Lock()
@@ -326,8 +322,7 @@ class Pool(object):
             time.sleep(0.1)
             idle, self.idle = self.idle, set()
             busy, self.busy = self.busy, set()
-            # check if the threads that are joined are not the current thread,
-            # otherwise Python 2.x crashes with "cannot join current thread".
+            # check if the threads that are joined are not the current thread.
             current_thread = threading.current_thread()
             while idle:
                 p = idle.pop()

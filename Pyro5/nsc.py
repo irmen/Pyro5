@@ -8,7 +8,7 @@ from . import errors, core
 
 
 def handle_command(namesrv, cmd, args):
-    def printListResult(resultdict, title=""):
+    def print_list_result(resultdict, title=""):
         print("--------START LIST %s" % title)
         for name, (uri, metadata) in sorted(resultdict.items()):
             print("%s --> %s" % (name, uri))
@@ -22,14 +22,14 @@ def handle_command(namesrv, cmd, args):
 
     def cmd_listprefix():
         if len(args) == 0:
-            printListResult(namesrv.list(return_metadata=True))
+            print_list_result(namesrv.list(return_metadata=True))
         else:
-            printListResult(namesrv.list(prefix=args[0], return_metadata=True), "- prefix '%s'" % args[1])
+            print_list_result(namesrv.list(prefix=args[0], return_metadata=True), "- prefix '%s'" % args[1])
 
     def cmd_listregex():
         if len(args) != 1:
             raise SystemExit("requires one argument: pattern")
-        printListResult(namesrv.list(regex=args[0], return_metadata=True), "- regex '%s'" % args[1])
+        print_list_result(namesrv.list(regex=args[0], return_metadata=True), "- regex '%s'" % args[1])
 
     def cmd_lookup():
         if len(args) != 1:
@@ -75,12 +75,12 @@ def handle_command(namesrv, cmd, args):
     def cmd_yplookup_all():
         if len(args) < 1:
             raise SystemExit("requires at least one metadata tag argument")
-        printListResult(namesrv.yplookup(meta_all=args, return_metadata=True), " - searched by metadata")
+        print_list_result(namesrv.yplookup(meta_all=args, return_metadata=True), " - searched by metadata")
 
     def cmd_yplookup_any():
         if len(args) < 1:
             raise SystemExit("requires at least one metadata tag argument")
-        printListResult(namesrv.yplookup(meta_any=args, return_metadata=True), " - searched by metadata")
+        print_list_result(namesrv.yplookup(meta_any=args, return_metadata=True), " - searched by metadata")
 
     commands = {
         "ping": cmd_ping,

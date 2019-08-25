@@ -235,13 +235,13 @@ class Daemon(object):
         if natport == 0:
             # expose internal port number as NAT port as well. (don't use port because it could be 0 and will be chosen by the OS)
             natport_for_loc = int(self.locationStr.split(":")[1])
-        #: The NAT-location (str of the form ``nathost:natportnumber``) on which the Daemon is exposed for use with NAT-routing
+        # The NAT-location (str of the form ``nathost:natportnumber``) on which the Daemon is exposed for use with NAT-routing
         self.natLocationStr = "%s:%d" % (nathost, natport_for_loc) if nathost else None
         if self.natLocationStr:
             log.debug("NAT address is %s", self.natLocationStr)
         pyroObject = interface(self)
         pyroObject._pyroId = core.DAEMON_NAME
-        #: Dictionary from Pyro object id to the actual Pyro object registered by this id
+        # Dictionary from Pyro object id to the actual Pyro object registered by this id
         self.objectsById = {pyroObject._pyroId: pyroObject}
         log.debug("pyro protocol version: %d" % protocol.PROTOCOL_VERSION)
         self._pyroInstances = {}   # pyro objects for instance_mode=single (singletons, just one per daemon)

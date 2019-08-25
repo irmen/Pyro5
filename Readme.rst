@@ -12,10 +12,12 @@ Pyro5 [work in progress]
 
 Pyro5 is an "overhauled, updated and modernized" Pyro4 (https://github.com/irmen/Pyro4):
 more efficient, faster, simpler, streamlined, and cleaned up. It requires Python 3.5 or later!
+There is no support for Python 2.7 (which will be EOL in january 2020)
 
-Docs are here: https://pyro5.readthedocs.io/  (they are still being converted from Pyro4 to Pyro5)
+Documentation
+-------------
 
-**Pyro5 is still in beta status and it is likely to receive a few changes in the near future. Use Pyro4 for production code for now.**
+Docs are here: https://pyro5.readthedocs.io/  (they are still being updated from Pyro4 to Pyro5)
 
 
 What has changed since Pyro4
@@ -23,6 +25,7 @@ What has changed since Pyro4
 
 If you're familiar with Pyro4, most of the things are the same in Pyro5. These are the changes though:
 
+- Requires Python 3.5 or newer.
 - the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
   - Pyro5 is the new package name (duh)

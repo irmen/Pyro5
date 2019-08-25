@@ -191,8 +191,7 @@ serializer, for instance. Set the desired serializer name in ``proxy._pyroSerial
 .. note::
     Since Pyro 4.20 the default serializer is "``serpent``". Serpent is secure but cannot
     serialize all types (by design). Some types are serialized into a different form such as
-    a string or a dict. Strings are serialized/deserialized into unicode at all times -- be aware
-    of this if you're using Python 2.x (strings in Python 3.x are always unicode already).
+    a string or a dict. Strings are serialized/deserialized into unicode at all times.
 
 .. note::
     The serializer(s) that a Pyro server/daemon accepts, is controlled by a different

@@ -1,4 +1,4 @@
-start*****************
+*****************
 Intro and Example
 *****************
 
@@ -12,18 +12,22 @@ Pyro5? Pyro4?
 =============
 
 Pyro5 is the next major version after `Pyro4 <http://pypi.python.org/pypi/Pyro4/>`_.
-It borrows most of the concepts of Pyro4, but has undergone some major improvements.
+It borrows most of the concepts of Pyro4, but includes some major improvements.
 Using it should be very familiar to current Pyro4 users, but Pyro5 is not compatible with Pyro4 and vice versa.
 To allow graceful upgrading, both versions can co-exist due to the new package name
 (this happened years ago as well when I upgraded Pyro 3 to Pyro4).
 
+Pyro5 is the new major version of Pyro, and this is where new features and changes will appear.
+Even though the API is pretty mature and extensible, there is no guarantee that no breaking API changes
+will occur in new versions to support possible new features or improvements.
 
-Python 2.7 support will end
-===========================
-Because Python 2.7 will reach End Of Life in `January 2020 <https://devguide.python.org/#status-of-python-branches>`_
-I am strongly considering making Pyro5 only support Python 3.5 and newer somewhere down the line.
-If you still use Python 2.7 and need to use Pyro on that version, you'll have to stick to Pyro4 or one of the
-earlier Pyro5 versions.
+If you absolutely require a stable API, consider using `Pyro4 <http://pypi.python.org/pypi/Pyro4/>`_ for production code for now.
+Pyro4 is in maintenance mode and only gets important bug fixes and security fixes, and no new features or other changes.
+
+**Python 2.7:**
+Also, if you're still using Python 2.7, you can't use Pyro5 because it requires Python 3.5 or newer.
+In this case use Pyro4 as well (or better: upgrade to Python 3.x because 2.7 will be End Of Life after january 2020)
+
 
 
 .. index:: features
@@ -42,7 +46,7 @@ Pyro is a pure Python library and runs on many different platforms and Python ve
 
 Here's a quick overview of Pyro's features:
 
-- written in 100% Python so extremely portable, runs on Python 2.7 (for now), Python 3.5 and newer, and Pypy
+- written in 100% Python so extremely portable, runs on Python 3.5 and newer, and Pypy3
 - works between different system architectures and operating systems.
 - able to communicate between different Python versions transparently.
 - defaults to a safe serializer (`serpent <https://pypi.python.org/pypi/serpent>`_) that supports many Python data types.

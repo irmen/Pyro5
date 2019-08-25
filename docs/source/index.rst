@@ -7,7 +7,7 @@ Pyro - Python Remote Objects - |version|
     :alt: PYRO logo
 
 
-**@TODO: THIS MANUAL IS STILL BEING CONVERTED FROM Pyro4 TO Pyro5**
+**@TODO: THIS MANUAL IS STILL BEING UPDATED FROM Pyro4 TO Pyro5**
 
 
 .. index:: what is Pyro
@@ -23,8 +23,12 @@ Pyro is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.n
 
 Pyro can be found on Pypi as `Pyro5 <http://pypi.python.org/pypi/Pyro5/>`_.  Source on Github: https://github.com/irmen/Pyro5
 
-**Pyro5 is still in beta status and it is likely to receive a few changes still in the near future.**
-Use `Pyro4 <http://pypi.python.org/pypi/Pyro4/>`_ for production code for now.
+Pyro5 is the new major version of Pyro, and this is where new features and changes will appear.
+Even though the API is pretty mature and extensible, there is no guarantee that no breaking API changes
+will occur in new versions to support possible new features or improvements.
+
+If you absolutely require a stable API, consider using `Pyro4 <http://pypi.python.org/pypi/Pyro4/>`_ for production code for now.
+Pyro4 is in maintenance mode and only gets important bug fixes and security fixes, and no new features or other changes.
 
 
 .. toctree::

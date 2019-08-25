@@ -106,10 +106,6 @@ def format_traceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
     the result will contain info on the variables in each stack frame.
     You don't have to provide the exception info objects, if you omit them,
     this function will obtain them itself using ``sys.exc_info()``."""
-    if ex_type is not None and ex_value is None and ex_tb is None:
-        # possible old (3.x) call syntax where caller is only providing exception object
-        if type(ex_type) is not type:
-            raise TypeError("invalid argument: ex_type should be an exception type, or just supply no arguments at all")
     if ex_type is None and ex_tb is None:
         ex_type, ex_value, ex_tb = sys.exc_info()
     if detailed:

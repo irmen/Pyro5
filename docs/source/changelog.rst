@@ -4,6 +4,7 @@ Change Log
 
 **Pyro 5.4**
 
+- made the decision that Pyro5 will require Python 3.5 or newer, and won't support Python 2.7 (which will be EOL in january 2020)
 - begun making Pyro5 specific documentation instead of referring to Pyro4
 - tox tests now include Python 3.8 as well (because 3.8 beta was released recently)
 - dropped support for Python 3.4 (which has reached end-of-life status). Supported Python versions are now 2.7, and 3.5 or newer.

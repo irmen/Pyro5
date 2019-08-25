@@ -229,8 +229,6 @@ class SerializerBase(object):
         elif data.get("__exception__", False):
             if classname in all_exceptions:
                 return SerializerBase.make_exception(all_exceptions[classname], data)
-            # python 2.x: exceptions.ValueError
-            # python 3.x: builtins.ValueError
             # translate to the appropriate namespace...
             namespace, short_classname = classname.split('.', 1)
             if namespace in ("builtins", "exceptions"):
