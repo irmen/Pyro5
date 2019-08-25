@@ -92,5 +92,11 @@ class TestJsonSerializer(TestSerpentSerializer):
     serializer = Pyro5.serializers.serializers["json"]
 
 
-class TestMsgpackSerializer(TestSerpentSerializer):
-    serializer = Pyro5.serializers.serializers["msgpack"]
+try:
+    import msgpack
+
+    class TestMsgpackSerializer(TestSerpentSerializer):
+        serializer = Pyro5.serializers.serializers["msgpack"]
+
+except ImportError:
+    pass

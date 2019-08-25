@@ -47,9 +47,8 @@ Third party libraries that Pyro5 uses
 `serpent <https://pypi.python.org/pypi/serpent>`_ - required, 1.27 or newer
     Should be installed automatically when you install Pyro.
 
-`msgpack <https://pypi.python.org/pypi/msgpack>`_ - required (for now, may become optional), 0.5.2 or newer
+`msgpack <https://pypi.python.org/pypi/msgpack>`_ - optional, 0.5.2 or newer
     Install this to use the msgpack serializer.
-    Right now it is required, and should be installed automatically when you install Pyro.
 
 
 Stuff you get extra in the source distribution archive and not with packaged versions

@@ -16,7 +16,12 @@ import inspect
 import marshal
 import json
 import serpent
-import msgpack
+try:
+    import msgpack
+    if msgpack.version < (0, 5, 2):
+        raise RuntimeError("requires msgpack 0.5.2 or better")
+except ImportError:
+    msgpack = None
 from . import errors
 
 __all__ = ["SerializerBase", "SerpentSerializer", "JsonSerializer", "MarshalSerializer", "MsgpackSerializer",
@@ -32,9 +37,6 @@ else:
 ver = tuple(map(int, ver.split(".")))
 if ver < (1, 27):
     raise RuntimeError("requires serpent 1.27 or better")
-
-if msgpack.version < (0, 5, 2):
-    raise RuntimeError("requires msgpack 0.5.2 or better")
 
 
 all_exceptions = {}
@@ -494,9 +496,12 @@ class MsgpackSerializer(SerializerBase):
 serializers = {
     "serpent": SerpentSerializer(),
     "marshal": MarshalSerializer(),
-    "json": JsonSerializer(),
-    "msgpack": MsgpackSerializer()
+    "json": JsonSerializer()
 }
+
+if msgpack:
+    serializers["msgpack"] = MsgpackSerializer()
+
 
 """The available serializers by their internal id"""
 serializers_by_id = {ser.serializer_id: ser for ser in serializers.values()}

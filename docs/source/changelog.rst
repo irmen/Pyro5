@@ -2,6 +2,11 @@
 Change Log
 **********
 
+**Pyro 5.5**
+
+- made msgpack serializer optional
+
+
 **Pyro 5.4**
 
 - made the decision that Pyro5 will require Python 3.5 or newer, and won't support Python 2.7 (which will be EOL in january 2020)

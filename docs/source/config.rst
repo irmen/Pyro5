@@ -100,7 +100,7 @@ SOCK_REUSE                bool    True                    Should SO_REUSEADDR be
 PREFER_IP_VERSION         int     4                       The IP address type that is preferred (4=ipv4, 6=ipv6, 0=let OS decide).
 THREADPOOL_SIZE           int     40                      For the thread pool server: maximum number of threads running
 THREADPOOL_SIZE_MIN       int     4                       For the thread pool server: minimum number of threads running
-SERIALIZER                str     serpent                 The wire protocol serializer to use for clients/proxies (one of: serpent, json, marshal, msgpack, pickle, cloudpickle, dill)
+SERIALIZER                str     serpent                 The wire protocol serializer to use for clients/proxies (one of: serpent, json, marshal, msgpack)
 SERIALIZERS_ACCEPTED      set     json,marshal,serpent    The wire protocol serializers accepted in the server/daemon. In your code it should be a set of strings,
                                                           use a comma separated string instead when setting the shell environment variable.
 PICKLE_PROTOCOL_VERSION   int     highest possible        The pickle protocol version to use, if pickle is selected as serializer. Defaults to pickle.HIGHEST_PROTOCOL
