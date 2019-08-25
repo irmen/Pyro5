@@ -1,5 +1,5 @@
-Pyro5 [work in progress]
-========================
+Pyro5
+=====
 
 *Remote objects communication library, fifth major version*
 
@@ -23,15 +23,12 @@ Pyro5 [work in progress]
 
 
 
-Pyro5 is an "overhauled, updated and modernized" Pyro4 (https://github.com/irmen/Pyro4):
-more efficient, faster, simpler, streamlined, and cleaned up. It requires Python 3.5 or later!
-There is no support for Python 2.7 (which will be EOL in january 2020)
+Pyro5 is an "overhauled, updated and modernized" Pyro4 (https://github.com/irmen/Pyro4)
+It is more efficient, faster, simpler, more streamlined, and cleaner. It requires Python 3.5 or later.
 
 Documentation
 -------------
-
 Docs are here: https://pyro5.readthedocs.io/  (they are still being updated from Pyro4 to Pyro5)
-
 
 What has changed since Pyro4
 ----------------------------

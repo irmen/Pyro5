@@ -9,6 +9,7 @@ Change Log
 - tox tests now include Python 3.8 as well (because 3.8 beta was released recently)
 - dropped support for Python 3.4 (which has reached end-of-life status). Supported Python versions are now 2.7, and 3.5 or newer.
   (the life cycle status of the Python versions can be seen here https://devguide.python.org/#status-of-python-branches)
+- code cleanups, removing some old compatibility stuff etc.
 
 
 **Pyro 5.3**
