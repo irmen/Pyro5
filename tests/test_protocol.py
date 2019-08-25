@@ -61,12 +61,12 @@ class TestReceivingMessage:
         msg.data[38] = 0xff   # kill the magic number
         with pytest.raises(Pyro5.errors.ProtocolError) as x:
             Pyro5.protocol.ReceivingMessage.validate(msg.data)
-        assert "magic number" in str(x)
+        assert "magic number" in str(x.value)
         msg.data[38] = orig_magic   # repair the magic number
         msg.data[5] = 0xff   # invalid protocol version
         with pytest.raises(Pyro5.errors.ProtocolError) as x:
             Pyro5.protocol.ReceivingMessage.validate(msg.data)
-        assert "protocol version" in str(x)
+        assert "protocol version" in str(x.value)
 
     def test_create_nopayload(self):
         send_msg = self.createmessage(compression=True)
