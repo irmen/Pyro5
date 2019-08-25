@@ -1,4 +1,4 @@
-.PHONY: all sdist wheel docs install upload clean test
+.PHONY: all dist sdist wheel docs install upload clean test
 PYTHON=python3
 
 all:
