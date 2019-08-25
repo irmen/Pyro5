@@ -9,6 +9,19 @@ Pyro5 [work in progress]
 .. image:: https://travis-ci.org/irmen/Pyro5.svg?branch=master
     :target: https://travis-ci.org/irmen/Pyro5
 
+.. image:: https://img.shields.io/pypi/v/Pyro4.svg
+    :target: https://pypi.python.org/pypi/Pyro5
+
+.. image:: https://anaconda.org/conda-forge/pyro5/badges/version.svg
+    :target: https://anaconda.org/conda-forge/pyro5
+
+.. image:: https://img.shields.io/lgtm/grade/python/g/irmen/Pyro5.svg?logo=lgtm&logoWidth=18
+    :target: https://lgtm.com/projects/g/irmen/Pyro5/context:python
+
+.. image:: https://img.shields.io/lgtm/alerts/g/irmen/Pyro5.svg?logo=lgtm&logoWidth=18
+    :target: https://lgtm.com/projects/g/irmen/Pyro5/alerts
+
+
 
 Pyro5 is an "overhauled, updated and modernized" Pyro4 (https://github.com/irmen/Pyro4):
 more efficient, faster, simpler, streamlined, and cleaned up. It requires Python 3.5 or later!
