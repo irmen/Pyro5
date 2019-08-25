@@ -99,12 +99,9 @@ def get_interface(ip_address: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Ad
     if isinstance(ip_address, str):
         ip_address = get_ip_address(ip_address)
     family = socket.AF_INET if ip_address.version == 4 else socket.AF_INET6
-    sock = socket.socket(family, socket.SOCK_DGRAM)
-    try:
+    with socket.socket(family, socket.SOCK_DGRAM) as sock:
         sock.connect((str(ip_address), 53))  # 53=dns
         return ipaddress.ip_interface(sock.getsockname()[0])
-    finally:
-        sock.close()
 
 
 def __retrydelays():
@@ -500,11 +497,8 @@ def family_str(sock) -> str:
 def find_probably_unused_port(family: int=socket.AF_INET, socktype: int=socket.SOCK_STREAM) -> int:
     """Returns an unused port that should be suitable for binding (likely, but not guaranteed).
     This code is copied from the stdlib's test.test_support module."""
-    tempsock = socket.socket(family, socktype)
-    try:
-        return bind_unused_port(tempsock)
-    finally:
-        tempsock.close()
+    with socket.socket(family, socktype) as sock:
+        return bind_unused_port(sock)
 
 
 def bind_unused_port(sock: socket.socket, host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]='localhost') -> int:

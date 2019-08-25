@@ -74,11 +74,9 @@ class SocketServer_ExistingConnection(object):
         try:
             self.daemon.handleRequest(self.conn)
             return True
-        except (socket.error, errors.ConnectionClosedError, errors.SecurityError) as x:
+        except (socket.error, errors.ConnectionClosedError, errors.SecurityError):
             # client went away or caused a security error.
             # close the connection silently.
-            ex_t, ex_v, ex_tb = sys.exc_info()
-            tb = errors.format_traceback(ex_t, ex_v, ex_tb)
             try:
                 peername = self.conn.sock.getpeername()
                 log.debug("disconnected %s", peername)
