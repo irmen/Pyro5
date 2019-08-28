@@ -88,7 +88,7 @@ class SocketServer_ExistingConnection(object):
             # for timeout errors we're not really interested in detailed traceback info
             log.warning("error during handleRequest: %s" % x)
             return False
-        except:
+        except Exception:
             # other error occurred, close the connection, but also log a warning
             ex_t, ex_v, ex_tb = sys.exc_info()
             tb = errors.format_traceback(ex_t, ex_v, ex_tb)

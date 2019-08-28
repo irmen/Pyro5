@@ -37,7 +37,7 @@ print("Customers currently in the shop: %s" % shop.customers())
 
 try:
     receipt = shop.payByName("Harry")
-except:
+except Exception:
     print("ERROR: %s" % ("".join(Pyro5.errors.get_pyro_traceback())))
 print("Harry payed. The cart now contains: %s (should be empty)" % harrysCart.getContents())
 print("Harry got this receipt:")
@@ -53,7 +53,7 @@ shop.leave("Sally")
 print("Shoplifter is leaving. (should be impossible i.e. give an error)")
 try:
     shop.leave("shoplifter")
-except:
+except Exception:
     print("".join(Pyro5.errors.get_pyro_traceback()))
 
 print("Harry is attempting to put stuff back in his cart again,")

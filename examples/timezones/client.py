@@ -20,7 +20,7 @@ def test():
                     print("    tzinfo =", date1.tzinfo)
                 else:
                     print("    no tzinfo attribute")
-        except:
+        except Exception:
             print("ERROR!")
             traceback.print_exc()
 
@@ -34,7 +34,7 @@ def test():
                 date2 = serv.echo(date1)
                 print("{0}\n  {1} ({2})\n    {3}".format(date2, date2.tzinfo, type(date2.tzinfo), date2.strftime(fmt)))
                 assert date1 == date2
-        except:
+        except Exception:
             print("ERROR!")
             traceback.print_exc()
 
@@ -48,7 +48,7 @@ def test():
                 date2 = serv.echo(date1)
                 print("{0}\n  {1} ({2})\n    {3}".format(date2, date2.tzinfo, type(date2.tzinfo), date2.strftime(fmt)))
                 assert date1 == date2
-        except:
+        except Exception:
             print("ERROR!")
             traceback.print_exc()
 
@@ -58,7 +58,7 @@ print("\n******* serpent *******")
 config.SERIALIZER = "serpent"
 try:
     test()
-except:
+except Exception:
     import traceback
     traceback.print_exc()
 
@@ -67,7 +67,7 @@ print("\n******* json *******")
 config.SERIALIZER = "json"
 try:
     test()
-except:
+except Exception:
     import traceback
     traceback.print_exc()
 
@@ -76,7 +76,7 @@ print("\n******* msgpack *******")
 config.SERIALIZER = "msgpack"
 try:
     test()
-except:
+except Exception:
     import traceback
     traceback.print_exc()
 
@@ -85,7 +85,7 @@ print("\n******* marshal *******")
 config.SERIALIZER = "marshal"
 try:
     test()
-except:
+except Exception:
     import traceback
     traceback.print_exc()
 

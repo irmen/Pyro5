@@ -10,13 +10,13 @@ class CallbackServer(object):
         callback._pyroClaimOwnership()
         try:
             callback.call1()
-        except:
+        except Exception:
             print("got an exception from the callback:")
             print("".join(Pyro5.errors.get_pyro_traceback()))
         print("\n\nserver: doing callback 2 to client")
         try:
             callback.call2()
-        except:
+        except Exception:
             print("got an exception from the callback:")
             print("".join(Pyro5.errors.get_pyro_traceback()))
         print("server: callbacks done.\n")

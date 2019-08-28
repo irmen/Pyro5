@@ -12,7 +12,7 @@ class QuoteGen(object):
             if len(quote) > 0:
                 return quote
             return "This system cannot provide you a good fortune, install 'fortune'"
-        except:
+        except Exception:
             return "This system knows no witty quotes :-("
 
 

@@ -18,7 +18,7 @@ for element in echoserver.generator():
 
 try:
     echoserver.error()
-except:
+except Exception:
     print("\ncaught an exception (expected), traceback:")
     print("".join(Pyro5.errors.get_pyro_traceback()))
 

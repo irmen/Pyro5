@@ -4,6 +4,7 @@ import platform
 import threading
 import socket
 import pytest
+import contextlib
 from Pyro5 import config, socketutil
 
 
@@ -114,18 +115,14 @@ class TestSocketutil:
         assert socket.AF_INET == s.family
         bs = socketutil.create_bc_socket()
         assert socket.AF_INET == bs.family
-        try:
+        with contextlib.suppress(socket.error):
             host, port = s.getsockname()
             # can either fail with socket.error or return (host,0)
             assert 0 == port
-        except socket.error:
-            pass
-        try:
+        with contextlib.suppress(socket.error):
             host, port = bs.getsockname()
             # can either fail with socket.error or return (host,0)
             assert 0 == port
-        except socket.error:
-            pass
         s.close()
         bs.close()
 
@@ -136,18 +133,14 @@ class TestSocketutil:
         assert socket.AF_INET6 == s.family
         bs = socketutil.create_bc_socket(ipv6=True)
         assert socket.AF_INET6 == bs.family
-        try:
+        with contextlib.suppress(socket.error):
             host, port, _, _ = s.getsockname()
             # can either fail with socket.error or return (host,0)
             assert 0 == port
-        except socket.error:
-            pass
-        try:
+        with contextlib.suppress(socket.error):
             host, port, _, _ = bs.getsockname()
             # can either fail with socket.error or return (host,0)
             assert 0 == port
-        except socket.error:
-            pass
         s.close()
         bs.close()
 

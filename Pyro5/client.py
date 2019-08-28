@@ -7,6 +7,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 import time
 import logging
 import serpent
+import contextlib
 from . import config, core, serializers, protocol, errors, socketutil
 try:
     from greenlet import getcurrent as get_ident
@@ -76,10 +77,8 @@ class Proxy(object):
 
     def __del__(self):
         if hasattr(self, "_pyroConnection"):
-            try:
+            with contextlib.suppress(Exception):
                 self._pyroRelease()
-            except:
-                pass
 
     def __getattr__(self, name):
         if name in Proxy.__pyroAttributes:
@@ -522,12 +521,10 @@ class _StreamResultIterator(object):
                 # it decides to gc old iterator objects *during a new call on the proxy*.
                 # If we use the same proxy and do a call in between, the other call on the proxy will get an out of sync seq and crash!
                 # We create a temporary second proxy to call close_stream on. This is inefficient, but avoids the problem.
-                try:
+                with contextlib.suppress(errors.CommunicationError):
                     with self.proxy.__copy__() as closingProxy:
                         closingProxy._pyroInvoke("close_stream", [self.streamId], {},
                                                  flags=protocol.FLAGS_ONEWAY, objectId=core.DAEMON_NAME)
-                except errors.CommunicationError:
-                    pass
         self.proxy = None
 
 

@@ -1,5 +1,6 @@
 import array
 import uuid
+import contextlib
 import Pyro5.serializers
 from Pyro5.api import URI, Proxy, Daemon
 
@@ -92,11 +93,8 @@ class TestJsonSerializer(TestSerpentSerializer):
     serializer = Pyro5.serializers.serializers["json"]
 
 
-try:
+with contextlib.suppress(ImportError):
     import msgpack
 
     class TestMsgpackSerializer(TestSerpentSerializer):
         serializer = Pyro5.serializers.serializers["msgpack"]
-
-except ImportError:
-    pass

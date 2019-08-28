@@ -1,4 +1,5 @@
 import threading
+import contextlib
 from Pyro5.api import expose, oneway, Proxy, Daemon
 
 
@@ -33,15 +34,13 @@ class Chatter(object):
         print('People on this channel: %s' % (', '.join(people)))
         print('Ready for input! Type /quit to quit')
         try:
-            try:
+            with contextlib.suppress(EOFError):
                 while not self.abort:
                     line = input('> ').strip()
                     if line == '/quit':
                         break
                     if line:
                         self.chatbox.publish(self.channel, self.nick, line)
-            except EOFError:
-                pass
         finally:
             self.chatbox.leave(self.channel, self.nick)
             self.abort = 1

@@ -9,6 +9,7 @@ import re
 import logging
 import socket
 import time
+import contextlib
 import threading
 from collections.abc import MutableMapping
 try:
@@ -53,10 +54,8 @@ class MemoryStorage(dict):
 
     def remove_items(self, items):
         for item in items:
-            try:
+            if item in self:
                 del self[item]
-            except KeyError:
-                pass
 
     def close(self):
         pass
@@ -605,10 +604,8 @@ class BroadcastServer(object):
     def close(self):
         log.debug("ns broadcast server closing")
         self.running = False
-        try:
+        with contextlib.suppress(OSError, socket.error):
             self.sock.shutdown(socket.SHUT_RDWR)
-        except (OSError, socket.error):
-            pass
         self.sock.close()
 
     def getPort(self):
@@ -631,22 +628,18 @@ class BroadcastServer(object):
         log.debug("broadcast server loop terminating")
 
     def processRequest(self):
-        try:
+        with contextlib.suppress(socket.error):
             data, addr = self.sock.recvfrom(100)
             if data == b"GET_NSURI":
                 responsedata = core.URI(self.nsUri)
                 if responsedata.host == "0.0.0.0":
                     # replace INADDR_ANY address by the interface IP address that connects to the requesting client
-                    try:
+                    with contextlib.suppress(socket.error):
                         interface_ip = socketutil.get_interface(addr[0]).ip
                         responsedata.host = str(interface_ip)
-                    except socket.error:
-                        pass
                 log.debug("responding to broadcast request from %s: interface %s", addr[0], responsedata.host)
                 responsedata = str(responsedata).encode("iso-8859-1")
                 self.sock.sendto(responsedata, 0, addr)
-        except socket.error:
-            pass
 
     def __enter__(self):
         return self

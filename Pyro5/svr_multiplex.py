@@ -11,6 +11,7 @@ import sys
 import logging
 import os
 import selectors
+import contextlib
 from collections import defaultdict
 from . import config, socketutil, errors
 
@@ -116,14 +117,12 @@ class SocketServer_Multiplex(object):
             if self.daemon._handshake(conn):
                 return conn
             conn.close()
-        except:  # catch all errors, otherwise the event loop could terminate
+        except Exception:  # catch all errors, otherwise the event loop could terminate
             ex_t, ex_v, ex_tb = sys.exc_info()
             tb = errors.format_traceback(ex_t, ex_v, ex_tb)
             log.warning("error during connect/handshake: %s; %s", ex_v, "\n".join(tb))
-            try:
+            with contextlib.suppress(OSError, socket.error):
                 csock.shutdown(socket.SHUT_RDWR)
-            except (OSError, socket.error):
-                pass
             csock.close()
         return None
 
@@ -138,10 +137,8 @@ class SocketServer_Multiplex(object):
         self.selector.close()
         if self.sock:
             sockname = None
-            try:
+            with contextlib.suppress(OSError, socket.error):
                 sockname = self.sock.getsockname()
-            except (socket.error, OSError):
-                pass
             self.sock.close()
             if type(sockname) is str:
                 # it was a Unix domain socket, remove it from the filesystem
@@ -179,7 +176,7 @@ class SocketServer_Multiplex(object):
             # for timeout errors we're not really interested in detailed traceback info
             log.warning("error during handleRequest: %s" % x)
             return False
-        except:
+        except Exception:
             # other error occurred, close the connection, but also log a warning
             ex_t, ex_v, ex_tb = sys.exc_info()
             tb = errors.format_traceback(ex_t, ex_v, ex_tb)

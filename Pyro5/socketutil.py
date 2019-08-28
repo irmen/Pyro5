@@ -12,6 +12,7 @@ import time
 import select
 import ipaddress
 import weakref
+import contextlib
 from typing import Union, Optional, Tuple, Dict, Type, Any
 try:
     import ssl
@@ -54,7 +55,7 @@ if hasattr(errno, "WSAEADDRINUSE"):
 USE_MSG_WAITALL = hasattr(socket, "MSG_WAITALL") and platform.system() != "Windows"
 
 
-def get_ip_address(hostname: str, workaround127: bool=False, version: int=None) \
+def get_ip_address(hostname: str, workaround127: bool = False, version: int = None) \
         -> Union[ipaddress.IPv4Address, ipaddress.IPv6Address]:
     """
     Returns the IP address for the given host. If you enable the workaround,
@@ -63,11 +64,9 @@ def get_ip_address(hostname: str, workaround127: bool=False, version: int=None) 
     Set ipVersion=6 to return ipv6 addresses, 4 to return ipv4, 0 to let OS choose the best one or None to use config.PREFER_IP_VERSION.
     """
     if not workaround127:
-        try:
+        with contextlib.suppress(ValueError):
             addr = ipaddress.ip_address(hostname)
             return addr
-        except ValueError:
-            pass
 
     def getaddr(ip_version):
         if ip_version == 6:
@@ -202,11 +201,11 @@ def send_data(sock: socket.socket, data: bytes) -> None:
                 time.sleep(next(delays))  # a slight delay to wait before retrying
 
 
-def create_socket(bind: Union[Tuple, str]=None,
-                  connect: Union[Tuple, str]=None,
-                  reuseaddr: bool=False, keepalive: bool=True,
-                  timeout: Optional[float]=-1, noinherit: bool=False,
-                  ipv6: bool=False, nodelay: bool=True, sslContext: ssl.SSLContext=None) -> socket.socket:
+def create_socket(bind: Union[Tuple, str] = None,
+                  connect: Union[Tuple, str] = None,
+                  reuseaddr: bool = False, keepalive: bool = True,
+                  timeout: Optional[float] = -1, noinherit: bool = False,
+                  ipv6: bool = False, nodelay: bool = True, sslContext: ssl.SSLContext = None) -> socket.socket:
     """
     Create a socket. Default socket options are keepalive and IPv4 family, and nodelay (nagle disabled).
     If 'bind' or 'connect' is a string, it is assumed a Unix domain socket is requested.
@@ -277,10 +276,8 @@ def create_socket(bind: Union[Tuple, str]=None,
             bind_unused_port(sock, bind[0])
         else:
             sock.bind(bind)
-        try:
+        with contextlib.suppress(OSError, IOError):
             sock.listen(100)
-        except (OSError, IOError):
-            pass
     if connect:
         try:
             sock.connect(connect)
@@ -314,8 +311,8 @@ def create_socket(bind: Union[Tuple, str]=None,
     return sock
 
 
-def create_bc_socket(bind: Union[Tuple, str]=None, reuseaddr: bool=False,
-                     timeout: Optional[float]=-1, ipv6: bool=False) -> socket.socket:
+def create_bc_socket(bind: Union[Tuple, str] = None, reuseaddr: bool = False,
+                     timeout: Optional[float] = -1, ipv6: bool = False) -> socket.socket:
     """
     Create a udp broadcast socket.
     Set ipv6=True to create an IPv6 socket rather than IPv4.
@@ -367,26 +364,20 @@ def create_bc_socket(bind: Union[Tuple, str]=None, reuseaddr: bool=False,
 
 def set_reuseaddr(sock: socket.socket) -> None:
     """sets the SO_REUSEADDR option on the socket, if possible."""
-    try:
+    with contextlib.suppress(Exception):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    except Exception:
-        pass
 
 
 def set_nodelay(sock: socket.socket) -> None:
     """sets the TCP_NODELAY option on the socket (to disable Nagle's algorithm), if possible."""
-    try:
+    with contextlib.suppress(Exception):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    except Exception:
-        pass
 
 
 def set_keepalive(sock: socket.socket) -> None:
     """sets the SO_KEEPALIVE option on the socket, if possible."""
-    try:
+    with contextlib.suppress(Exception):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-    except Exception:
-        pass
 
 
 try:
@@ -421,7 +412,7 @@ except ImportError:
 
 class SocketConnection(object):
     """A wrapper class for plain sockets, containing various methods such as :meth:`send` and :meth:`recv`"""
-    def __init__(self, sock: socket.socket, objectId: str=None, keep_open: bool=False) -> None:
+    def __init__(self, sock: socket.socket, objectId: str = None, keep_open: bool = False) -> None:
         self.sock = sock
         self.objectId = objectId
         self.pyroInstances = {}    # type: Dict[Type, Any]   # pyro objects for instance_mode=session
@@ -446,20 +437,14 @@ class SocketConnection(object):
     def close(self) -> None:
         if self.keep_open:
             return
-        try:
+        with contextlib.suppress(Exception):
             self.sock.shutdown(socket.SHUT_RDWR)
-        except:
-            pass
-        try:
+        with contextlib.suppress(Exception):
             self.sock.close()
-        except:
-            pass
         self.pyroInstances = {}   # release the session instances
         for rsc in self.tracked_resources:
-            try:
+            with contextlib.suppress(Exception):
                 rsc.close()     # it is assumed a 'resource' has a close method.
-            except Exception:
-                pass
         self.tracked_resources.clear()
 
     def fileno(self) -> int:
@@ -468,10 +453,10 @@ class SocketConnection(object):
     def family(self) -> str:
         return family_str(self.sock)
 
-    def settimeout(self, timeout: float) -> None:
+    def settimeout(self, timeout: Optional[float]) -> None:
         self.sock.settimeout(timeout)
 
-    def gettimeout(self) -> float:
+    def gettimeout(self) -> Optional[float]:
         return self.sock.gettimeout()
 
     def getpeercert(self) -> Optional[dict]:
@@ -494,22 +479,20 @@ def family_str(sock) -> str:
     return "???"
 
 
-def find_probably_unused_port(family: int=socket.AF_INET, socktype: int=socket.SOCK_STREAM) -> int:
+def find_probably_unused_port(family: int = socket.AF_INET, socktype: int = socket.SOCK_STREAM) -> int:
     """Returns an unused port that should be suitable for binding (likely, but not guaranteed).
     This code is copied from the stdlib's test.test_support module."""
     with socket.socket(family, socktype) as sock:
         return bind_unused_port(sock)
 
 
-def bind_unused_port(sock: socket.socket, host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]='localhost') -> int:
+def bind_unused_port(sock: socket.socket, host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address] = 'localhost') -> int:
     """Bind the socket to a free port and return the port number.
     This code is based on the code in the stdlib's test.test_support module."""
     if sock.family in (socket.AF_INET, socket.AF_INET6) and sock.type == socket.SOCK_STREAM:
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
-            try:
+            with contextlib.suppress(socket.error):
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
-            except socket.error:
-                pass
     if not isinstance(host, str):
         host = str(host)
     if sock.family == socket.AF_INET:
@@ -529,27 +512,21 @@ def bind_unused_port(sock: socket.socket, host: Union[str, ipaddress.IPv4Address
 
 def interrupt_socket(address: Tuple[str, int]) -> None:
     """bit of a hack to trigger a blocking server to get out of the loop, useful at clean shutdowns"""
-    try:
+    with contextlib.suppress(socket.error):
         sock = create_socket(connect=address, keepalive=False, timeout=-1)
-        try:
+        with contextlib.suppress(socket.error, AttributeError):
             sock.sendall(b"!" * 16)
-        except (socket.error, AttributeError):
-            pass
-        try:
+        with contextlib.suppress(OSError, socket.error):
             sock.shutdown(socket.SHUT_RDWR)
-        except (OSError, socket.error):
-            pass
         sock.close()
-    except socket.error:
-        pass
 
 
 __ssl_server_context = None
 __ssl_client_context = None
 
 
-def get_ssl_context(servercert: str="", serverkey: str="", clientcert: str="", clientkey: str="",
-                    cacerts: str="", keypassword: str="") -> ssl.SSLContext:
+def get_ssl_context(servercert: str = "", serverkey: str = "", clientcert: str = "", clientkey: str = "",
+                    cacerts: str = "", keypassword: str = "") -> ssl.SSLContext:
     """creates an SSL context and caches it, so you have to set the parameters correctly before doing anything"""
     global __ssl_client_context, __ssl_server_context
     if servercert:

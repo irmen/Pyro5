@@ -112,10 +112,10 @@ def format_traceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
         def makeStrValue(value):
             try:
                 return repr(value)
-            except:
+            except Exception:
                 try:
                     return str(value)
-                except:
+                except Exception:
                     return "<ERROR>"
 
         try:
@@ -155,7 +155,7 @@ def format_traceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
             result.append(" EXCEPTION %s: %s\n" % (ex_type, ex_value))
             result.append("-" * 52 + "\n")
             return result
-        except:
+        except Exception:
             return ["-" * 52 + "\nError building extended traceback!!! :\n",
                     "".join(traceback.format_exception(*sys.exc_info())) + '-' * 52 + '\n',
                     "Original Exception follows:\n",

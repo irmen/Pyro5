@@ -16,6 +16,7 @@ import inspect
 import marshal
 import json
 import serpent
+import contextlib
 try:
     import msgpack
     if msgpack.version < (0, 5, 2):
@@ -98,14 +99,12 @@ class SerializerBase(object):
         The function is called with a single parameter; the object to be converted to a dict."""
         cls.__custom_class_to_dict_registry[clazz] = converter
         if serpent_too:
-            try:
+            with contextlib.suppress(errors.ProtocolError):
                 def serpent_converter(obj, serializer, stream, level):
                     d = converter(obj)
                     serializer.ser_builtins_dict(d, stream, level)
 
                 serpent.register_class(clazz, serpent_converter)
-            except errors.ProtocolError:
-                pass
 
     @classmethod
     def unregister_class_to_dict(cls, clazz):
@@ -113,10 +112,8 @@ class SerializerBase(object):
         will be serialized by the default mechanism again."""
         if clazz in cls.__custom_class_to_dict_registry:
             del cls.__custom_class_to_dict_registry[clazz]
-        try:
+        with contextlib.suppress(errors.ProtocolError):
             serpent.unregister_class(clazz)
-        except errors.ProtocolError:
-            pass
 
     @classmethod
     def register_dict_to_class(cls, classname, converter):

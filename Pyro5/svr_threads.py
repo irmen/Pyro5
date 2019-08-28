@@ -13,6 +13,7 @@ import time
 import threading
 import os
 import selectors
+import contextlib
 from . import config, socketutil, errors
 
 log = logging.getLogger("Pyro5.threadpoolserver")
@@ -47,7 +48,7 @@ class ClientConnectionJob(object):
                         # for timeout errors we're not really interested in detailed traceback info
                         log.warning("error during handleRequest: %s" % x)
                         break
-                    except:
+                    except Exception:
                         # other errors log a warning, break this loop and close the client connection
                         ex_t, ex_v, ex_tb = sys.exc_info()
                         tb = errors.format_traceback(ex_t, ex_v, ex_tb)
@@ -68,7 +69,7 @@ class ClientConnectionJob(object):
             if self.daemon._handshake(self.csock):
                 return True
             self.csock.close()
-        except:
+        except Exception:
             ex_t, ex_v, ex_tb = sys.exc_info()
             tb = errors.format_traceback(ex_t, ex_v, ex_tb)
             log.warning("error during connect/handshake: %s; %s", ex_v, "\n".join(tb))
@@ -185,7 +186,7 @@ class SocketServer_Threadpool(object):
         # we only react on events on our own server socket.
         # all other (client) sockets are owned by their individual threads.
         assert self.sock in eventsockets
-        try:
+        with contextlib.suppress(socket.timeout):   # just continue the loop on a timeout on accept
             events = self._selector.select(config.POLLTIMEOUT)
             if not events:
                 return
@@ -204,8 +205,6 @@ class SocketServer_Threadpool(object):
                 self.pool.process(job)
             except NoFreeWorkersError:
                 job.denyConnection("no free workers, increase server threadpool size")
-        except socket.timeout:
-            pass  # just continue the loop on a timeout on accept
 
     def shutdown(self):
         self.shutting_down = True
@@ -220,19 +219,14 @@ class SocketServer_Threadpool(object):
             self.housekeeper.join()
             self.housekeeper = None
         if self.sock:
-            sockname = None
-            try:
+            with contextlib.suppress(socket.error, OSError):
                 sockname = self.sock.getsockname()
-            except (socket.error, OSError):
-                pass
-            try:
+            with contextlib.suppress(Exception):
                 self.sock.close()
                 if type(sockname) is str:
                     # it was a Unix domain socket, remove it from the filesystem
                     if os.path.exists(sockname):
                         os.remove(sockname)
-            except Exception:
-                pass
             self.sock = None
         self.pool.close()
 

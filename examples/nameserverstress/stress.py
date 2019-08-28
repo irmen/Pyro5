@@ -2,6 +2,7 @@ import sys
 import random
 import time
 import threading
+import contextlib
 from Pyro5.api import Proxy, locate_ns
 import Pyro5.errors
 
@@ -29,19 +30,15 @@ class NamingTrasher(threading.Thread):
 
     def register(self):
         for i in range(4):
-            try:
+            with contextlib.suppress(Pyro5.errors.NamingError):
                 self.ns.register(randomname(), 'PYRO:objname@host:555')
-            except Pyro5.errors.NamingError:
-                pass
 
     def remove(self):
         self.ns.remove(randomname())
 
     def lookup(self):
-        try:
+        with contextlib.suppress(Pyro5.errors.NamingError):
             uri = self.ns.lookup(randomname())
-        except Pyro5.errors.NamingError:
-            pass
 
     def listprefix(self):
         entries = self.ns.list(prefix="stresstest.51")

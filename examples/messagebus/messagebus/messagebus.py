@@ -12,6 +12,7 @@ import logging
 import traceback
 import sys
 import pickle
+import contextlib
 from collections import defaultdict
 from contextlib import closing
 try:
@@ -123,12 +124,10 @@ class MemoryStorage(object):
             if hasattr(sub, "_pyroRelease"):
                 sub._pyroRelease()
             if hasattr(sub, "_pyroUri"):
-                try:
+                with contextlib.suppress(KeyError):
                     proxy = self.proxy_cache[sub._pyroUri]
                     proxy._pyroRelease()
                     del self.proxy_cache[sub._pyroUri]
-                except KeyError:
-                    pass
         del self.subscribers[topic]
 
     def add_message(self, topic, message):
@@ -147,12 +146,10 @@ class MemoryStorage(object):
             if hasattr(subscriber, "_pyroRelease"):
                 subscriber._pyroRelease()
             if hasattr(subscriber, "_pyroUri"):
-                try:
+                with contextlib.suppress(KeyError):
                     proxy = self.proxy_cache[subscriber._pyroUri]
                     proxy._pyroRelease()
                     del self.proxy_cache[subscriber._pyroUri]
-                except KeyError:
-                    pass
             self.subscribers[topic].discard(subscriber)
 
     def all_pending_messages(self):
@@ -175,10 +172,8 @@ class MemoryStorage(object):
             if topic in self.messages:
                 msg_list = self.messages[topic]
                 for message in topics_messages[topic]:
-                    try:
+                    with contextlib.suppress(ValueError):
                         msg_list.remove(message)
-                    except ValueError:
-                        pass
 
     def stats(self):
         subscribers = pending = 0
@@ -261,12 +256,10 @@ CREATE TABLE IF NOT EXISTS Subscription(
             cursor.execute("DELETE FROM Topic WHERE id=?", [topic_id])
         conn.commit()
         for uri in sub_uris:
-            try:
+            with contextlib.suppress(KeyError):
                 proxy = self.proxy_cache[uri]
                 proxy._pyroRelease()
                 del self.proxy_cache[uri]
-            except KeyError:
-                pass
 
     def add_message(self, topic, message):
         msg_data = pickle.dumps(message.data, pickle.HIGHEST_PROTOCOL)
@@ -304,12 +297,10 @@ CREATE TABLE IF NOT EXISTS Subscription(
         with closing(conn.cursor()) as cursor:
             cursor.execute("DELETE FROM Subscription WHERE topic=(SELECT id FROM Topic WHERE topic=?) AND subscriber=?", [topic, uri])
         conn.commit()
-        try:
+        with contextlib.suppress(KeyError):
             proxy = self.proxy_cache[uri]
             proxy._pyroClaimOwnership()   # because it has been used from a different thread. This also kills any connection.
             del self.proxy_cache[uri]
-        except KeyError:
-            pass
 
     def all_pending_messages(self):
         conn = self.dbconn()

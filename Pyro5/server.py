@@ -621,7 +621,7 @@ class Daemon(object):
         serializer = serializers.serializers_by_id[serializer_id]
         try:
             data = serializer.dumps(exc_value)
-        except:
+        except Exception:
             # the exception object couldn't be serialized, use a generic PyroError instead
             xt, xv, tb = sys.exc_info()
             msg = "Error serializing exception: %s. Original exception: %s: %s" % (str(xv), type(exc_value), str(exc_value))

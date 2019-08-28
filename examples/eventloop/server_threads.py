@@ -45,37 +45,29 @@ print("")
 # each in their own thread and avoid writing this integrated event loop altogether.
 # But for the sake of example we write out our own loop:
 
-try:
-    while True:
-        print(time.asctime(), "Waiting for requests...")
-        # create sets of the socket objects we will be waiting on
-        # (a set provides fast lookup compared to a list)
-        nameserverSockets = set(nameserverDaemon.sockets)
-        pyroSockets = set(pyrodaemon.sockets)
-        rs = [broadcastServer]  # only the broadcast server is directly usable as a select() object
-        rs.extend(nameserverSockets)
-        rs.extend(pyroSockets)
-        rs, _, _ = select.select(rs, [], [], 3)
-        eventsForNameserver = []
-        eventsForDaemon = []
-        for s in rs:
-            if s is broadcastServer:
-                print("Broadcast server received a request")
-                broadcastServer.processRequest()
-            elif s in nameserverSockets:
-                eventsForNameserver.append(s)
-            elif s in pyroSockets:
-                eventsForDaemon.append(s)
-        if eventsForNameserver:
-            print("Nameserver received a request")
-            nameserverDaemon.events(eventsForNameserver)
-        if eventsForDaemon:
-            print("Daemon received a request")
-            pyrodaemon.events(eventsForDaemon)
-except KeyboardInterrupt:
-    pass
-
-nameserverDaemon.close()
-broadcastServer.close()
-pyrodaemon.close()
-print("done")
+while True:
+    print(time.asctime(), "Waiting for requests...")
+    # create sets of the socket objects we will be waiting on
+    # (a set provides fast lookup compared to a list)
+    nameserverSockets = set(nameserverDaemon.sockets)
+    pyroSockets = set(pyrodaemon.sockets)
+    rs = [broadcastServer]  # only the broadcast server is directly usable as a select() object
+    rs.extend(nameserverSockets)
+    rs.extend(pyroSockets)
+    rs, _, _ = select.select(rs, [], [], 3)
+    eventsForNameserver = []
+    eventsForDaemon = []
+    for s in rs:
+        if s is broadcastServer:
+            print("Broadcast server received a request")
+            broadcastServer.processRequest()
+        elif s in nameserverSockets:
+            eventsForNameserver.append(s)
+        elif s in pyroSockets:
+            eventsForDaemon.append(s)
+    if eventsForNameserver:
+        print("Nameserver received a request")
+        nameserverDaemon.events(eventsForNameserver)
+    if eventsForDaemon:
+        print("Daemon received a request")
+        pyrodaemon.events(eventsForDaemon)

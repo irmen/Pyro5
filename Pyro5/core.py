@@ -6,6 +6,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 import re
 import logging
+import contextlib
 import threading
 import socket
 import random
@@ -218,12 +219,10 @@ def locate_ns(host=None, port=None, broadcast=True):
                 uristring = "PYRO:%s@%s:%d" % (NAMESERVER_NAME, host, port or config.NS_PORT)
                 log.debug("locating the NS: %s", uristring)
                 proxy = client.Proxy(uristring)
-                try:
+                with contextlib.suppress(errors.PyroError):
                     proxy._pyroBind()
                     log.debug("located NS")
                     return proxy
-                except errors.PyroError:
-                    pass
         if config.PREFER_IP_VERSION == 6:
             broadcast = False   # ipv6 doesn't have broadcast. We should probably use multicast....
         if broadcast:
@@ -250,10 +249,8 @@ def locate_ns(host=None, port=None, broadcast=True):
                     return proxy
                 except socket.timeout:
                     continue
-            try:
+            with contextlib.suppress(OSError, socket.error):
                 sock.shutdown(socket.SHUT_RDWR)
-            except (OSError, socket.error):
-                pass
             sock.close()
             log.debug("broadcast locate failed, try direct connection on NS_HOST")
         else:
