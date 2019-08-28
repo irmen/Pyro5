@@ -2,9 +2,15 @@
 Change Log
 **********
 
+**Pyro 5.6**
+
+- improved and cleaned up exception handling throughout the code base
+
+
 **Pyro 5.5**
 
 - made msgpack serializer optional
+- Anaconda 'pyro5' package created
 
 
 **Pyro 5.4**
