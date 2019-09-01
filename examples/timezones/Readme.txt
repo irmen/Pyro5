@@ -7,4 +7,4 @@ normalize them all to UTC) before transferring, or avoiding datetime objects ent
 
 
 PREREQUISITES:
-install the 'pytz' and 'python-dateutil' libraries
+install the 'pytz', 'python-dateutil' and 'pendulum' libraries

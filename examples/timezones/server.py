@@ -1,6 +1,7 @@
 import datetime
 import pytz
 import dateutil.tz
+import pendulum
 from Pyro5.api import expose, Daemon
 
 
@@ -23,6 +24,10 @@ class Server(object):
     def dateutil(self):
         tz_nl = dateutil.tz.gettz("Europe/Amsterdam")
         return datetime.datetime.now(tz_nl)
+
+    def pendulum(self):
+        tz_nl = pendulum.now("Europe/Amsterdam")
+        return tz_nl
 
 # main program
 

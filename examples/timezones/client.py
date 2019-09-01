@@ -52,6 +52,20 @@ def test():
             print("ERROR!")
             traceback.print_exc()
 
+        print("\nFOURTH: Pendulum timezones")
+        try:
+            date1 = serv.pendulum()
+            print("Got from server:", date1)
+            if isinstance(date1, datetime.datetime):
+                assert isinstance(date1.tzinfo, datetime.tzinfo)
+                print("{0}\n  {1} ({2})\n    {3}".format(date1, date1.tzinfo, type(date1.tzinfo), date1.strftime(fmt)))
+                date2 = serv.echo(date1)
+                print("{0}\n  {1} ({2})\n    {3}".format(date2, date2.tzinfo, type(date2.tzinfo), date2.strftime(fmt)))
+                assert date1 == date2
+        except Exception:
+            print("ERROR!")
+            traceback.print_exc()
+
 
 # serpent.
 print("\n******* serpent *******")
