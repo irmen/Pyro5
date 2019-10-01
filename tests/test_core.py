@@ -14,3 +14,13 @@ class TestCore:
         assert u1 == u2
         assert u1 is not u2
 
+    def test_unix_uri(self):
+        p = Pyro5.core.URI("PYRO:12345@./u:/tmp/sockname")
+        assert p.object == "12345"
+        assert p.sockname == "/tmp/sockname"
+        p = Pyro5.core.URI("PYRO:12345@./u:../sockname")
+        assert p.object == "12345"
+        assert p.sockname == "../sockname"
+        p = Pyro5.core.URI("PYRO:12345@./u:/path with spaces/sockname  ")
+        assert p.object == "12345"
+        assert p.sockname == "/path with spaces/sockname  "
