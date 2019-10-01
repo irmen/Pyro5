@@ -5,6 +5,7 @@ Change Log
 **Pyro 5.6**
 
 - improved and cleaned up exception handling throughout the code base
+- URIs now accept spaces in the location part. This is useful for unix domain sockets.
 
 
 **Pyro 5.5**
