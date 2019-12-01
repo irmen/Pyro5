@@ -13,11 +13,16 @@ a single counter to process the full text. Then it does it again but now
 uses the dispatcher counter instead - which distributes chunks of the text
 across all available counters in parallel.
 
-The actual counter implementation contains a small artificial delay,
-this helps dramatize the time saving effect of the parallel processing.
-On a cpu with 8 cores/16 threads, typical results for this example are:
-single counter: ~4 seconds
-parallel counters: ~0.3 seconds (13x speedup)
-
-
 Make sure a name server is running before starting this example.
+
+
+NOTE:
+-----
+This particular example is not a "real" distributed calculation because it uses
+*threads* to process multiple Pyro calls concurrently. Because of Python's GIL,
+threads will NOT run in parallel unless they wait for a signal or are doing I/O.
+This is why this example has an artificial timer delay to make the compute calls
+not cpu-bound thereby enabling actual parallel execution.
+
+For "true" distributed parallel calculations, have a look at the other
+distributed-computing examples.
