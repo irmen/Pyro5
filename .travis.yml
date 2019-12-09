@@ -4,14 +4,10 @@ python:
   - 3.5
   - 3.6
   - 3.7
-  - 3.8-dev
-  - pypy3.5
+  - 3.8
+  - pypy3
 matrix:
   fast_finish: true
-
-# Use fast travis build infrastructure explicitly
-dist: xenial
-sudo: false
 
 install:
   - pip install .
