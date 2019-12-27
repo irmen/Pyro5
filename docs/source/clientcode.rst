@@ -212,8 +212,8 @@ serializer, for instance. Set the desired serializer name in ``proxy._pyroSerial
 
 .. _customizing-serialization:
 
-Changing the way your custom classes are (de)serialized
--------------------------------------------------------
+Customizing serialization
+-------------------------
 
 .. sidebar::
     Applicability
@@ -237,7 +237,7 @@ The hooks are provided via several classmethods:
 and their unregister-counterparts:
     :py:meth:`Pyro4.util.SerializerBase.unregister_class_to_dict` and :py:meth:`Pyro4.util.SerializerBase.unregister_dict_to_class`
 
-Click on the method link to see its apidoc, or have a look at the :file:`ser_custom` example and the :file:`test_serialize` unit tests for more information.
+Click on the method link to see its apidoc, or have a look at the :file:`custom-serialization` example and the :file:`test_serialize` unit tests for more information.
 It is recommended to avoid using these hooks if possible, there's a security risk
 to create arbitrary objects from serialized data that is received from untrusted sources.
 
