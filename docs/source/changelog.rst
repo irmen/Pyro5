@@ -2,6 +2,12 @@
 Change Log
 **********
 
+**Pyro 5.7**
+
+- fixed possible attribute error in proxy del method at interpreter shutdown
+- gave the serialization example a clearer name 'custom-serialization'
+
+
 **Pyro 5.6**
 
 - improved and cleaned up exception handling throughout the code base
