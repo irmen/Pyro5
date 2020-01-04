@@ -90,6 +90,7 @@ NS_PORT                   int     9090                    TCP port of the name s
 NS_BCPORT                 int     9091                    UDP port of the broadcast responder from the name server. Used by the server and for locating in clients.
 NS_BCHOST                 str     None                    Hostname for the broadcast responder of the name server. Used by the server only.
 NS_AUTOCLEAN              float   0.0                     Specify a recurring period in seconds where the Name server checks its registrations and removes the ones that are not available anymore. (0=disabled, otherwise should be >=3)
+NS_LOOKUP_DELAY           float   0.0                     The max. number of seconds a name lookup will wait until the name becomes available in the nameserver (client-side retry)
 NATHOST                   str     None                    External hostname in case of NAT (used by the server)
 NATPORT                   int     0                       External port in case of NAT (used by the server) 0=replicate internal port number as NAT port
 BROADCAST_ADDRS           str     <broadcast>, 0.0.0.0    List of comma separated addresses that Pyro should send broadcasts to (for NS locating in clients)

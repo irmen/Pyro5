@@ -6,6 +6,9 @@ Change Log
 
 - fixed possible attribute error in proxy del method at interpreter shutdown
 - gave the serialization example a clearer name 'custom-serialization'
+- added NS_LOOKUP_DELAY config item and parameter to resolve()
+  to have an optional wait delay until a name becomes available in the nameserver
+- added lookup() and yplookup() utility functions that implement this retry mechanism
 
 
 **Pyro 5.6**

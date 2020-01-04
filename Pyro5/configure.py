@@ -16,8 +16,8 @@ class Configuration:
     # DO NOT EDIT THESE HERE IN THIS MODULE! They are the global defaults.
     # Instead, specify them later in your own code or via environment variables.
     __slots__ = [
-        "HOST", "NS_HOST", "NS_PORT", "NS_BCPORT", "NS_BCHOST", "NS_AUTOCLEAN", "NATHOST",
-        "NATPORT", "COMPRESSION", "SERVERTYPE", "COMMTIMEOUT", "POLLTIMEOUT", "MAX_RETRIES",
+        "HOST", "NS_HOST", "NS_PORT", "NS_BCPORT", "NS_BCHOST", "NS_AUTOCLEAN", "NS_LOOKUP_DELAY",
+        "NATHOST", "NATPORT", "COMPRESSION", "SERVERTYPE", "COMMTIMEOUT", "POLLTIMEOUT", "MAX_RETRIES",
         "SOCK_REUSE", "SOCK_NODELAY", "DETAILED_TRACEBACK", "THREADPOOL_SIZE", "THREADPOOL_SIZE_MIN",
         "MAX_MESSAGE_SIZE", "BROADCAST_ADDRS", "PREFER_IP_VERSION", "SERIALIZER",
         "ITER_STREAMING", "ITER_STREAM_LIFETIME", "ITER_STREAM_LINGER", "LOGFILE", "LOGLEVEL", "LOGWIRE",
@@ -39,12 +39,13 @@ class Configuration:
         self.NS_BCPORT = 9091
         self.NS_BCHOST = None
         self.NS_AUTOCLEAN = 0.0
+        self.NS_LOOKUP_DELAY = 0.0
         self.NATHOST = None
         self.NATPORT = 0
         self.COMPRESSION = False
         self.SERVERTYPE = "thread"
-        self.COMMTIMEOUT = 0.0  # seconds
-        self.POLLTIMEOUT = 2.0  # seconds
+        self.COMMTIMEOUT = 0.0
+        self.POLLTIMEOUT = 2.0
         self.MAX_RETRIES = 0
         self.SOCK_REUSE = True  # so_reuseaddr on server sockets?
         self.SOCK_NODELAY = False  # tcp_nodelay on socket?

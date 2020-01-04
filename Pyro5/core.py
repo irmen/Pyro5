@@ -11,7 +11,7 @@ import threading
 import socket
 import random
 import serpent
-from . import config, errors, socketutil, serializers
+from . import config, errors, socketutil, serializers, nameserver
 
 
 __all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME", "current_context", "resolve", "locate_ns", "type_meta"]
@@ -168,7 +168,7 @@ serializers.SerializerBase.register_class_to_dict(URI, serializers.serialize_pyr
 serializers.SerializerBase.register_class_to_dict(_ExceptionWrapper, _ExceptionWrapper.__serialized_dict__, serpent_too=False)
 
 
-def resolve(uri):
+def resolve(uri, delay_time=0):
     """
     Resolve a 'magic' uri (PYRONAME, PYROMETA) into the direct PYRO uri.
     It finds a name server, and use that to resolve a PYRONAME uri into the direct PYRO uri pointing to the named object.
@@ -176,6 +176,8 @@ def resolve(uri):
     You can consider this a shortcut function so that you don't have to locate and use a name server proxy yourself.
     Note: if you need to resolve more than a few names, consider using the name server directly instead of repeatedly
     calling this function, to avoid the name server lookup overhead from each call.
+    You can set delay_time to the maximum number of seconds you are prepared to wait until a name registration
+    becomes available in the nameserver.
     """
     if isinstance(uri, str):
         uri = URI(uri)
@@ -185,11 +187,11 @@ def resolve(uri):
         return uri
     log.debug("resolving %s", uri)
     if uri.protocol == "PYRONAME":
-        with locate_ns(uri.host, uri.port) as nameserver:
-            return nameserver.lookup(uri.object)
+        with locate_ns(uri.host, uri.port) as ns:
+            return nameserver.lookup(ns, uri.object, delay_time)
     elif uri.protocol == "PYROMETA":
-        with locate_ns(uri.host, uri.port) as nameserver:
-            candidates = nameserver.yplookup(meta_all=uri.object, return_metadata=False)
+        with locate_ns(uri.host, uri.port) as ns:
+            candidates = nameserver.yplookup(ns, uri.object, None, False, delay_time)
             if candidates:
                 candidate = random.choice(list(candidates.values()))
                 log.debug("resolved to candidate %s", candidate)

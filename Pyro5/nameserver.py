@@ -710,6 +710,44 @@ def start_ns(host=None, port=None, enableBroadcast=True, bchost=None, bcport=Non
     return nsUri, daemon, bcserver
 
 
+def lookup(nameserver, name, return_metadata=False, delay_time=0):
+    """
+    Utility function to call nameserver.lookup,
+    with the possibility of a retry loop until the asked name becomes available.
+    You have to set the delay_time (or the corresponding config item)
+    to the maximum number of seconds you are willing to wait.
+    """
+    delay_time = delay_time or config.NS_LOOKUP_DELAY
+    start = time.time()
+    while time.time()-start <= delay_time:
+        try:
+            return nameserver.lookup(name, return_metadata)
+        except (errors.NamingError, errors.TimeoutError) as x:
+            pass
+        time.sleep(max(0.2, delay_time / 5))
+    return nameserver.lookup(name, return_metadata)
+
+
+def yplookup(nameserver, meta_all=None, meta_any=None, return_metadata=True, delay_time=0):
+    """
+    Utility function to call nameserver.yplookup,
+    with the possibility of a retry loop until the asked name becomes available.
+    You have to set the delay_time (or the corresponding config item)
+    to the maximum number of seconds you are willing to wait.
+    """
+    delay_time = delay_time or config.NS_LOOKUP_DELAY
+    start = time.time()
+    while time.time()-start <= delay_time:
+        try:
+            result = nameserver.yplookup(meta_all, meta_any, return_metadata)
+            if result:
+                return result
+        except (errors.NamingError, errors.TimeoutError) as x:
+            pass
+        time.sleep(max(0.2, delay_time / 5))
+    return nameserver.yplookup(meta_all, meta_any, return_metadata)
+
+
 def main(args=None):
     from argparse import ArgumentParser
     parser = ArgumentParser(description="Pyro name server command line launcher.")
