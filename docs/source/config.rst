@@ -80,7 +80,7 @@ Overview of Config Items
 config item               type    default                 meaning
 ========================= ======= ======================= =======
 AUTOPROXY                 bool    True                    Enable to make Pyro automatically replace Pyro objects by proxies in the method arguments and return values of remote method calls. Doesn't work with marshal serializer.
-COMMTIMEOUT               float   0.0                     network communication timeout in seconds. 0.0=no timeout (infinite wait)
+COMMTIMEOUT               float   0.0                     Network communication timeout in seconds. 0.0=no timeout (infinite wait)
 COMPRESSION               bool    False                   Enable to make Pyro compress the data that travels over the network
 DETAILED_TRACEBACK        bool    False                   Enable to get detailed exception tracebacks (including the value of local variables per stack frame)
 HOST                      str     localhost               Hostname where Pyro daemons will bind on
@@ -102,8 +102,6 @@ PREFER_IP_VERSION         int     4                       The IP address type th
 THREADPOOL_SIZE           int     40                      For the thread pool server: maximum number of threads running
 THREADPOOL_SIZE_MIN       int     4                       For the thread pool server: minimum number of threads running
 SERIALIZER                str     serpent                 The wire protocol serializer to use for clients/proxies (one of: serpent, json, marshal, msgpack)
-SERIALIZERS_ACCEPTED      set     json,marshal,serpent    The wire protocol serializers accepted in the server/daemon. In your code it should be a set of strings,
-                                                          use a comma separated string instead when setting the shell environment variable.
 PICKLE_PROTOCOL_VERSION   int     highest possible        The pickle protocol version to use, if pickle is selected as serializer. Defaults to pickle.HIGHEST_PROTOCOL
 DILL_PROTOCOL_VERSION     int     highest possible        The dill protocol version to use, if dill is selected as serializer. Defaults to dill.HIGHEST_PROTOCOL (-1 if dill is not installed)
 JSON_MODULE               str     json                    The json module to use for the json serializer. (json is included in the stdlib, simplejson is a possible 3rd party alternative).

@@ -175,7 +175,7 @@ on what objects you can use.
   for serializing and de-serializing python objects to the majority of the built-in python types.
   Has security problems though, just as pickle.
 
-.. index:: SERIALIZER, PICKLE_PROTOCOL_VERSION, SERIALIZERS_ACCEPTED, DILL_PROTOCOL_VERSION
+.. index:: SERIALIZER
 
 You select the serializer to be used by setting the ``SERIALIZER`` config item. (See the :doc:`/config` chapter).
 The valid choices are the names of the serializer from the list mentioned above.
@@ -192,15 +192,6 @@ serializer, for instance. Set the desired serializer name in ``proxy._pyroSerial
     Since Pyro 4.20 the default serializer is "``serpent``". Serpent is secure but cannot
     serialize all types (by design). Some types are serialized into a different form such as
     a string or a dict. Strings are serialized/deserialized into unicode at all times.
-
-.. note::
-    The serializer(s) that a Pyro server/daemon accepts, is controlled by a different
-    config item (``SERIALIZERS_ACCEPTED``). This can be a set of one or more serializers.
-    By default it accepts the set of 'safe' serializers, so "``pickle``", "``cloudpickle``"
-    and "``dill``" are excluded. If the server doesn't accept the serializer that you configured
-    for your client, it will refuse the requests and respond with an exception that tells
-    you about the unsupported serializer choice. If it *does* accept your requests,
-    the server response will use the same serializer that was used for the request.
 
 .. note::
     Because the name server is just a regular Pyro server as well, you will have to tell
@@ -262,15 +253,6 @@ Client code configuration
     Tell Pyro to use pickle as serializer for outgoing communication, by setting the ``SERIALIZER``
     config item to ``pickle``. For instance, in your code: :code:`Pyro4.config.SERIALIZER = 'pickle'`
     or set the appropriate environment variable.
-
-Server code configuration
-    Tell Pyro to accept pickle as incoming serialization format, by including ``pickle`` in
-    the ``SERIALIZERS_ACCEPTED`` config item list. For instance, in your code:
-    :code:`Pyro4.config.SERIALIZERS_ACCEPTED.add('pickle')`. Or set the appropriate
-    environment variable, for instance: :code:`export PYRO_SERIALIZERS_ACCEPTED=serpent,json,marshal,pickle`.
-    If your server also uses Pyro to call other servers, you may also need to configure
-    it as mentioned above at 'client code'. This is because the incoming and outgoing serializer formats
-    are configured independently.
 
 
 .. index:: release proxy connection

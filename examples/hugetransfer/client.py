@@ -6,8 +6,6 @@ from Pyro5.api import Proxy, config
 
 warnings.filterwarnings("ignore")
 
-# config.COMMTIMEOUT = 10
-
 print("Enter the server's uri that was printed:")
 uri = input().strip()
 

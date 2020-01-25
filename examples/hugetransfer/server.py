@@ -3,9 +3,6 @@ from Pyro5.api import expose, Daemon, config
 import Pyro5.socketutil
 
 
-# config.COMMTIMEOUT=2
-
-
 class Testclass(object):
     @expose
     def transfer(self, data):
