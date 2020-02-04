@@ -2,6 +2,11 @@
 Change Log
 **********
 
+**Pyro 5.8**
+
+- cython compatibility fix
+
+
 **Pyro 5.7**
 
 - fixed possible attribute error in proxy del method at interpreter shutdown

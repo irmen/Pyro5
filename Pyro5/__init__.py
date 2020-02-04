@@ -4,7 +4,7 @@ Pyro package. Some generic init stuff to set up logging etc.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-__version__ = "5.7"
+__version__ = "5.8.dev0"
 __author__ = "Irmen de Jong"
 
 
