@@ -19,8 +19,6 @@ import serpent
 import contextlib
 try:
     import msgpack
-    if msgpack.version < (0, 5, 2):
-        raise RuntimeError("requires msgpack 0.5.2 or better")
 except ImportError:
     msgpack = None
 from . import errors
@@ -29,15 +27,6 @@ __all__ = ["SerializerBase", "SerpentSerializer", "JsonSerializer", "MarshalSeri
            "serializers", "serializers_by_id"]
 
 log = logging.getLogger("Pyro5.serializers")
-
-
-if '-' in serpent.__version__:
-    ver = serpent.__version__.split('-', 1)[0]
-else:
-    ver = serpent.__version__
-ver = tuple(map(int, ver.split(".")))
-if ver < (1, 27):
-    raise RuntimeError("requires serpent 1.27 or better")
 
 
 all_exceptions = {}
