@@ -1,4 +1,4 @@
-from Pyro5.api import expose
+from Pyro5.api import expose, oneway
 
 
 @expose
@@ -14,6 +14,10 @@ class TestClass(object):
 
     def othererr(self):
         raise RuntimeError('a runtime error!')
+
+    @oneway
+    def onewayerr(self):
+        raise ValueError('error in oneway call!')
 
     def complexerror(self):
         x = Foo()

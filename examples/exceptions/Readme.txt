@@ -11,3 +11,6 @@ see the remote traceback when you're not catching any exceptions.
 Also try to set PYRO_DETAILED_TRACEBACK to True (on the server)
 to get a very detailed traceback in your client. This can help
 debugging.
+
+
+Also, this example shows the use of a custom exception handler in the server.

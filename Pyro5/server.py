@@ -248,6 +248,7 @@ class Daemon(object):
         self.streaming_responses = {}   # stream_id -> (client, creation_timestamp, linger_timestamp, stream)
         self.housekeeper_lock = threading.Lock()
         self.__mustshutdown.clear()
+        self.methodcall_error_handler = default_methodcall_error_handler
 
     @property
     def sock(self):
@@ -458,7 +459,7 @@ class Daemon(object):
                         try:
                             result = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
                         except Exception as xv:
-                            log.debug("Exception occurred while handling batched request: %s", xv)
+                            self.methodcall_error_handler(self, conn.sock.getpeername(), method, vargs, kwargs, xv)
                             xv._pyroTraceback = errors.format_traceback(detailed=config.DETAILED_TRACEBACK)
                             data.append(core._ExceptionWrapper(xv))
                             break  # stop processing the rest of the batch
@@ -478,10 +479,14 @@ class Daemon(object):
                         if request_flags & protocol.FLAGS_ONEWAY:
                             # oneway call to be run inside its own thread, otherwise client blocking can still occur
                             #    on the next call on the same proxy
-                            _OnewayCallThread(target=method, args=vargs, kwargs=kwargs).start()
+                            _OnewayCallThread(method, vargs, kwargs, self, conn.sock.getpeername()).start()
                         else:
                             isCallback = getattr(method, "_pyroCallback", False)
-                            data = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
+                            try:
+                                data = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
+                            except Exception as xv:
+                                self.methodcall_error_handler(self, conn.sock.getpeername(), method, vargs, kwargs, xv)
+                                raise
                             if not request_flags & protocol.FLAGS_ONEWAY:
                                 isStream, data = self._streamResponse(data, conn)
                                 if isStream:
@@ -514,8 +519,6 @@ class Daemon(object):
                 request_seq = msg.seq
                 request_serializer_id = msg.serializer_id
             if not isinstance(xv, errors.ConnectionClosedError):
-                if not isinstance(xv, (StopIteration, GeneratorExit)):
-                    log.debug("Exception occurred while handling request: %r", xv)
                 if not request_flags & protocol.FLAGS_ONEWAY:
                     if isinstance(xv, errors.SerializeError) or not isinstance(xv, errors.CommunicationError):
                         # only return the error to the client if it wasn't a oneway call, and not a communication error
@@ -820,6 +823,12 @@ class Daemon(object):
         return objId, method, (blob,), {}  # object, method, vargs, kwargs
 
 
+def default_methodcall_error_handler(daemon, client_sock, method, vargs, kwargs, exception):
+    """The default routine called to process a exception raised in the user code of a method call"""
+    log.debug("exception occurred in method call user code: client={} method={} exception={}"
+              .format(client_sock, method.__qualname__, repr(exception)))
+
+
 # register the special serializers for the pyro objects
 serpent.register_class(Daemon, serializers.pyro_class_serpent_serializer)
 serializers.SerializerBase.register_class_to_dict(Daemon, serializers.serialize_pyro_object_to_dict, serpent_too=False)
@@ -945,11 +954,24 @@ def set_exposed_property_value(obj, propname, value, only_exposed=True):
 
 
 class _OnewayCallThread(threading.Thread):
-    def __init__(self, target, args, kwargs):
-        super(_OnewayCallThread, self).__init__(target=target, args=args, kwargs=kwargs, name="oneway-call")
+    def __init__(self, pyro_method, vargs, kwargs, pyro_daemon, pyro_client_sock):
+        super(_OnewayCallThread, self).__init__(target=self._methodcall, name="oneway-call")
         self.daemon = True
         self.parent_context = core.current_context.to_global()
+        self.pyro_daemon = pyro_daemon
+        self.pyro_client_sock = pyro_client_sock
+        self.pyro_method = pyro_method
+        self.pyro_vargs = vargs
+        self.pyro_kwars = kwargs
 
     def run(self):
         core.current_context.from_global(self.parent_context)
         super(_OnewayCallThread, self).run()
+
+    def _methodcall(self):
+        try:
+            self.pyro_method(*self.pyro_vargs, **self.pyro_kwars)
+        except Exception as xv:
+            self.pyro_daemon.methodcall_error_handler(self.pyro_daemon, self.pyro_client_sock,
+                                                      self.pyro_method, self.pyro_vargs, self.pyro_kwars,
+                                                      xv)

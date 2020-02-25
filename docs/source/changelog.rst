@@ -5,6 +5,8 @@ Change Log
 **Pyro 5.9**
 
 - added privilege-separation example
+- added methodcall_error_handler to Daemon that allows you to provide a custom error handler,
+  which is called when an exception occurs in the method call's user code
 
 
 **Pyro 5.8**
