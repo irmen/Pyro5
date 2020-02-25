@@ -2,6 +2,11 @@
 Change Log
 **********
 
+**Pyro 5.9**
+
+- added privilege-separation example
+
+
 **Pyro 5.8**
 
 - cython compatibility fix
