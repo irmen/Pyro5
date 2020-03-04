@@ -154,14 +154,13 @@ class DaemonObject(object):
             core.DAEMON_NAME, self.daemon.locationStr, self.daemon.natLocationStr,
             len(self.daemon.objectsById), self.daemon.transportServer)
 
-    def get_metadata(self, objectId, as_lists=False):
+    def get_metadata(self, objectId):
         """
         Get metadata for the given object (exposed methods, oneways, attributes).
-        TODO get rid of as_lists
         """
         obj = self.daemon.objectsById.get(objectId)
         if obj is not None:
-            metadata = _get_exposed_members(obj, as_lists=as_lists)
+            metadata = _get_exposed_members(obj)
             if not metadata["methods"] and not metadata["attrs"]:
                 # Something seems wrong: nothing is remotely exposed.
                 warnings.warn("Class %r doesn't expose any methods or attributes. Did you forget setting @expose on them?" % type(obj))
@@ -340,7 +339,7 @@ class Daemon(object):
             handshake_response = self.validateHandshake(conn, data["handshake"])
             handshake_response = {
                 "handshake": handshake_response,
-                "meta": self.objectsById[core.DAEMON_NAME].get_metadata(data["object"], as_lists=True)
+                "meta": self.objectsById[core.DAEMON_NAME].get_metadata(data["object"])
             }
             data = serializer.dumps(handshake_response)
             msgtype = protocol.MSG_CONNECTOK
@@ -710,8 +709,7 @@ class Daemon(object):
         if uri.object in self.objectsById:
             registered_object = self.objectsById[uri.object]
             # Clear cache regardless of how it is accessed
-            _reset_exposed_members(registered_object, as_lists=True)
-            _reset_exposed_members(registered_object, as_lists=False)
+            _reset_exposed_members(registered_object)
 
     def proxyFor(self, objectOrId, nat=True):
         """
@@ -872,22 +870,19 @@ def _get_attribute(obj: Any, attr: str) -> Any:
     raise AttributeError("attempt to access unexposed attribute '%s'" % attr)
 
 
-__exposed_member_cache = {}     # type: Dict[Tuple[type, bool, bool], Dict[str, Set[str]]]
+__exposed_member_cache = {}     # type: Dict[Tuple[type, bool], Dict[str, Set[str]]]
 
 
-def _reset_exposed_members(obj: Any, only_exposed: bool = True, as_lists: bool = False) -> None:
+def _reset_exposed_members(obj: Any, only_exposed: bool = True) -> None:
     """Delete any cached exposed members forcing recalculation on next request"""
-    # TODO get rid of as_lists
     if not inspect.isclass(obj):
         obj = obj.__class__
-    cache_key = (obj, only_exposed, as_lists)
+    cache_key = (obj, only_exposed)
     __exposed_member_cache.pop(cache_key, None)
 
 
-def _get_exposed_members(obj: Any, only_exposed: bool = True, as_lists: bool = False,
-                         use_cache: bool = True) -> Dict[str, Set[str]]:
+def _get_exposed_members(obj: Any, only_exposed: bool = True) -> Dict[str, Set[str]]:
     """
-    TODO get rid of as_lists
     Return public and exposed members of the given object's class.
     You can also provide a class directly.
     Private members are ignored no matter what (names starting with underscore).
@@ -896,13 +891,12 @@ def _get_exposed_members(obj: Any, only_exposed: bool = True, as_lists: bool = F
     The return value consists of the exposed methods, exposed attributes, and methods
     tagged as @oneway.
     (All this is used as meta data that Pyro sends to the proxy if it asks for it)
-    as_lists is meant for python 2 compatibility.
     """
     if not inspect.isclass(obj):
         obj = obj.__class__
 
-    cache_key = (obj, only_exposed, as_lists)
-    if use_cache and cache_key in __exposed_member_cache:
+    cache_key = (obj, only_exposed)
+    if cache_key in __exposed_member_cache:
         return __exposed_member_cache[cache_key]
 
     methods = set()  # all methods
@@ -929,10 +923,6 @@ def _get_exposed_members(obj: Any, only_exposed: bool = True, as_lists: bool = F
         # This automatically solves the protection/security issue: you have to
         # explicitly decide to make an attribute into a @property (and to @expose it)
         # before it becomes remotely accessible.
-    if as_lists:
-        methods = list(methods)     # type: ignore
-        oneway = list(oneway)       # type: ignore
-        attrs = list(attrs)         # type: ignore
     result = {
         "methods": methods,
         "oneway": oneway,
