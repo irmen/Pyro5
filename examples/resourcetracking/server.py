@@ -1,4 +1,4 @@
-from Pyro5.api import Daemon, expose, behavior, current_context
+from Pyro5.api import Daemon, serve, expose, behavior, current_context
 
 
 class CustomDaemon(Daemon):
@@ -48,6 +48,6 @@ class Service(object):
 
 
 with CustomDaemon() as daemon:
-    Daemon.serveSimple({
+    serve({
         Service: "service"
-    }, ns=False, daemon=daemon)
+    }, use_ns=False, daemon=daemon)

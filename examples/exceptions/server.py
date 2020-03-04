@@ -1,4 +1,4 @@
-from Pyro5.api import Daemon
+from Pyro5.api import Daemon, serve
 import excep
 
 
@@ -10,9 +10,9 @@ def my_error_handler(daemon, client_sock, method, vargs, kwargs, exception):
 daemon = Daemon()
 daemon.methodcall_error_handler = my_error_handler
 
-Daemon.serveSimple(
+serve(
     {
         excep.TestClass: "example.exceptions"
     },
     daemon=daemon,
-    ns=True, verbose=True)
+    use_ns=True, verbose=True)

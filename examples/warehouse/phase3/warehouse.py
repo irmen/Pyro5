@@ -1,4 +1,4 @@
-from Pyro5.api import expose, behavior, Daemon
+from Pyro5.api import expose, behavior, serve
 
 
 @expose
@@ -19,8 +19,8 @@ class Warehouse(object):
         print("{0} stored the {1}.".format(name, item))
 
 
-Daemon.serveSimple(
+serve(
     {
         Warehouse: "example.warehouse"
     },
-    ns=True)
+    use_ns=True)

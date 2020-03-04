@@ -1,5 +1,5 @@
 import logging
-from Pyro5.api import expose, Daemon, config
+from Pyro5.api import expose, serve, config
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -16,6 +16,6 @@ class TestDisconnect(object):
         return arg
 
 
-Daemon.serveSimple({
+serve({
     TestDisconnect: "example.disconnect"
-}, ns=False)
+}, use_ns=False)

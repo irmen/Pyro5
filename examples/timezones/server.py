@@ -2,7 +2,7 @@ import datetime
 import pytz
 import dateutil.tz
 import pendulum
-from Pyro5.api import expose, Daemon
+from Pyro5.api import expose, serve
 
 
 fmt = '%Y-%m-%d %H:%M:%S %Z%z'
@@ -29,8 +29,9 @@ class Server(object):
         tz_nl = pendulum.now("Europe/Amsterdam")
         return tz_nl
 
+
 # main program
 
-Daemon.serveSimple({
+serve({
     Server: "example.timezones"
-}, ns=False)
+}, use_ns=False)

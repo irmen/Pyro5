@@ -1,5 +1,5 @@
 import queue
-from Pyro5.api import expose, behavior, Daemon, SerializerBase
+from Pyro5.api import expose, behavior, serve, SerializerBase
 from workitem import Workitem
 
 
@@ -38,8 +38,9 @@ class DispatcherQueue(object):
     def resultQueueSize(self):
         return self.resultqueue.qsize()
 
+
 # main program
 
-Daemon.serveSimple({
+serve({
     DispatcherQueue: "example.distributed.dispatcher"
 })

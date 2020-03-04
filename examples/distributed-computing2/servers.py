@@ -3,7 +3,7 @@ import time
 from collections import Counter
 from itertools import cycle, zip_longest
 from concurrent import futures
-from Pyro5.api import expose, Daemon, locate_ns, Proxy, config
+from Pyro5.api import expose, serve, locate_ns, Proxy, config
 import Pyro5.errors
 
 
@@ -68,7 +68,7 @@ class Dispatcher(object):
 if __name__ == "__main__":
     print("Spinning up 5 word counters, and 1 dispatcher.")
     config.SERVERTYPE = "thread"
-    Daemon.serveSimple(
+    serve(
         {
             WordCounter(): "example.dc2.wordcount.1",
             WordCounter(): "example.dc2.wordcount.2",

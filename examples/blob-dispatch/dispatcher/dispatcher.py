@@ -1,5 +1,5 @@
 from collections import defaultdict
-from Pyro5.api import behavior, expose, Daemon
+from Pyro5.api import behavior, expose, serve
 
 # note: the dispatcher doesn't know anything about the CustomData class from the customdata module!
 
@@ -23,6 +23,6 @@ class Dispatcher(object):
             listener.process_blob(blob)
 
 
-Daemon.serveSimple({
+serve({
     Dispatcher: "example.blobdispatcher"
 })

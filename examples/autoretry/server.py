@@ -1,4 +1,4 @@
-from Pyro5.api import expose, Daemon, config
+from Pyro5.api import expose, serve, config
 
 
 @expose
@@ -10,6 +10,6 @@ class CalcServer(object):
 
 config.COMMTIMEOUT = 0.5  # the server should time out easily now
 
-Daemon.serveSimple({
+serve({
     CalcServer: "example.autoretry"
 })

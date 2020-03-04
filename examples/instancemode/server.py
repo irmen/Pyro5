@@ -1,4 +1,4 @@
-from Pyro5.api import expose, behavior, Daemon, current_context
+from Pyro5.api import expose, behavior, serve, current_context
 
 
 @behavior(instance_mode="single")
@@ -32,7 +32,7 @@ class PercallInstance(object):
 
 if __name__ == "__main__":
     # please make sure a name server is running somewhere first.
-    Daemon.serveSimple({
+    serve({
         SingleInstance: "instance.single",
         SessionInstance: "instance.session",
         PercallInstance: "instance.percall"

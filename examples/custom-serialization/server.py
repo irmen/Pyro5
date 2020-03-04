@@ -1,4 +1,4 @@
-from Pyro5.api import SerializerBase, expose, Daemon, config
+from Pyro5.api import SerializerBase, expose, serve, config
 import mycustomclasses
 
 
@@ -48,8 +48,8 @@ class Server(object):
         return response
 
 
-Daemon.serveSimple(
+serve(
     {
         Server: "example.customclasses"
     },
-    ns=False)
+    use_ns=False)

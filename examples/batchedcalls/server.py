@@ -1,5 +1,5 @@
 import time
-from Pyro5.api import expose, Daemon
+from Pyro5.api import expose, serve
 
 
 @expose
@@ -25,6 +25,6 @@ class Thingy(object):
         return 0
 
 
-Daemon.serveSimple({
+serve({
     Thingy: "example.batched"
-}, ns=False)
+}, use_ns=False)

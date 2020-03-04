@@ -1,6 +1,6 @@
 import time
 import threading
-from Pyro5.api import expose, behavior, oneway, Daemon, config
+from Pyro5.api import expose, behavior, oneway, serve, config
 
 
 @expose
@@ -43,6 +43,6 @@ else:
     config.SERVERTYPE = "multiplex"
 
 
-Daemon.serveSimple({
+serve({
     Server: "example.servertypes"
 })

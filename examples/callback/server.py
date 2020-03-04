@@ -1,5 +1,5 @@
 import time
-from Pyro5.api import expose, oneway, Daemon
+from Pyro5.api import expose, oneway, serve
 
 
 class Worker(object):
@@ -32,6 +32,6 @@ class CallbackServer(object):
         return worker
 
 
-Daemon.serveSimple({
+serve({
     CallbackServer: "example.callback"
 })

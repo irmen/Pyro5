@@ -1,4 +1,4 @@
-from Pyro5.api import expose, Daemon
+from Pyro5.api import expose, serve
 from thingy import Thingy
 
 
@@ -15,6 +15,6 @@ class Factory(object):
         return thing
 
 
-Daemon.serveSimple({
+serve({
     Factory: "example.autoproxy"
-}, ns=False)
+}, use_ns=False)

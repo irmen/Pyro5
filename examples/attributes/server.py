@@ -1,4 +1,4 @@
-from Pyro5.api import expose, Daemon
+from Pyro5.api import expose, serve
 
 
 something = "Something"
@@ -34,6 +34,6 @@ class Thingy(object):
         return self.sub
 
 
-Daemon.serveSimple({
+serve({
     Thingy: "example.attributes"
-}, ns=False)
+}, use_ns=False)

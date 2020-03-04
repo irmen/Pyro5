@@ -21,10 +21,10 @@ if __name__ == "__main__":
 
     if os.getuid() != 0:
         print("Warning: lacking root privileges to run the 'dmesg' command to read the kernel's buffer. "
-              "Executing the command will fail. This is intended.")
+              "Executing the command will fail. For the desired outcome, run this program as root.")
     else:
         print("Running as root. This is okay as we're just running the 'dmesg' command for you.")
 
-    Pyro5.api.Daemon.serveSimple({
+    Pyro5.api.serve({
         DmesgServer: "dmesg"
-    }, ns=False)
+    }, host="localhost", use_ns=False)

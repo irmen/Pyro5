@@ -1,5 +1,5 @@
 import time
-from Pyro5.api import expose, behavior, Daemon
+from Pyro5.api import expose, behavior, serve
 from shoppingcart import ShoppingCart
 
 
@@ -73,6 +73,6 @@ class Shop(object):
 
 # main program
 
-Daemon.serveSimple({
+serve({
     Shop: "example.shop"
 })

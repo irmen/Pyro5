@@ -7,10 +7,12 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 import re
 import logging
 import contextlib
-import threading
+import ipaddress
 import socket
+import threading
 import random
 import serpent
+from typing import Union, Optional
 from . import config, errors, socketutil, serializers, nameserver
 
 
@@ -168,7 +170,7 @@ serializers.SerializerBase.register_class_to_dict(URI, serializers.serialize_pyr
 serializers.SerializerBase.register_class_to_dict(_ExceptionWrapper, _ExceptionWrapper.__serialized_dict__, serpent_too=False)
 
 
-def resolve(uri, delay_time=0):
+def resolve(uri: Union[str, URI], delay_time: float = 0.0) -> URI:
     """
     Resolve a 'magic' uri (PYRONAME, PYROMETA) into the direct PYRO uri.
     It finds a name server, and use that to resolve a PYRONAME uri into the direct PYRO uri pointing to the named object.
@@ -201,10 +203,13 @@ def resolve(uri, delay_time=0):
         raise errors.PyroError("invalid uri protocol")
 
 
-def locate_ns(host=None, port=None, broadcast=True):
+from . import client  # XXX circular
+
+
+def locate_ns(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address] = "",
+              port: Optional[int] = None, broadcast: bool = True) -> client.Proxy:
     """Get a proxy for a name server somewhere in the network."""
-    from . import client  # XXX circular
-    if host is None:
+    if host == "":
         # first try localhost if we have a good chance of finding it there
         if config.NS_HOST in ("localhost", "::1") or config.NS_HOST.startswith("127."):
             if ":" in config.NS_HOST:  # ipv6
@@ -245,9 +250,9 @@ def locate_ns(host=None, port=None, broadcast=True):
                                 raise
                     data, _ = sock.recvfrom(100)
                     sock.close()
-                    data = data.decode("iso-8859-1")
-                    log.debug("located NS: %s", data)
-                    proxy = client.Proxy(data)
+                    text = data.decode("iso-8859-1")
+                    log.debug("located NS: %s", text)
+                    proxy = client.Proxy(text)
                     return proxy
                 except socket.timeout:
                     continue
@@ -263,13 +268,12 @@ def locate_ns(host=None, port=None, broadcast=True):
     elif not isinstance(host, str):
         host = str(host)    # take care of the occasion where host is an ipaddress.IpAddress
     # pyro direct lookup
-    if not port:
-        port = config.NS_PORT
+    port = config.NS_PORT if not port else port
     if URI.isUnixsockLocation(host):
         uristring = "PYRO:%s@%s" % (NAMESERVER_NAME, host)
     else:
         # if not a unix socket, check for ipv6
-        if ":" in host:
+        if host and ":" in str(host):
             host = "[%s]" % host
         uristring = "PYRO:%s@%s:%d" % (NAMESERVER_NAME, host, port)
     uri = URI(uristring)

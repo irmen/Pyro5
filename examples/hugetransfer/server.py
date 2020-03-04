@@ -1,5 +1,5 @@
 import serpent
-from Pyro5.api import expose, Daemon, config
+from Pyro5.api import expose, serve, config
 import Pyro5.socketutil
 
 
@@ -23,9 +23,9 @@ class Testclass(object):
             i += chunksize
 
 
-Daemon.serveSimple(
+serve(
     {
         Testclass: "example.hugetransfer"
     },
     host=Pyro5.socketutil.get_ip_address("localhost", workaround127=True),
-    ns=False, verbose=True)
+    use_ns=False, verbose=True)

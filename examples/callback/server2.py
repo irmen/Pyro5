@@ -1,4 +1,4 @@
-from Pyro5.api import expose, oneway, Daemon
+from Pyro5.api import expose, oneway, serve
 import Pyro5.errors
 
 
@@ -22,6 +22,6 @@ class CallbackServer(object):
         print("server: callbacks done.\n")
 
 
-Daemon.serveSimple({
+serve({
     CallbackServer: "example.callback2"
 })

@@ -1,5 +1,5 @@
 import time
-from Pyro5.api import expose, oneway, Daemon
+from Pyro5.api import expose, oneway, serve
 
 
 @expose
@@ -35,6 +35,6 @@ class Server(object):
         print("work's done!")
 
 
-Daemon.serveSimple({
+serve({
     Server: "example.oneway"
 })

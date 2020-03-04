@@ -1,4 +1,4 @@
-from Pyro5.api import behavior, expose, locate_ns, Daemon, config
+from Pyro5.api import behavior, expose, locate_ns, serve, config
 from diffiehellman import DiffieHellman
 
 
@@ -21,6 +21,6 @@ class KeyExchange(object):
         return self.dh.public_key
 
 
-Daemon.serveSimple({
+serve({
     KeyExchange: "example.dh.keyexchange"
-}, ns=True)
+}, use_ns=True)

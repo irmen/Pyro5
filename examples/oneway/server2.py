@@ -1,6 +1,6 @@
 import time
 import threading
-from Pyro5.api import expose, oneway, behavior, Daemon
+from Pyro5.api import expose, oneway, behavior, serve
 
 
 @expose
@@ -24,6 +24,6 @@ class Server(object):
 
 
 print("main thread:", threading.get_ident())
-Daemon.serveSimple({
+serve({
     Server: "example.oneway2"
 })

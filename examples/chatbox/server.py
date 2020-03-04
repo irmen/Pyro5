@@ -1,4 +1,4 @@
-from Pyro5.api import expose, behavior, Daemon
+from Pyro5.api import expose, behavior, serve
 import Pyro5.errors
 
 
@@ -62,6 +62,6 @@ class ChatBox(object):
                     print('Removed dead listener %s %s' % (n, c))
 
 
-Daemon.serveSimple({
+serve({
     ChatBox: "example.chatbox.server"
 })

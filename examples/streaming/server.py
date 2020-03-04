@@ -1,5 +1,5 @@
 import time
-from Pyro5.api import expose, Daemon, config
+from Pyro5.api import expose, serve, config
 
 
 if config.ITER_STREAMING:
@@ -36,6 +36,6 @@ class Streamer(object):
             a, b = b, a + b
 
 
-Daemon.serveSimple({
+serve({
         Streamer: "example.streamer"
-    }, ns=False)
+    }, use_ns=False)

@@ -1,4 +1,4 @@
-from Pyro5.api import behavior, expose, current_context, Daemon, config
+from Pyro5.api import behavior, expose, current_context, serve, config
 from database import DummyDatabase
 
 
@@ -57,7 +57,7 @@ class SessionboundDatabase(object):
         return "hi"
 
 
-Daemon.serveSimple({
+serve({
     SingletonDatabase: "example.usersession.singletondb",
     SessionboundDatabase: "example.usersession.sessiondb"
 })

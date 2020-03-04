@@ -15,10 +15,12 @@ import logging
 import inspect
 import warnings
 import serpent
+import ipaddress
+from typing import Callable, Tuple, Union, Optional, Dict, Any, Sequence, Set
 from . import config, core, errors, serializers, socketutil, protocol, client
 
 
-__all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway"]
+__all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway", "serve"]
 
 log = logging.getLogger("Pyro5.server")
 
@@ -35,7 +37,7 @@ _private_dunder_methods = frozenset([
 ])
 
 
-def is_private_attribute(attr_name):
+def is_private_attribute(attr_name: str) -> bool:
     """returns if the attribute name is to be considered private or not."""
     if attr_name in _private_dunder_methods:
         return True
@@ -48,32 +50,32 @@ def is_private_attribute(attr_name):
 
 # decorators
 
-def callback(method):
+def callback(method: Callable) -> Callable:
     """
     decorator to mark a method to be a 'callback'. This will make Pyro
     raise any errors also on the callback side, and not only on the side
     that does the callback call.
     """
-    method._pyroCallback = True
+    method._pyroCallback = True     # type: ignore
     return method
 
 
-def oneway(method):
+def oneway(method: Callable) -> Callable:
     """
     decorator to mark a method to be oneway (client won't wait for a response)
     """
-    method._pyroOneway = True
+    method._pyroOneway = True       # type: ignore
     return method
 
 
-def expose(method_or_class):
+def expose(method_or_class: Union[Callable, type]) -> Union[Callable, type]:
     """
     Decorator to mark a method or class to be exposed for remote calls.
     You can apply it to a method or a class as a whole.
     If you need to change the default instance mode or instance creator, also use a @behavior decorator.
     """
     if inspect.isdatadescriptor(method_or_class):
-        func = method_or_class.fget or method_or_class.fset or method_or_class.fdel
+        func = method_or_class.fget or method_or_class.fset or method_or_class.fdel     # type: ignore
         if is_private_attribute(func.__name__):
             raise AttributeError("exposing private names (starting with _) is not allowed")
         func._pyroExposed = True
@@ -82,7 +84,7 @@ def expose(method_or_class):
     if not attrname:
         # we could be dealing with a descriptor (classmethod/staticmethod), this means the order of the decorators is wrong
         if inspect.ismethoddescriptor(method_or_class):
-            attrname = method_or_class.__get__(None, dict).__name__
+            attrname = method_or_class.__get__(None, dict).__name__     # type: ignore
             raise AttributeError("using @expose on a classmethod/staticmethod must be done "
                                  "after @classmethod/@staticmethod. Method: " + attrname)
         else:
@@ -107,13 +109,13 @@ def expose(method_or_class):
                     thing.fget._pyroExposed = True
                 if getattr(thing, "fdel", None):
                     thing.fdel._pyroExposed = True
-        clazz._pyroExposed = True
+        clazz._pyroExposed = True       # type: ignore
         return clazz
-    method_or_class._pyroExposed = True
+    method_or_class._pyroExposed = True     # type: ignore
     return method_or_class
 
 
-def behavior(instance_mode="session", instance_creator=None):
+def behavior(instance_mode: str = "session", instance_creator: Optional[Callable] = None) -> Callable:
     """
     Decorator to specify the server behavior of your Pyro class.
     """
@@ -155,10 +157,11 @@ class DaemonObject(object):
     def get_metadata(self, objectId, as_lists=False):
         """
         Get metadata for the given object (exposed methods, oneways, attributes).
+        TODO get rid of as_lists
         """
         obj = self.daemon.objectsById.get(objectId)
         if obj is not None:
-            metadata = get_exposed_members(obj, as_lists=as_lists)
+            metadata = _get_exposed_members(obj, as_lists=as_lists)
             if not metadata["methods"] and not metadata["attrs"]:
                 # Something seems wrong: nothing is remotely exposed.
                 warnings.warn("Class %r doesn't expose any methods or attributes. Did you forget setting @expose on them?" % type(obj))
@@ -248,7 +251,7 @@ class Daemon(object):
         self.streaming_responses = {}   # stream_id -> (client, creation_timestamp, linger_timestamp, stream)
         self.housekeeper_lock = threading.Lock()
         self.__mustshutdown.clear()
-        self.methodcall_error_handler = default_methodcall_error_handler
+        self.methodcall_error_handler = _default_methodcall_error_handler
 
     @property
     def sock(self):
@@ -266,37 +269,14 @@ class Daemon(object):
         return self.transportServer.selector
 
     @staticmethod
-    def serveSimple(objects, host=None, port=0, daemon=None, ns=True, verbose=True):
+    def serveSimple(objects, host=None, port=0, daemon=None, ns=True, verbose=True) -> None:
         """
-        Basic method to fire up a daemon (or supply one yourself).
-        objects is a dict containing objects to register as keys, and
-        their names (or None) as values. If ns is true they will be registered
-        in the naming server as well, otherwise they just stay local.
-        If you need to publish on a unix domain socket you can't use this shortcut method.
-        See the documentation on 'publishing objects' (in chapter: Servers) for more details.
+        Backwards compatibility method to fire up a daemon and start serving requests.
+        New code should just use the ``serve`` function instead.
         """
-        if daemon is None:
-            daemon = Daemon(host, port)
-        with daemon:
-            if ns:
-                ns = core.locate_ns()
-            for obj, name in objects.items():
-                if ns:
-                    localname = None  # name is used for the name server
-                else:
-                    localname = name  # no name server, use name in daemon
-                uri = daemon.register(obj, localname)
-                if verbose:
-                    print("Object {0}:\n    uri = {1}".format(repr(obj), uri))
-                if name and ns:
-                    ns.register(name, uri)
-                    if verbose:
-                        print("    name = {0}".format(name))
-            if verbose:
-                print("Pyro daemon running.")
-            daemon.requestLoop()
+        serve(objects, host, port, daemon, ns, verbose)
 
-    def requestLoop(self, loopCondition=lambda: True):
+    def requestLoop(self, loopCondition=lambda: True) -> None:
         """
         Goes in a loop to service incoming requests, until someone breaks this
         or calls shutdown from another thread.
@@ -455,7 +435,7 @@ class Daemon(object):
                     # batched method calls, loop over them all and collect all results
                     data = []
                     for method, vargs, kwargs in vargs:
-                        method = get_attribute(obj, method)
+                        method = _get_attribute(obj, method)
                         try:
                             result = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
                         except Exception as xv:
@@ -470,12 +450,12 @@ class Daemon(object):
                     # normal single method call
                     if method == "__getattr__":
                         # special case for direct attribute access (only exposed @properties are accessible)
-                        data = get_exposed_property_value(obj, vargs[0])
+                        data = _get_exposed_property_value(obj, vargs[0])
                     elif method == "__setattr__":
                         # special case for direct attribute access (only exposed @properties are accessible)
-                        data = set_exposed_property_value(obj, vargs[0], vargs[1])
+                        data = _set_exposed_property_value(obj, vargs[0], vargs[1])
                     else:
-                        method = get_attribute(obj, method)
+                        method = _get_attribute(obj, method)
                         if request_flags & protocol.FLAGS_ONEWAY:
                             # oneway call to be run inside its own thread, otherwise client blocking can still occur
                             #    on the next call on the same proxy
@@ -671,9 +651,9 @@ class Daemon(object):
         # we need to do this for all known serializers
         for ser in serializers.serializers.values():
             if inspect.isclass(obj_or_class):
-                ser.register_type_replacement(obj_or_class, pyro_obj_to_auto_proxy)
+                ser.register_type_replacement(obj_or_class, _pyro_obj_to_auto_proxy)
             else:
-                ser.register_type_replacement(type(obj_or_class), pyro_obj_to_auto_proxy)
+                ser.register_type_replacement(type(obj_or_class), _pyro_obj_to_auto_proxy)
         # register the object/class in the mapping
         self.objectsById[obj_or_class._pyroId] = obj_or_class
         return self.uriFor(objectId)
@@ -730,8 +710,8 @@ class Daemon(object):
         if uri.object in self.objectsById:
             registered_object = self.objectsById[uri.object]
             # Clear cache regardless of how it is accessed
-            reset_exposed_members(registered_object, as_lists=True)
-            reset_exposed_members(registered_object, as_lists=False)
+            _reset_exposed_members(registered_object, as_lists=True)
+            _reset_exposed_members(registered_object, as_lists=False)
 
     def proxyFor(self, objectOrId, nat=True):
         """
@@ -746,7 +726,7 @@ class Daemon(object):
             registered_object = self.objectsById[uri.object]
         except KeyError:
             raise errors.DaemonError("object isn't registered in this daemon")
-        meta = get_exposed_members(registered_object)
+        meta = _get_exposed_members(registered_object)
         proxy._pyroGetMetadata(known_metadata=meta)
         return proxy
 
@@ -802,12 +782,10 @@ class Daemon(object):
     def __setstate__(self, state):
         assert len(state) == 0
 
-    __lazy_dict_iterator_types = (type({}.keys()), type({}.values()), type({}.items()))
-
     def _streamResponse(self, data, client):
         if isinstance(data, collections.Iterator) or inspect.isgenerator(data):
             if config.ITER_STREAMING:
-                if type(data) in self.__lazy_dict_iterator_types:
+                if type(data) in (type({}.keys()), type({}.values()), type({}.items())):
                     raise errors.PyroError("won't serialize or stream lazy dict iterators, convert to list yourself")
                 stream_id = str(uuid.uuid4())
                 self.streaming_responses[stream_id] = (client, time.time(), 0, data)
@@ -823,7 +801,42 @@ class Daemon(object):
         return objId, method, (blob,), {}  # object, method, vargs, kwargs
 
 
-def default_methodcall_error_handler(daemon, client_sock, method, vargs, kwargs, exception):
+def serve(objects: Dict[Any, str], host: Optional[Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]] = "",
+          port: int = 0, daemon: Optional[Daemon] = None, use_ns: bool = True, verbose: bool = True) -> None:
+    """
+    Basic method to fire up a daemon (or supply one yourself).
+    objects is a dict containing objects to register as keys, and
+    their names (or None) as values. If ns is true they will be registered
+    in the naming server as well, otherwise they just stay local.
+    If you need to publish on a unix domain socket, or require finer control of the daemon's
+    behavior, you can't use this shortcut method. Create a Daemon yourself and use its
+    appropriate methods.
+    See the documentation on 'publishing objects' (in chapter: Servers) for more details.
+    """
+    if daemon is None:
+        daemon = Daemon(host, port)
+    with daemon:
+        ns = core.locate_ns() if use_ns else None
+        for obj, name in objects.items():
+            if ns:
+                localname = None  # name is used for the name server
+            else:
+                localname = name  # no name server, use name in daemon
+            uri = daemon.register(obj, localname)
+            if verbose:
+                print("Object {0}:\n    uri = {1}".format(repr(obj), uri))
+            if name and ns:
+                ns.register(name, uri)
+                if verbose:
+                    print("    name = {0}".format(name))
+        if verbose:
+            print("Pyro daemon running.")
+        daemon.requestLoop()
+
+
+def _default_methodcall_error_handler(daemon: Daemon, client_sock: socketutil.SocketConnection,
+                                      method: Callable, vargs: Sequence[Any], kwargs: Dict[str, Any],
+                                      exception: Exception) -> None:
     """The default routine called to process a exception raised in the user code of a method call"""
     log.debug("exception occurred in method call user code: client={} method={} exception={}"
               .format(client_sock, method.__qualname__, repr(exception)))
@@ -834,7 +847,7 @@ serpent.register_class(Daemon, serializers.pyro_class_serpent_serializer)
 serializers.SerializerBase.register_class_to_dict(Daemon, serializers.serialize_pyro_object_to_dict, serpent_too=False)
 
 
-def pyro_obj_to_auto_proxy(obj):
+def _pyro_obj_to_auto_proxy(obj: Any) -> Any:
     """reduce function that automatically replaces Pyro objects by a Proxy"""
     daemon = getattr(obj, "_pyroDaemon", None)
     if daemon:
@@ -843,7 +856,7 @@ def pyro_obj_to_auto_proxy(obj):
     return obj
 
 
-def get_attribute(obj, attr):
+def _get_attribute(obj: Any, attr: str) -> Any:
     """
     Resolves an attribute name to an object.  Raises
     an AttributeError if any attribute in the chain starts with a '``_``'.
@@ -859,19 +872,22 @@ def get_attribute(obj, attr):
     raise AttributeError("attempt to access unexposed attribute '%s'" % attr)
 
 
-__exposed_member_cache = {}
+__exposed_member_cache = {}     # type: Dict[Tuple[type, bool, bool], Dict[str, Set[str]]]
 
 
-def reset_exposed_members(obj, only_exposed=True, as_lists=False):
+def _reset_exposed_members(obj: Any, only_exposed: bool = True, as_lists: bool = False) -> None:
     """Delete any cached exposed members forcing recalculation on next request"""
+    # TODO get rid of as_lists
     if not inspect.isclass(obj):
         obj = obj.__class__
     cache_key = (obj, only_exposed, as_lists)
     __exposed_member_cache.pop(cache_key, None)
 
 
-def get_exposed_members(obj, only_exposed=True, as_lists=False, use_cache=True):
+def _get_exposed_members(obj: Any, only_exposed: bool = True, as_lists: bool = False,
+                         use_cache: bool = True) -> Dict[str, Set[str]]:
     """
+    TODO get rid of as_lists
     Return public and exposed members of the given object's class.
     You can also provide a class directly.
     Private members are ignored no matter what (names starting with underscore).
@@ -914,9 +930,9 @@ def get_exposed_members(obj, only_exposed=True, as_lists=False, use_cache=True):
         # explicitly decide to make an attribute into a @property (and to @expose it)
         # before it becomes remotely accessible.
     if as_lists:
-        methods = list(methods)
-        oneway = list(oneway)
-        attrs = list(attrs)
+        methods = list(methods)     # type: ignore
+        oneway = list(oneway)       # type: ignore
+        attrs = list(attrs)         # type: ignore
     result = {
         "methods": methods,
         "oneway": oneway,
@@ -926,7 +942,7 @@ def get_exposed_members(obj, only_exposed=True, as_lists=False, use_cache=True):
     return result
 
 
-def get_exposed_property_value(obj, propname, only_exposed=True):
+def _get_exposed_property_value(obj: Any, propname: str, only_exposed: bool = True) -> Any:
     """
     Return the value of an @exposed @property.
     If the requested property is not a @property or not exposed,
@@ -939,7 +955,7 @@ def get_exposed_property_value(obj, propname, only_exposed=True):
     raise AttributeError("attempt to access unexposed or unknown remote attribute '%s'" % propname)
 
 
-def set_exposed_property_value(obj, propname, value, only_exposed=True):
+def _set_exposed_property_value(obj: Any, propname: str, value: Any, only_exposed: bool = True) -> Any:
     """
     Sets the value of an @exposed @property.
     If the requested property is not a @property or not exposed,
