@@ -37,6 +37,7 @@ class RestrictedDaemon(Pyro5.api.Daemon):
 
 
 if __name__ == "__main__":
-    RestrictedDaemon().serveSimple({
+    rdaemon = RestrictedDaemon()
+    Pyro5.api.serve({
         RestrictedService: "restricted"
-    }, ns=False)
+    }, host="localhost", daemon=rdaemon, use_ns=False)

@@ -271,7 +271,7 @@ class Daemon(object):
     def serveSimple(objects, host=None, port=0, daemon=None, ns=True, verbose=True) -> None:
         """
         Backwards compatibility method to fire up a daemon and start serving requests.
-        New code should just use the ``serve`` function instead.
+        New code should just use the global ``serve`` function instead.
         """
         serve(objects, host, port, daemon, ns, verbose)
 
