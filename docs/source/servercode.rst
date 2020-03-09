@@ -605,7 +605,7 @@ There are three possible choices for the ``instance_mode`` parameter:
 
 - ``session``: (the default) a new instance is created for every new proxy connection, and is reused for
   all the calls during that particular proxy session. Other proxy sessions will deal with a different instance.
-- ``single``: a single instance will be created and used for all method calls, regardless what proxy
+- ``single``: a single instance will be created and used for all method calls (for this daemon), regardless what proxy
   connection we're dealing with. This is the same as creating and registering a single object yourself
   (the old style of registering code with the deaemon). Be aware that the methods on this object can be called
   from separate threads concurrently.

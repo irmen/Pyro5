@@ -8,6 +8,7 @@ Change Log
 - added methodcall_error_handler to Daemon that allows you to provide a custom error handler,
   which is called when an exception occurs in the method call's user code
 - introduced ``api.serve`` / ``server.serve`` as a replacement for the static class method ``Daemon.serveSimple``
+- fix possible race condition when creating instances with instancemode "single"
 - introduced some more type hintings
 
 
