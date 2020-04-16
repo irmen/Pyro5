@@ -193,11 +193,6 @@ serializer, for instance. Set the desired serializer name in ``proxy._pyroSerial
     serialize all types (by design). Some types are serialized into a different form such as
     a string or a dict. Strings are serialized/deserialized into unicode at all times.
 
-.. note::
-    Because the name server is just a regular Pyro server as well, you will have to tell
-    it to allow the pickle, cloudpickle or dill serializers if your client code uses them.
-    See :ref:`nameserver-pickle`.
-
 
 .. index:: deserialization, serializing custom classes, deserializing custom classes
 
@@ -507,7 +502,6 @@ Async calls for normal callables (not only for Pyro proxies)
 The asynchrnous proxy discussed above is only available when you are dealing with Pyro proxies.
 It provides a convenient syntax to call the methods on the proxy asynchronously.
 For normal Python code it is sometimes useful to have a similar mechanism as well.
-Pyro provides this too, see :ref:`future-functions` for more information.
 
 
 .. index:: callback
