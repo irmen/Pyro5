@@ -203,7 +203,7 @@ def resolve(uri: Union[str, URI], delay_time: float = 0.0) -> URI:
         raise errors.PyroError("invalid uri protocol")
 
 
-from . import client  # XXX circular
+from . import client  # circular import...
 
 
 def locate_ns(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address] = "",

@@ -66,8 +66,12 @@ _protocol_version_bytes = PROTOCOL_VERSION.to_bytes(2, "big")
 _empty_correlation_id = b"\0" * 16
 
 
+from . import core   #  circular import...
+
+
 class SendingMessage:
     """Wire protocol message that will be sent."""
+
     def __init__(self, msgtype, flags, seq, serializer_id, payload, annotations=None):
         self.type = msgtype
         self.seq = seq
@@ -82,7 +86,6 @@ class SendingMessage:
         total_size = len(payload) + annotations_size
         if total_size > config.MAX_MESSAGE_SIZE:
             raise errors.ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
-        from . import core  # XXX circular
         if core.current_context.correlation_id:
             flags |= FLAGS_CORR_ID
             self.corr_id = core.current_context.correlation_id.bytes
@@ -178,12 +181,13 @@ def log_wiredata(logger, text, msg):
                  (text, msg.type, msg.flags, msg.serializer_id, msg.seq, num_anns, corr_id, bytes(msg.data)))
 
 
-def recv_stub(connection, accepted_msgtypes=None):  # @todo decouple i/o from actual protocol logic
+def recv_stub(connection, accepted_msgtypes=None):
     """
     Receives a pyro message from a given connection.
     Accepts the given message types (None=any, or pass a sequence).
     Also reads annotation chunks and the actual payload data.
     """
+    # TODO decouple i/o from actual protocol logic, so that the protocol can be easily unit tested
     header = connection.recv(6)  # 'PYRO' + 2 bytes protocol version
     ReceivingMessage.validate(header)
     header += connection.recv(_header_size - 6)

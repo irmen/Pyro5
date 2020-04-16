@@ -1,8 +1,8 @@
-.PHONY: all dist sdist wheel docs install upload clean test
+.PHONY: all dist docs install upload clean test
 PYTHON=python3
 
 all:
-	@echo "targets include dist, docs, upload, install, clean"
+	@echo "targets: dist, docs, upload, install, clean, test"
 
 docs:
 	$(PYTHON) setup.py build_sphinx

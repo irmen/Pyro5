@@ -172,7 +172,7 @@ class SerializerBase(object):
         Recreate an object out of a dict containing the class name and the attributes.
         Only a fixed set of classes are recognized.
         """
-        from . import core, client, server  # XXX circular
+        from . import core, client, server  # circular imports...
         classname = data.get("__class__", "<unknown>")
         if isinstance(classname, bytes):
             classname = classname.decode("utf-8")
@@ -181,7 +181,8 @@ class SerializerBase(object):
             return converter(classname, data)
         if "__" in classname:
             raise errors.SecurityError("refused to deserialize types with double underscores in their name: " + classname)
-        # for performance, the constructors below are hardcoded here instead of added on a per-class basis to the dict-to-class registry
+        # for performance reasons, the constructors below are hardcoded here
+        # instead of added on a per-class basis to the dict-to-class registry
         if classname == "Pyro5.core.URI":
             uri = core.URI.__new__(core.URI)
             uri.__setstate__(data["state"])
