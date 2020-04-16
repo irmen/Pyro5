@@ -19,11 +19,6 @@ insert this at the top to enable the compatibility layer:
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-# the symbols that were available in Pyro4 as Pyro4.* :
-# from Pyro4.core import URI, Proxy, Daemon, callback, batch, asyncproxy, oneway, expose, behavior, current_context
-# from Pyro4.core import _locateNS as locateNS, _resolve as resolve
-# from Pyro4.futures import Future
-
 import sys
 import ipaddress
 

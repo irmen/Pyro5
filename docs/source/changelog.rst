@@ -2,6 +2,12 @@
 Change Log
 **********
 
+**Pyro 5.9.1**
+
+- fixed some circular import conflicts
+- fixed empty nameserver host lookup issue
+
+
 **Pyro 5.9**
 
 - added privilege-separation example

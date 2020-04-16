@@ -9,7 +9,7 @@ class CustomDaemon(Daemon):
     def validateHandshake(self, conn, data):
         print("Daemon received handshake request from:", conn.sock.getpeername())
         print("Handshake data:", data)
-        # if needed, you can inspect Pyro5.core.current_context
+        # if needed, you can inspect Pyro5.callcontext.current_context
         if data == secret_code:
             print("Secret code okay! Connection accepted.")
             # return some custom handshake data:

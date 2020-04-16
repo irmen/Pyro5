@@ -9,14 +9,13 @@ import logging
 import contextlib
 import ipaddress
 import socket
-import threading
 import random
 import serpent
 from typing import Union, Optional
 from . import config, errors, socketutil, serializers, nameserver
 
 
-__all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME", "current_context", "resolve", "locate_ns", "type_meta"]
+__all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME", "resolve", "locate_ns", "type_meta"]
 
 log = logging.getLogger("Pyro5.core")
 
@@ -203,13 +202,11 @@ def resolve(uri: Union[str, URI], delay_time: float = 0.0) -> URI:
         raise errors.PyroError("invalid uri protocol")
 
 
-from . import client  # circular import...
-
-
 def locate_ns(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address] = "",
-              port: Optional[int] = None, broadcast: bool = True) -> client.Proxy:
+              port: Optional[int] = None, broadcast: bool = True) -> "client.Proxy":
     """Get a proxy for a name server somewhere in the network."""
-    if host == "":
+    from . import client
+    if not host:
         # first try localhost if we have a good chance of finding it there
         if config.NS_HOST in ("localhost", "::1") or config.NS_HOST.startswith("127."):
             if ":" in config.NS_HOST:  # ipv6
@@ -295,48 +292,3 @@ def type_meta(class_or_object, prefix="class:"):
     if hasattr(class_or_object, "__class__"):
         return type_meta(class_or_object.__class__)
     return frozenset()
-
-
-# call context thread local
-class _CallContext(threading.local):
-    def __init__(self):
-        # per-thread initialization
-        self.client = None
-        self.client_sock_addr = None
-        self.seq = 0
-        self.msg_flags = 0
-        self.serializer_id = 0
-        self.annotations = {}
-        self.response_annotations = {}
-        self.correlation_id = None
-
-    def to_global(self):
-        return dict(self.__dict__)
-
-    def from_global(self, values):
-        self.client = values["client"]
-        self.seq = values["seq"]
-        self.msg_flags = values["msg_flags"]
-        self.serializer_id = values["serializer_id"]
-        self.annotations = values["annotations"]
-        self.response_annotations = values["response_annotations"]
-        self.correlation_id = values["correlation_id"]
-        self.client_sock_addr = values["client_sock_addr"]
-
-    def track_resource(self, resource):
-        """keep a weak reference to the resource to be tracked for this connection"""
-        if self.client:
-            self.client.tracked_resources.add(resource)
-        else:
-            raise errors.PyroError("cannot track resource on a connectionless call")
-
-    def untrack_resource(self, resource):
-        """no longer track the resource for this connection"""
-        if self.client:
-            self.client.tracked_resources.discard(resource)
-        else:
-            raise errors.PyroError("cannot untrack resource on a connectionless call")
-
-
-current_context = _CallContext()
-"""the context object for the current call. (thread-local)"""

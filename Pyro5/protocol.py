@@ -38,6 +38,7 @@ import logging
 import zlib
 import uuid
 from . import config, errors
+from .callcontext import current_context
 
 
 log = logging.getLogger("Pyro5.protocol")
@@ -66,9 +67,6 @@ _protocol_version_bytes = PROTOCOL_VERSION.to_bytes(2, "big")
 _empty_correlation_id = b"\0" * 16
 
 
-from . import core   #  circular import...
-
-
 class SendingMessage:
     """Wire protocol message that will be sent."""
 
@@ -86,9 +84,9 @@ class SendingMessage:
         total_size = len(payload) + annotations_size
         if total_size > config.MAX_MESSAGE_SIZE:
             raise errors.ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
-        if core.current_context.correlation_id:
+        if current_context.correlation_id:
             flags |= FLAGS_CORR_ID
-            self.corr_id = core.current_context.correlation_id.bytes
+            self.corr_id = current_context.correlation_id.bytes
         else:
             self.corr_id = _empty_correlation_id
         header_data = struct.pack(_header_format, b"PYRO", PROTOCOL_VERSION, msgtype, serializer_id, flags, seq,

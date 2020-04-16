@@ -9,6 +9,7 @@ import logging
 import serpent
 import contextlib
 from . import config, core, serializers, protocol, errors, socketutil
+from .callcontext import current_context
 try:
     from greenlet import getcurrent as get_ident
 except ImportError:
@@ -71,7 +72,7 @@ class Proxy(object):
         # note: we're not clearing the client annotations dict here.
         #       that is because otherwise it will be wiped if a new proxy is needed to connect PYRONAME uris.
         #       clearing the response annotations is okay.
-        core.current_context.response_annotations = {}
+        current_context.response_annotations = {}
         if connected_socket:
             self.__pyroCreateConnection(False, connected_socket)
 
@@ -196,12 +197,12 @@ class Proxy(object):
     def _pyroInvoke(self, methodname, vargs, kwargs, flags=0, objectId=None):
         """perform the remote method call communication"""
         self.__check_owner()
-        core.current_context.response_annotations = {}
+        current_context.response_annotations = {}
         if self._pyroConnection is None:
             self.__pyroCreateConnection()
         serializer = serializers.serializers[self._pyroSerializer or config.SERIALIZER]
         objectId = objectId or self._pyroConnection.objectId
-        annotations = core.current_context.annotations
+        annotations = current_context.annotations
         if vargs and isinstance(vargs[0], SerializedBlob):
             # special serialization of a 'blob' that stays serialized
             data, flags = self.__serializeBlobArgs(vargs, kwargs, annotations, flags, objectId, methodname, serializer)
@@ -229,7 +230,7 @@ class Proxy(object):
                     log.error(error)
                     raise errors.SerializeError(error)
                 if msg.annotations:
-                    core.current_context.response_annotations = msg.annotations
+                    current_context.response_annotations = msg.annotations
                 if self._pyroRawWireResponse:
                     return msg
                 data = serializer.loads(msg.data)
@@ -285,7 +286,7 @@ class Proxy(object):
                 data = {"handshake": self._pyroHandshake, "object": uri.object}
                 data = serializer.dumps(data)
                 msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, self._pyroSeq, serializer.serializer_id,
-                                              data, annotations=core.current_context.annotations)
+                                              data, annotations=current_context.annotations)
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "proxy connect sending", msg)
                 conn.send(msg.data)
@@ -320,7 +321,7 @@ class Proxy(object):
                     self._pyroValidateHandshake(handshake_response)
                     log.debug("connected to %s - %s - %s", self._pyroUri, conn.family(), "SSL" if sslContext else "unencrypted")
                     if msg.annotations:
-                        core.current_context.response_annotations = msg.annotations
+                        current_context.response_annotations = msg.annotations
                 else:
                     conn.close()
                     err = "cannot connect to %s: invalid msg type %d received" % (connect_location, msg.type)

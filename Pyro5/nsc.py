@@ -104,7 +104,7 @@ def handle_command(namesrv, cmd, args):
 def main(args=None):
     from argparse import ArgumentParser
     parser = ArgumentParser(description="Pyro name server control utility.")
-    parser.add_argument("-n", "--host", dest="host", help="hostname of the NS")
+    parser.add_argument("-n", "--host", dest="host", help="hostname of the NS", default="")
     parser.add_argument("-p", "--port", dest="port", type=int, help="port of the NS (or bc-port if host isn't specified)")
     parser.add_argument("-u", "--unixsocket", help="Unix domain socket name of the NS")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", help="verbose output")

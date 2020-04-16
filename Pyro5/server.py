@@ -18,7 +18,7 @@ import serpent
 import ipaddress
 from typing import Callable, Tuple, Union, Optional, Dict, Any, Sequence, Set
 from . import config, core, errors, serializers, socketutil, protocol, client
-
+from .callcontext import current_context
 
 __all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway", "serve"]
 
@@ -175,7 +175,7 @@ class DaemonObject(object):
         client, timestamp, linger_timestamp, stream = self.daemon.streaming_responses[streamId]
         if client is None:
             # reset client connection association (can be None if proxy disconnected)
-            self.daemon.streaming_responses[streamId] = (core.current_context.client, timestamp, 0, stream)
+            self.daemon.streaming_responses[streamId] = (current_context.client, timestamp, 0, stream)
         try:
             return next(stream)
         except Exception:
@@ -331,9 +331,9 @@ class Daemon(object):
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "daemon handshake received", msg)
             if msg.flags & protocol.FLAGS_CORR_ID:
-                core.current_context.correlation_id = uuid.UUID(bytes=msg.corr_id)
+                current_context.correlation_id = uuid.UUID(bytes=msg.corr_id)
             else:
-                core.current_context.correlation_id = uuid.uuid4()
+                current_context.correlation_id = uuid.uuid4()
             serializer_id = msg.serializer_id
             serializer = serializers.serializers_by_id[serializer_id]
             data = serializer.loads(msg.data)
@@ -397,9 +397,9 @@ class Daemon(object):
             request_seq = msg.seq
             request_serializer_id = msg.serializer_id
             if msg.flags & protocol.FLAGS_CORR_ID:
-                core.current_context.correlation_id = uuid.UUID(bytes=msg.corr_id)
+                current_context.correlation_id = uuid.UUID(bytes=msg.corr_id)
             else:
-                core.current_context.correlation_id = uuid.uuid4()
+                current_context.correlation_id = uuid.uuid4()
             if config.LOGWIRE:
                 protocol.log_wiredata(log, "daemon wiredata received", msg)
             if msg.type == protocol.MSG_PING:
@@ -416,16 +416,16 @@ class Daemon(object):
             else:
                 # normal deserialization of remote call arguments
                 objId, method, vargs, kwargs = serializer.loadsCall(msg.data)
-            core.current_context.client = conn
+            current_context.client = conn
             try:
                 # store, because on oneway calls, socket will be disconnected:
-                core.current_context.client_sock_addr = conn.sock.getpeername()
+                current_context.client_sock_addr = conn.sock.getpeername()
             except socket.error:
-                core.current_context.client_sock_addr = None  # sometimes getpeername() doesn't work...
-            core.current_context.seq = msg.seq
-            core.current_context.annotations = msg.annotations
-            core.current_context.msg_flags = msg.flags
-            core.current_context.serializer_id = msg.serializer_id
+                current_context.client_sock_addr = None  # sometimes getpeername() doesn't work...
+            current_context.seq = msg.seq
+            current_context.annotations = msg.annotations
+            current_context.msg_flags = msg.flags
+            current_context.serializer_id = msg.serializer_id
             del msg  # invite GC to collect the object, don't wait for out-of-scope
             obj = self.objectsById.get(objId)
             if obj is not None:
@@ -489,7 +489,7 @@ class Daemon(object):
                     response_flags |= protocol.FLAGS_BATCH
                 msg = protocol.SendingMessage(protocol.MSG_RESULT, response_flags, request_seq, serializer.serializer_id, data,
                                               annotations=self.__annotations())
-                core.current_context.response_annotations = {}
+                current_context.response_annotations = {}
                 if config.LOGWIRE:
                     protocol.log_wiredata(log, "daemon wiredata sending", msg)
                 conn.send(msg.data)
@@ -753,7 +753,7 @@ class Daemon(object):
         self.transportServer.combine_loop(daemon.transportServer)
 
     def __annotations(self):
-        annotations = core.current_context.response_annotations
+        annotations = current_context.response_annotations
         annotations.update(self.annotations())
         return annotations
 
@@ -965,7 +965,7 @@ class _OnewayCallThread(threading.Thread):
     def __init__(self, pyro_method, vargs, kwargs, pyro_daemon, pyro_client_sock):
         super(_OnewayCallThread, self).__init__(target=self._methodcall, name="oneway-call")
         self.daemon = True
-        self.parent_context = core.current_context.to_global()
+        self.parent_context = current_context.to_global()
         self.pyro_daemon = pyro_daemon
         self.pyro_client_sock = pyro_client_sock
         self.pyro_method = pyro_method
@@ -973,7 +973,7 @@ class _OnewayCallThread(threading.Thread):
         self.pyro_kwars = kwargs
 
     def run(self):
-        core.current_context.from_global(self.parent_context)
+        current_context.from_global(self.parent_context)
         super(_OnewayCallThread, self).run()
 
     def _methodcall(self):

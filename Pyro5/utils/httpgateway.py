@@ -30,7 +30,7 @@ import json
 from wsgiref.simple_server import make_server
 from argparse import ArgumentParser
 import traceback
-from .. import __version__, config, errors, client, core, protocol, serializers
+from .. import __version__, config, errors, client, core, protocol, serializers, callcontext
 
 
 __all__ = ["pyro_app", "main"]
@@ -219,9 +219,9 @@ def process_pyro_request(environ, path, parameters, start_response):
         with client.Proxy(uri) as proxy:
             header_corr_id = environ.get("HTTP_X_PYRO_CORRELATION_ID", "")
             if header_corr_id:
-                core.current_context.correlation_id = uuid.UUID(header_corr_id)  # use the correlation id from the request header
+                callcontext.current_context.correlation_id = uuid.UUID(header_corr_id)  # use the correlation id from the request header
             else:
-                core.current_context.correlation_id = uuid.uuid4()  # set new correlation id
+                callcontext.current_context.correlation_id = uuid.uuid4()  # set new correlation id
             proxy._pyroGetMetadata()
             if "oneway" in pyro_options:
                 proxy._pyroOneway.add(method)
@@ -229,7 +229,7 @@ def process_pyro_request(environ, path, parameters, start_response):
                 result = {"methods": tuple(proxy._pyroMethods), "attributes": tuple(proxy._pyroAttrs)}
                 reply = json.dumps(result).encode("utf-8")
                 start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8'),
-                                          ('X-Pyro-Correlation-Id', str(core.current_context.correlation_id))])
+                                          ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id))])
                 return [reply]
             else:
                 proxy._pyroRawWireResponse = True   # we want to access the raw response json
@@ -243,7 +243,7 @@ def process_pyro_request(environ, path, parameters, start_response):
                 if msg is None or "oneway" in pyro_options:
                     # was a oneway call, no response available
                     start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8'),
-                                              ('X-Pyro-Correlation-Id', str(core.current_context.correlation_id))])
+                                              ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id))])
                     return []
                 elif msg.flags & protocol.FLAGS_EXCEPTION:
                     # got an exception response so send a 500 status
@@ -252,7 +252,7 @@ def process_pyro_request(environ, path, parameters, start_response):
                 else:
                     # normal response
                     start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8'),
-                                              ('X-Pyro-Correlation-Id', str(core.current_context.correlation_id))])
+                                              ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id))])
                     return [msg.data]
     except Exception as x:
         stderr = environ["wsgi.errors"]

@@ -3,6 +3,7 @@ import Pyro5.core
 import Pyro5.client
 import Pyro5.server
 import Pyro5.nameserver
+import Pyro5.callcontext
 
 
 def test_api():
@@ -12,4 +13,4 @@ def test_api():
     assert Pyro5.api.Proxy is Pyro5.client.Proxy
     assert Pyro5.api.Daemon is Pyro5.server.Daemon
     assert Pyro5.api.start_ns is Pyro5.nameserver.start_ns
-    assert Pyro5.api.current_context is Pyro5.core.current_context
+    assert Pyro5.api.current_context is Pyro5.callcontext.current_context
