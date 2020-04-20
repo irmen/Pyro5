@@ -2,6 +2,14 @@
 Change Log
 **********
 
+**Pyro 5.9.2**
+
+- fixed a silent error in the server when doing error handling (avoid calling getpeername() which may fail)
+  this issue could cause a method call to not being executed in a certain specific scenario.
+  (oneway call on MacOS when using unix domain sockets). Still, it's probably wise to upgrade as
+  this was a regression since version 5.8.
+
+
 **Pyro 5.9.1**
 
 - fixed some circular import conflicts
