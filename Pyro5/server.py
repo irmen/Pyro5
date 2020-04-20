@@ -439,7 +439,7 @@ class Daemon(object):
                         try:
                             result = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
                         except Exception as xv:
-                            self.methodcall_error_handler(self, conn.sock.getpeername(), method, vargs, kwargs, xv)
+                            self.methodcall_error_handler(self, current_context.client_sock_addr, method, vargs, kwargs, xv)
                             xv._pyroTraceback = errors.format_traceback(detailed=config.DETAILED_TRACEBACK)
                             data.append(core._ExceptionWrapper(xv))
                             break  # stop processing the rest of the batch
@@ -459,13 +459,13 @@ class Daemon(object):
                         if request_flags & protocol.FLAGS_ONEWAY:
                             # oneway call to be run inside its own thread, otherwise client blocking can still occur
                             #    on the next call on the same proxy
-                            _OnewayCallThread(method, vargs, kwargs, self, conn.sock.getpeername()).start()
+                            _OnewayCallThread(method, vargs, kwargs, self, current_context.client_sock_addr).start()
                         else:
                             isCallback = getattr(method, "_pyroCallback", False)
                             try:
                                 data = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
                             except Exception as xv:
-                                self.methodcall_error_handler(self, conn.sock.getpeername(), method, vargs, kwargs, xv)
+                                self.methodcall_error_handler(self, current_context.client_sock_addr, method, vargs, kwargs, xv)
                                 raise
                             if not request_flags & protocol.FLAGS_ONEWAY:
                                 isStream, data = self._streamResponse(data, conn)
