@@ -89,9 +89,6 @@ def wsgiserver():
             self._pyroUri = Pyro5.core.URI("PYRO:dummy12345@localhost:59999")
             self.register("http.ObjectName", "PYRO:dummy12345@localhost:59999")
 
-        def _pyroBatch(self):
-            return self
-
         def __enter__(self):
             return self
 
