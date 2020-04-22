@@ -1,6 +1,12 @@
+import zlib
 import pytest
 import Pyro5.protocol
 import Pyro5.errors
+import Pyro5.protocol
+import Pyro5.serializers
+import Pyro5.errors
+from Pyro5.protocol import SendingMessage, ReceivingMessage
+from support import ConnectionMock
 
 
 class TestSendingMessage:
@@ -97,3 +103,69 @@ class TestReceivingMessage:
         payload = send_msg.data[Pyro5.protocol._header_size:]
         msg = Pyro5.protocol.ReceivingMessage(header, payload)
         assert type(msg.data) is memoryview
+
+
+class TestProtocolMessages:
+    def testMessage(self):
+        SendingMessage(99, 0, 0, Pyro5.serializers.SerpentSerializer.serializer_id, b"")  # doesn't check msg type here
+        with pytest.raises(TypeError):
+            ReceivingMessage("FOOBAR")
+        with pytest.raises(Pyro5.errors.ProtocolError):
+            ReceivingMessage(b"FOOBARFOOBARFOOBARFOOBARFOOBARFOOBAR1234")
+        msg = SendingMessage(Pyro5.protocol.MSG_CONNECT, 0, 0, Pyro5.serializers.SerpentSerializer.serializer_id, b"hello")
+        assert msg.type == Pyro5.protocol.MSG_CONNECT
+        assert len(msg.data) == Pyro5.protocol._header_size + 5
+        msg = ReceivingMessage(msg.data[:Pyro5.protocol._header_size], msg.data[Pyro5.protocol._header_size:])
+        assert msg.type == Pyro5.protocol.MSG_CONNECT
+        assert msg.data == b"hello"
+
+        msg = SendingMessage(Pyro5.protocol.MSG_RESULT, 0, 0, Pyro5.serializers.SerpentSerializer.serializer_id, b"")
+        msg = ReceivingMessage(msg.data[:Pyro5.protocol._header_size], msg.data[Pyro5.protocol._header_size:])
+        assert msg.type == Pyro5.protocol.MSG_RESULT
+        assert len(msg.data) == 0
+
+        msg = SendingMessage(255, 0, 255, Pyro5.serializers.SerpentSerializer.serializer_id, b"").data
+        assert len(msg) == 40
+        msg = SendingMessage(1, 0, 255, Pyro5.serializers.SerpentSerializer.serializer_id, b"").data
+        assert len(msg) == 40
+
+        data = b"x" * 1000
+        Pyro5.config.COMPRESSION = True
+        msg = SendingMessage(Pyro5.protocol.MSG_INVOKE, 0, 0, Pyro5.serializers.SerpentSerializer.serializer_id, data).data
+        assert len(msg) < len(data)
+        Pyro5.config.COMPRESSION = False
+
+    def testAnnotationsIdLength4(self):
+        with pytest.raises(Pyro5.errors.ProtocolError):
+            SendingMessage(Pyro5.protocol.MSG_CONNECT, 0, 0, Pyro5.serializers.SerpentSerializer.serializer_id, b"hello", {"TOOLONG": b"abcde"})
+        with pytest.raises(Pyro5.errors.ProtocolError):
+            SendingMessage(Pyro5.protocol.MSG_CONNECT, 0, 0, Pyro5.serializers.SerpentSerializer.serializer_id, b"hello", {"QQ": b"abcde"})
+
+    def testRecvAnnotations(self):
+        annotations = {"TEST": b"abcde"}
+        msg = SendingMessage(Pyro5.protocol.MSG_CONNECT, 0, 0, Pyro5.serializers.SerpentSerializer.serializer_id, b"hello", annotations)
+        c = ConnectionMock()
+        c.send(msg.data)
+        msg = Pyro5.protocol.recv_stub(c)
+        assert len(c.received) == 0
+        assert msg.data == b"hello"
+        assert msg.annotations["TEST"] == b"abcde"
+
+    def testCompression(self):
+        data = b"The quick brown fox jumps over the lazy dog."*10
+        compressed_data = zlib.compress(data)
+        flags = Pyro5.protocol.FLAGS_COMPRESSED
+        msg = SendingMessage(Pyro5.protocol.MSG_INVOKE, 42, flags, 1, compressed_data)
+        assert msg.data != data
+        assert len(msg.data) < len(data)
+
+    def testRecvNoAnnotations(self):
+        msg = SendingMessage(Pyro5.protocol.MSG_CONNECT, 42, 0, 0, b"hello")
+        c = ConnectionMock()
+        c.send(msg.data)
+        msg = Pyro5.protocol.recv_stub(c)
+        assert len(c.received) == 0
+        assert msg.data_size == 5
+        assert msg.data == b"hello"
+        assert msg.annotations_size == 0
+        assert len(msg.annotations) == 0

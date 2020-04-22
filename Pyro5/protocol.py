@@ -126,7 +126,7 @@ class ReceivingMessage:
                                        .format(self.data_size+self.annotations_size, config.MAX_MESSAGE_SIZE))
         self.data = None
         self.annotations = {}
-        if payload:
+        if payload is not None:
             self.add_payload(payload)
 
     def __repr__(self):
