@@ -194,7 +194,7 @@ class ConnectionMock(object):
         elif isinstance(initial_msg, (str, bytes)):
             self.received = initial_msg
         else:
-            self.received = initial_msg.to_bytes()   # it's probably a Message object
+            self.received = initial_msg.data   # it's probably a Message object
 
     def send(self, data):
         self.received += data
