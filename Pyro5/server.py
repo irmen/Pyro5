@@ -783,7 +783,7 @@ class Daemon(object):
         assert len(state) == 0
 
     def _streamResponse(self, data, client):
-        if isinstance(data, collections.Iterator) or inspect.isgenerator(data):
+        if isinstance(data, collections.abc.Iterator) or inspect.isgenerator(data):
             if config.ITER_STREAMING:
                 if type(data) in (type({}.keys()), type({}.values()), type({}.items())):
                     raise errors.PyroError("won't serialize or stream lazy dict iterators, convert to list yourself")

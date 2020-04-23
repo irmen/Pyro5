@@ -582,7 +582,7 @@ class TestCore:
 
 # XXX move to server tests?
 
-class ExposeDecoratorTests:
+class TestExposeDecorator:
     # note: the bulk of the tests for the @expose decorator are found in the test_util module
     def testExposeInstancemodeDefault(self):
         @Pyro5.server.expose
@@ -605,7 +605,7 @@ class ExposeDecoratorTests:
             assert TestClassThree._pyroInstancing == ("session", None)
 
 
-class BehaviorDecoratorTests:
+class TestBehaviorDecorator:
     def testBehaviorInstancemodeInvalid(self):
         with pytest.raises(ValueError):
             @Pyro5.server.behavior(instance_mode="kaputt")
@@ -672,10 +672,42 @@ class BehaviorDecoratorTests:
         assert ic is float
 
 
-class RemoteMethodTests:
+class TestRemoteMethod:
+
+    class BatchProxyMock(object):
+        def __init__(self):
+            self.result = []
+            self._pyroMaxRetries = 0
+
+        def __copy__(self):
+            return self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def _pyroClaimOwnership(self):
+            pass
+
+        def _pyroInvokeBatch(self, calls, oneway=False):
+            self.result = []
+            for methodname, args, kwargs in calls:
+                if methodname == "error":
+                    self.result.append(Pyro5.core._ExceptionWrapper(ValueError("some exception")))
+                    break  # stop processing the rest, this is what Pyro should do in case of an error in a batch
+                elif methodname == "pause":
+                    time.sleep(args[0])
+                self.result.append("INVOKED %s args=%s kwargs=%s" % (methodname, args, kwargs))
+            if oneway:
+                return
+            else:
+                return self.result
+
     def testBatchMethod(self):
         proxy = self.BatchProxyMock()
-        batch = Pyro5.client.batch(proxy)
+        batch = Pyro5.client.BatchProxy(proxy)
         assert batch.foo(42) is None
         assert batch.bar("abc") is None
         assert batch.baz(42, "abc", arg=999) is None
@@ -697,7 +729,7 @@ class RemoteMethodTests:
 
     def testBatchMethodOneway(self):
         proxy = self.BatchProxyMock()
-        batch = Pyro5.client.batch(proxy)
+        batch = Pyro5.client.BatchProxy(proxy)
         assert batch.foo(42) is None
         assert batch.bar("abc") is None
         assert batch.baz(42, "abc", arg=999) is None
@@ -706,36 +738,10 @@ class RemoteMethodTests:
         results = batch(oneway=True)
         assert results is None  # oneway always returns None
         assert len(proxy.result) == 4  # should have done 4 calls, not 5
-        with pytest.raises(Pyro5.errors.PyroError):
-            batch(oneway=True, asynchronous=True)
-
-    def testBatchMethodAsync(self):
-        proxy = self.BatchProxyMock()
-        batch = Pyro5.core.batch(proxy)
-        assert batch.foo(42) is None
-        assert batch.bar("abc") is None
-        assert batch.pause(0.5) is None  # pause shouldn't matter with asynchronous
-        assert batch.baz(42, "abc", arg=999) is None
-        begin = time.time()
-        asyncresult = batch(asynchronous=True)
-        duration = time.time() - begin
-        self.assertLess(duration, 0.2, "batch oneway with pause should still return almost immediately")
-        results = asyncresult.value
-        assert len(proxy.result) == 4  # should have done 4 calls
-        result = next(results)
-        assert result == "INVOKED foo args=(42,) kwargs={}"
-        result = next(results)
-        assert result == "INVOKED bar args=('abc',) kwargs={}"
-        result = next(results)
-        assert result == "INVOKED pause args=(0.5,) kwargs={}"
-        result = next(results)
-        assert result == "INVOKED baz args=(42, 'abc') kwargs={'arg': 999}"
-        with pytest.raises(StopIteration):
-            next(results)  # and now there should not be any more results
 
     def testBatchMethodReuse(self):
         proxy = self.BatchProxyMock()
-        batch = Pyro5.core.batch(proxy)
+        batch = Pyro5.client.BatchProxy(proxy)
         batch.foo(1)
         batch.foo(2)
         results = batch()
