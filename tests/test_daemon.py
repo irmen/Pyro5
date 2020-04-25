@@ -64,9 +64,10 @@ class TestDaemon:
             msg = Pyro5.protocol.SendingMessage(Pyro5.protocol.MSG_INVOKE, 0, 0, Pyro5.serializers.SerpentSerializer.serializer_id, b"")
             cm = ConnectionMock(msg)
             d.handleRequest(cm)
-            msg = Pyro5.protocol.SendingMessage(Pyro5.protocol.MSG_INVOKE, 0, 0, Pyro5.serializers.MsgpackSerializer.serializer_id, b"")
-            cm = ConnectionMock(msg)
-            d.handleRequest(cm)
+            if "msgpack" in Pyro5.serializers.serializers:
+                msg = Pyro5.protocol.SendingMessage(Pyro5.protocol.MSG_INVOKE, 0, 0, Pyro5.serializers.MsgpackSerializer.serializer_id, b"")
+                cm = ConnectionMock(msg)
+                d.handleRequest(cm)
 
     def testDaemon(self):
         with Pyro5.server.Daemon(port=0) as d:

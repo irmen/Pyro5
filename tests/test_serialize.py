@@ -106,8 +106,9 @@ class TestJsonSerializer(TestSerpentSerializer):
     serializer = Pyro5.serializers.serializers["json"]
 
 
-class TestMsgpackSerializer(TestSerpentSerializer):
-    serializer = Pyro5.serializers.serializers["msgpack"]
+if "msgpack" in Pyro5.serializers.serializers:
+    class TestMsgpackSerializer(TestSerpentSerializer):
+        serializer = Pyro5.serializers.serializers["msgpack"]
 
 
 class TestSerializer2_serpent:
@@ -574,17 +575,18 @@ class TestSerializer2_marshal(TestSerializer2_serpent):
         pass    # marshall can't serialize custom objects
 
 
-class TestSerializer2_msgpack(TestSerializer2_serpent):
-    SERIALIZER = "msgpack"
+if "msgpack" in Pyro5.serializers.serializers:
+    class TestSerializer2_msgpack(TestSerializer2_serpent):
+        SERIALIZER = "msgpack"
 
-    def testDeque(self):
-        pass    # msgpack can't serialize this
+        def testDeque(self):
+            pass    # msgpack can't serialize this
 
-    def testSet(self):
-        data = {111, 222, 333}
-        ser = self.serializer.dumps(data)
-        data2 = self.serializer.loads(ser)
-        assert sorted(data2) == [111, 222, 333]
+        def testSet(self):
+            data = {111, 222, 333}
+            ser = self.serializer.dumps(data)
+            data2 = self.serializer.loads(ser)
+            assert sorted(data2) == [111, 222, 333]
 
 
 class TestGenericCases:
@@ -603,7 +605,8 @@ class TestGenericCases:
         _ = Pyro5.serializers.serializers_by_id[1]  # serpent
         _ = Pyro5.serializers.serializers_by_id[2]  # marshal
         _ = Pyro5.serializers.serializers_by_id[3]  # json
-        _ = Pyro5.serializers.serializers_by_id[4]  # msgpack
+        if "msgpack" in Pyro5.serializers.serializers:
+            _ = Pyro5.serializers.serializers_by_id[4]  # msgpack
         assert 0 not in Pyro5.serializers.serializers_by_id
         assert 5 not in Pyro5.serializers.serializers_by_id
 
