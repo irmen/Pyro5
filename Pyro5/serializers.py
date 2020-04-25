@@ -434,8 +434,6 @@ class MsgpackSerializer(SerializerBase):
             return tuple(obj)  # msgpack module can't deal with sets so we make a tuple out of it
         if isinstance(obj, uuid.UUID):
             return str(obj)
-        if isinstance(obj, bytearray):
-            return bytes(obj)
         if isinstance(obj, complex):
             return msgpack.ExtType(0x30, struct.pack("dd", obj.real, obj.imag))
         if isinstance(obj, datetime.datetime):

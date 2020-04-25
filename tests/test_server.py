@@ -179,6 +179,7 @@ class TestServerOnce:
     """tests that are fine to run with just a single server type"""
 
     def setup_method(self):
+        config.SERIALIZER = "serpent"
         config.LOGWIRE = True
         Pyro5.serializers.SerializerBase.register_class_to_dict(ServerTestObject, lambda x: {})
         Pyro5.serializers.SerializerBase.register_dict_to_class("test_server.ServerTestObject", lambda cn, d: ServerTestObject())
@@ -551,6 +552,7 @@ class TestServerThreadNoTimeout:
     COMMTIMEOUT = None
 
     def setup_method(self):
+        config.SERIALIZER = "serpent"
         config.LOGWIRE = True
         config.POLLTIMEOUT = 0.1
         config.SERVERTYPE = self.SERVERTYPE

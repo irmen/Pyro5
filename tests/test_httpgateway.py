@@ -114,6 +114,10 @@ def wsgiserver():
 
 
 class TestHttpGateway:
+
+    def teardown_class(self):
+        Pyro5.config.SERIALIZER = "serpent"
+
     def test_params(self):
         multiparams = {
             "first": [1],
