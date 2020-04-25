@@ -6,6 +6,7 @@ Change Log
 
 - finally ported over the unit test suite from Pyro4
 - fixed regex lookup index error in nameserver
+- the 4 custom class (un)register methods on the SerializerBase class are now also directly available in the api module
 
 
 **Pyro 5.9.2**

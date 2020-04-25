@@ -1,10 +1,10 @@
 import random
-from Pyro5.api import Proxy, SerializerBase
+from Pyro5.api import Proxy, register_dict_to_class
 from workitem import Workitem
 
 
 # For 'workitem.Workitem' we register a deserialization hook to be able to get these back from Pyro
-SerializerBase.register_dict_to_class("workitem.Workitem", Workitem.from_dict)
+register_dict_to_class("workitem.Workitem", Workitem.from_dict)
 
 NUMBER_OF_ITEMS = 40
 

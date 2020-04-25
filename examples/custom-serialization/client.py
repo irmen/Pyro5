@@ -1,4 +1,4 @@
-from Pyro5.api import SerializerBase, Proxy, config
+from Pyro5.api import Proxy, config, register_dict_to_class, register_class_to_dict
 import mycustomclasses
 
 
@@ -27,11 +27,11 @@ def otherthingy_dict_to_class(classname, d):
 
 
 # for 'Thingy' we register both serialization and deserialization hooks
-SerializerBase.register_class_to_dict(mycustomclasses.Thingy, thingy_class_to_dict)
-SerializerBase.register_dict_to_class("waheeee-custom-thingy", thingy_dict_to_class)
+register_class_to_dict(mycustomclasses.Thingy, thingy_class_to_dict)
+register_dict_to_class("waheeee-custom-thingy", thingy_dict_to_class)
 
 # for 'OtherThingy' we only register a deserialization hook (and for serialization depend on serpent's default behavior)
-SerializerBase.register_dict_to_class("mycustomclasses.OtherThingy", otherthingy_dict_to_class)
+register_dict_to_class("mycustomclasses.OtherThingy", otherthingy_dict_to_class)
 
 
 # regular pyro stuff

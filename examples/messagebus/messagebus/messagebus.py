@@ -15,12 +15,9 @@ import pickle
 import contextlib
 from collections import defaultdict
 from contextlib import closing
-try:
-    import sqlite3
-except ImportError:
-    sqlite3 = None
+import sqlite3
 import queue
-from Pyro5.api import SerializerBase, expose, behavior, oneway, Proxy
+from Pyro5.api import expose, behavior, oneway, Proxy, register_class_to_dict, register_dict_to_class
 import Pyro5.errors
 from . import PYRO_MSGBUS_NAME
 
@@ -55,8 +52,8 @@ class Message(object):
 
 
 # make sure Pyro knows how to serialize the custom Message class
-SerializerBase.register_class_to_dict(Message, Message.to_dict)
-SerializerBase.register_dict_to_class("Pyro5.utils.messagebus.message", Message.from_dict)
+register_class_to_dict(Message, Message.to_dict)
+register_dict_to_class("Pyro5.utils.messagebus.message", Message.from_dict)
 
 
 @expose

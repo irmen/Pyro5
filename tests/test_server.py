@@ -511,7 +511,7 @@ class TestServerOnce:
         assert sb.deserialized() == [1, 2, 3]
 
     def testSerializedBlobMessage(self):
-        # XXX todo fix BLOB handling/test
+        # XXX fix BLOB handling/test
         serializer = Pyro5.serializers.serializers["serpent"]
         data = serializer.dumpsCall("object", "method", ([1, 2, 3],), None)
         msg = Pyro5.protocol.SendingMessage(Pyro5.protocol.MSG_INVOKE, 0, 42, serializer.serializer_id, data)
@@ -520,7 +520,6 @@ class TestServerOnce:
         assert sb.deserialized() == ([1, 2, 3],)
 
     def testProxySerializedBlobArg(self):
-        # XXX todo fix BLOB handling/test
         with Pyro5.client.Proxy(self.objectUri) as p:
             blobinfo, blobdata = p.blob(Pyro5.client.SerializedBlob("blobname", [1, 2, 3]))
             assert blobinfo == "blobname"

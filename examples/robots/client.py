@@ -1,6 +1,6 @@
 import sys
 import random
-from Pyro5.api import expose, oneway, SerializerBase, Daemon, Proxy, config
+from Pyro5.api import expose, oneway, Daemon, Proxy, config, register_dict_to_class, register_class_to_dict
 import robot
 import remote
 
@@ -70,8 +70,8 @@ observers = {
 
 
 # register the Robot class with Pyro's serializers:
-SerializerBase.register_class_to_dict(robot.Robot, robot.Robot.robot_to_dict)
-SerializerBase.register_dict_to_class("robot.Robot", robot.Robot.dict_to_robot)
+register_class_to_dict(robot.Robot, robot.Robot.robot_to_dict)
+register_dict_to_class("robot.Robot", robot.Robot.dict_to_robot)
 
 
 def main(args):

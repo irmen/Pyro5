@@ -2,12 +2,12 @@ import os
 import socket
 import sys
 from math import sqrt
-from Pyro5.api import SerializerBase, Proxy
+from Pyro5.api import Proxy, register_dict_to_class
 from workitem import Workitem
 
 
 # For 'workitem.Workitem' we register a deserialization hook to be able to get these back from Pyro
-SerializerBase.register_dict_to_class("workitem.Workitem", Workitem.from_dict)
+register_dict_to_class("workitem.Workitem", Workitem.from_dict)
 
 WORKERNAME = "Worker_%d@%s" % (os.getpid(), socket.gethostname())
 

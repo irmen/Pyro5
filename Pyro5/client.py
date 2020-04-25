@@ -610,8 +610,8 @@ class SerializedBlob(object):
         self.info = info
         self._data = data
         self._contains_blob = is_blob
-        if is_blob and not isinstance(data, protocol.SendingMessage):
-            raise TypeError("data should be a protocol message if is_blob is true")
+        if is_blob and not isinstance(data, (protocol.SendingMessage, protocol.ReceivingMessage)):
+            raise TypeError("data should be a protocol message object if is_blob is true")
 
     def deserialized(self):
         """Retrieves the client data stored in this blob. Deserializes the data automatically if required."""

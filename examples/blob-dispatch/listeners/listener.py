@@ -1,8 +1,8 @@
-from Pyro5.api import expose, Proxy, SerializerBase
+from Pyro5.api import expose, Proxy, register_dict_to_class
 from customdata import CustomData
 
-# teach Serpent how to deserialize our custom data class
-SerializerBase.register_dict_to_class(CustomData.serialized_classname, CustomData.from_dict)
+# teach the serializer how to deserialize our custom data class
+register_dict_to_class(CustomData.serialized_classname, CustomData.from_dict)
 
 
 class Listener(object):

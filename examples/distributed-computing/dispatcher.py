@@ -1,10 +1,10 @@
 import queue
-from Pyro5.api import expose, behavior, serve, SerializerBase
+from Pyro5.api import expose, behavior, serve, register_dict_to_class
 from workitem import Workitem
 
 
 # For 'workitem.Workitem' we register a deserialization hook to be able to get these back from Pyro
-SerializerBase.register_dict_to_class("workitem.Workitem", Workitem.from_dict)
+register_dict_to_class("workitem.Workitem", Workitem.from_dict)
 
 
 @expose
