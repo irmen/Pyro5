@@ -86,6 +86,7 @@ class SerializerBase(object):
     def register_class_to_dict(cls, clazz, converter, serpent_too=True):
         """Registers a custom function that returns a dict representation of objects of the given class.
         The function is called with a single parameter; the object to be converted to a dict."""
+        # XXX make these 4 register methods accessible directly from the api package as well...
         cls.__custom_class_to_dict_registry[clazz] = converter
         if serpent_too:
             with contextlib.suppress(errors.ProtocolError):
