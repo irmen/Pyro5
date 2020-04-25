@@ -653,4 +653,5 @@ class TestMetaInfo:
             d.resetMetadataCache(dummy)
             meta = daemon_obj.get_metadata(uri.object)
             assert "newly_added_method_two" in meta["methods"]
-
+            del Dummy.newly_added_method
+            del Dummy.newly_added_method_two
