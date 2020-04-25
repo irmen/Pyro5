@@ -49,8 +49,8 @@ class TestDaemon:
     def sendHandshakeMessage(self, conn, correlation_id=None):
         ser = Pyro5.serializers.serializers_by_id[Pyro5.serializers.MarshalSerializer.serializer_id]
         data = ser.dumps({"handshake": "hello", "object": Pyro5.core.DAEMON_NAME})
-        annotations = {"CORR": correlation_id.bytes} if correlation_id else None
-        msg = Pyro5.protocol.SendingMessage(Pyro5.protocol.MSG_CONNECT, 0, 99, Pyro5.serializers.MarshalSerializer.serializer_id, data, annotations=annotations)
+        current_context.correlation_id = correlation_id
+        msg = Pyro5.protocol.SendingMessage(Pyro5.protocol.MSG_CONNECT, 0, 99, Pyro5.serializers.MarshalSerializer.serializer_id, data)
         conn.send(msg.data)
 
     def testSerializerAccepted(self):
@@ -411,18 +411,17 @@ class TestDaemon:
         with CustomHandshakeDaemon(port=0) as d:
             corr_id = uuid.uuid4()
             self.sendHandshakeMessage(conn, correlation_id=corr_id)
-            assert current_context.correlation_id != corr_id
+            assert current_context.correlation_id == corr_id
             success = d._handshake(conn)
             assert success
             msg = Pyro5.protocol.recv_stub(conn)
             assert msg.type == Pyro5.protocol.MSG_CONNECTOK
             assert msg.seq == 99
-            assert len(msg.annotations) == 2     # XXX todo fix this, "CORR" annotation is missing
+            assert len(msg.annotations) == 1
             assert msg.annotations["XYZZ"] == b"custom annotation set by daemon"
-            assert msg.annotations["CORR"] == corr_id.bytes     # should have been set by sendHandshakeMessage
             ser = Pyro5.serializers.serializers_by_id[msg.serializer_id]
-            data = ser.deserializeData(msg.data, msg.flags & Pyro5.protocol.FLAGS_COMPRESSED)
-            assert data == ["sure", "have", "fun"]
+            data = ser.loads(msg.data)
+            assert data["handshake"] == ["sure", "have", "fun"]
 
     def testNAT(self):
         with Pyro5.server.Daemon() as d:
