@@ -511,13 +511,12 @@ class TestServerOnce:
         assert sb.deserialized() == [1, 2, 3]
 
     def testSerializedBlobMessage(self):
-        # XXX fix BLOB handling/test
         serializer = Pyro5.serializers.serializers["serpent"]
-        data = serializer.dumpsCall("object", "method", ([1, 2, 3],), None)
+        data = serializer.dumpsCall("object", "method", ([1, 2, 3],), {"kwarg": 42})
         msg = Pyro5.protocol.SendingMessage(Pyro5.protocol.MSG_INVOKE, 0, 42, serializer.serializer_id, data)
         sb = Pyro5.client.SerializedBlob("blobname", msg, is_blob=True)
         assert sb.info == "blobname"
-        assert sb.deserialized() == ([1, 2, 3],)
+        assert sb.deserialized() == ([1, 2, 3], )
 
     def testProxySerializedBlobArg(self):
         with Pyro5.client.Proxy(self.objectUri) as p:

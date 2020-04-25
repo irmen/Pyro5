@@ -618,7 +618,12 @@ class SerializedBlob(object):
         if self._contains_blob:
             protocol_msg = self._data
             serializer = serializers.serializers_by_id[protocol_msg.serializer_id]
-            _, _, data, _ = serializer.loads(protocol_msg.data)
+            if isinstance(protocol_msg, protocol.ReceivingMessage):
+                _, _, data, _ = serializer.loads(protocol_msg.data)
+            else:
+                # strip off header bytes from SendingMessage
+                payload_data = memoryview(protocol_msg.data)[protocol._header_size:]
+                _, _, data, _ = serializer.loads(payload_data)
             return data
         else:
             return self._data
