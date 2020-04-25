@@ -2,6 +2,12 @@
 Change Log
 **********
 
+**Pyro 5.10**
+
+- finally ported over the unit test suite from Pyro4
+- fixed regex lookup index error in nameserver
+
+
 **Pyro 5.9.2**
 
 - fixed a silent error in the server when doing error handling (avoid calling getpeername() which may fail)
