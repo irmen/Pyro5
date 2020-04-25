@@ -800,3 +800,451 @@ class TestServerMultiplexNoTimeout(TestServerThreadNoTimeout):
 
     def testException(self):
         pass
+
+
+class TestMetaAndExpose:
+    def testBasic(self):
+        o = MyThingFullExposed("irmen")
+        m1 = Pyro5.server._get_exposed_members(o)
+        m2 = Pyro5.server._get_exposed_members(MyThingFullExposed)
+        assert m1 == m2
+        keys = m1.keys()
+        assert len(keys) == 3
+        assert "methods" in keys
+        assert "attrs" in keys
+        assert "oneway" in keys
+
+    def testGetExposedCacheWorks(self):
+        class Thingy(object):
+            def method1(self):
+                pass
+            @property
+            def prop(self):
+                return 1
+            def notexposed(self):
+                pass
+        m1 = Pyro5.server._get_exposed_members(Thingy, only_exposed=False)
+        def new_method(self, arg):
+            return arg
+        Thingy.new_method = new_method
+        m2 = Pyro5.server._get_exposed_members(Thingy, only_exposed=False)
+        assert m2, "should still be equal because result from cache" == m1
+
+    def testPrivateNotExposed(self):
+        o = MyThingFullExposed("irmen")
+        m = Pyro5.server._get_exposed_members(o)
+        assert m["methods"] == {"classmethod", "staticmethod", "method", "__dunder__", "oneway", "exposed"}
+        assert m["attrs"] == {"prop1", "readonly_prop1", "prop2"}
+        assert m["oneway"] == {"oneway"}
+        o = MyThingPartlyExposed("irmen")
+        m = Pyro5.server._get_exposed_members(o)
+        assert m["methods"] == {"oneway", "exposed"}
+        assert m["attrs"] == {"prop1", "readonly_prop1"}
+        assert m["oneway"] == {"oneway"}
+
+    def testNotOnlyExposed(self):
+        o = MyThingPartlyExposed("irmen")
+        m = Pyro5.server._get_exposed_members(o, only_exposed=False)
+        assert m["methods"] == {"classmethod", "staticmethod", "method", "__dunder__", "oneway", "exposed"}
+        assert m["attrs"] == {"prop1", "readonly_prop1", "prop2"}
+        assert m["oneway"] == {"oneway"}
+
+    def testPartlyExposedSubclass(self):
+        o = MyThingPartlyExposedSub("irmen")
+        m = Pyro5.server._get_exposed_members(o)
+        assert m["attrs"] == {"prop1", "readonly_prop1"}
+        assert m["oneway"] == {"oneway"}
+        assert m["methods"] == {"sub_exposed", "exposed", "oneway"}
+
+    def testExposedSubclass(self):
+        o = MyThingExposedSub("irmen")
+        m = Pyro5.server._get_exposed_members(o)
+        assert m["attrs"] == {"readonly_prop1", "prop1", "prop2"}
+        assert m["oneway"] == {"oneway", "oneway2"}
+        assert m["methods"] == {"classmethod", "staticmethod", "oneway", "__dunder__", "method", "exposed",
+                                "oneway2", "sub_exposed", "sub_unexposed"}
+
+    def testExposePrivateFails(self):
+        with pytest.raises(AttributeError):
+            class Test1(object):
+                @Pyro5.server.expose
+                def _private(self):
+                    pass
+        with pytest.raises(AttributeError):
+            class Test3(object):
+                @Pyro5.server.expose
+                def __private(self):
+                    pass
+        with pytest.raises(AttributeError):
+            @Pyro5.server.expose
+            class _Test4(object):
+                pass
+        with pytest.raises(AttributeError):
+            @Pyro5.server.expose
+            class __Test5(object):
+                pass
+
+    def testExposeDunderOk(self):
+        class Test1(object):
+            @Pyro5.server.expose
+            def __dunder__(self):
+                pass
+        assert Test1.__dunder__._pyroExposed
+        @Pyro5.server.expose
+        class Test2(object):
+            def __dunder__(self):
+                pass
+        assert Test2._pyroExposed
+        assert Test2.__dunder__._pyroExposed
+
+    def testClassmethodExposeWrongOrderFail(self):
+        with pytest.raises(AttributeError) as ax:
+            class TestClass:
+                @Pyro5.server.expose
+                @classmethod
+                def cmethod(cls):
+                    pass
+        assert "must be done after" in str(ax.value)
+        with pytest.raises(AttributeError) as ax:
+            class TestClass:
+                @Pyro5.server.expose
+                @staticmethod
+                def smethod(cls):
+                    pass
+        assert "must be done after" in str(ax.value)
+
+    def testClassmethodExposeCorrectOrderOkay(self):
+        class TestClass:
+            @classmethod
+            @Pyro5.server.expose
+            def cmethod(cls):
+                pass
+            @staticmethod
+            @Pyro5.server.expose
+            def smethod(cls):
+                pass
+        assert TestClass.cmethod._pyroExposed
+        assert TestClass.smethod._pyroExposed
+
+    def testGetExposedProperty(self):
+        o = MyThingFullExposed("irmen")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "name")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "c_attr")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "propvalue")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "unexisting_attribute")
+        assert Pyro5.server._get_exposed_property_value(o, "prop1") == 42
+        assert Pyro5.server._get_exposed_property_value(o, "prop2") == 42
+
+    def testGetExposedPropertyFromPartiallyExposed(self):
+        o = MyThingPartlyExposed("irmen")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "name")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "c_attr")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "propvalue")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "unexisting_attribute")
+        assert Pyro5.server._get_exposed_property_value(o, "prop1") == 42
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_exposed_property_value(o, "prop2")
+
+    def testSetExposedProperty(self):
+        o = MyThingFullExposed("irmen")
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "name", "erorr")
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "unexisting_attribute", 42)
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "readonly_prop1", 42)
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "propvalue", 999)
+        assert o.prop1 == 42
+        assert o.prop2 == 42
+        Pyro5.server._set_exposed_property_value(o, "prop1", 999)
+        assert o.propvalue == 999
+        Pyro5.server._set_exposed_property_value(o, "prop2", 8888)
+        assert o.propvalue == 8888
+
+    def testSetExposedPropertyFromPartiallyExposed(self):
+        o = MyThingPartlyExposed("irmen")
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "name", "erorr")
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "unexisting_attribute", 42)
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "readonly_prop1", 42)
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "propvalue", 999)
+        assert o.prop1 == 42
+        assert o.prop2 == 42
+        Pyro5.server._set_exposed_property_value(o, "prop1", 999)
+        assert o.propvalue == 999
+        with pytest.raises(AttributeError):
+            Pyro5.server._set_exposed_property_value(o, "prop2", 8888)
+
+    def testIsPrivateName(self):
+        assert Pyro5.server.is_private_attribute("_")
+        assert Pyro5.server.is_private_attribute("__")
+        assert Pyro5.server.is_private_attribute("___")
+        assert Pyro5.server.is_private_attribute("_p")
+        assert Pyro5.server.is_private_attribute("_pp")
+        assert Pyro5.server.is_private_attribute("_p_")
+        assert Pyro5.server.is_private_attribute("_p__")
+        assert Pyro5.server.is_private_attribute("__p")
+        assert Pyro5.server.is_private_attribute("___p")
+        assert not Pyro5.server.is_private_attribute("__dunder__")  # dunder methods should not be private except a list of exceptions as tested below
+        assert Pyro5.server.is_private_attribute("__init__")
+        assert Pyro5.server.is_private_attribute("__call__")
+        assert Pyro5.server.is_private_attribute("__new__")
+        assert Pyro5.server.is_private_attribute("__del__")
+        assert Pyro5.server.is_private_attribute("__repr__")
+        assert Pyro5.server.is_private_attribute("__str__")
+        assert Pyro5.server.is_private_attribute("__format__")
+        assert Pyro5.server.is_private_attribute("__nonzero__")
+        assert Pyro5.server.is_private_attribute("__bool__")
+        assert Pyro5.server.is_private_attribute("__coerce__")
+        assert Pyro5.server.is_private_attribute("__cmp__")
+        assert Pyro5.server.is_private_attribute("__eq__")
+        assert Pyro5.server.is_private_attribute("__ne__")
+        assert Pyro5.server.is_private_attribute("__lt__")
+        assert Pyro5.server.is_private_attribute("__gt__")
+        assert Pyro5.server.is_private_attribute("__le__")
+        assert Pyro5.server.is_private_attribute("__ge__")
+        assert Pyro5.server.is_private_attribute("__hash__")
+        assert Pyro5.server.is_private_attribute("__dir__")
+        assert Pyro5.server.is_private_attribute("__enter__")
+        assert Pyro5.server.is_private_attribute("__exit__")
+        assert Pyro5.server.is_private_attribute("__copy__")
+        assert Pyro5.server.is_private_attribute("__deepcopy__")
+        assert Pyro5.server.is_private_attribute("__sizeof__")
+        assert Pyro5.server.is_private_attribute("__getattr__")
+        assert Pyro5.server.is_private_attribute("__setattr__")
+        assert Pyro5.server.is_private_attribute("__hasattr__")
+        assert Pyro5.server.is_private_attribute("__delattr__")
+        assert Pyro5.server.is_private_attribute("__getattribute__")
+        assert Pyro5.server.is_private_attribute("__instancecheck__")
+        assert Pyro5.server.is_private_attribute("__subclasscheck__")
+        assert Pyro5.server.is_private_attribute("__subclasshook__")
+        assert Pyro5.server.is_private_attribute("__getinitargs__")
+        assert Pyro5.server.is_private_attribute("__getnewargs__")
+        assert Pyro5.server.is_private_attribute("__getstate__")
+        assert Pyro5.server.is_private_attribute("__setstate__")
+        assert Pyro5.server.is_private_attribute("__reduce__")
+        assert Pyro5.server.is_private_attribute("__reduce_ex__")
+
+    def testResolveAttr(self):
+        @Pyro5.server.expose
+        class Exposed(object):
+            def __init__(self, value):
+                self.propvalue = value
+                self.__value__ = value   # is not affected by the @expose
+
+            def __str__(self):
+                return "<%s>" % self.value
+
+            def _p(self):
+                return "should not be allowed"
+
+            def __p(self):
+                return "should not be allowed"
+
+            def __p__(self):
+                return "should be allowed (dunder)"
+
+            @property
+            def value(self):
+                return self.propvalue
+
+        class Unexposed(object):
+            def __init__(self):
+                self.value = 42
+
+            def __value__(self):
+                return self.value
+
+        obj = Exposed("hello")
+        obj.a = Exposed("a")
+        obj.a.b = Exposed("b")
+        obj.a.b.c = Exposed("c")
+        obj.a._p = Exposed("p1")
+        obj.a._p.q = Exposed("q1")
+        obj.a.__p = Exposed("p2")
+        obj.a.__p.q = Exposed("q2")
+        obj.u = Unexposed()
+        obj.u.v = Unexposed()
+        # check the accessible attributes
+        assert str(Pyro5.server._get_attribute(obj, "a")) == "<a>"
+        dunder = str(Pyro5.server._get_attribute(obj, "__p__"))
+        assert dunder.startswith("<bound method ")  # dunder is not private, part 1 of the check
+        assert "Exposed.__p__ of" in dunder  # dunder is not private, part 2 of the check
+        # check what should not be accessible
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "value")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "propvalue")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "__value__")  # is not affected by the @expose
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "_p")  # private
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "__p")  # private
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "a.b")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "a.b.c")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "a.b.c.d")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "a._p")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "a._p.q")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "a.__p.q")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "u")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "u.v")
+        with pytest.raises(AttributeError):
+            Pyro5.server._get_attribute(obj, "u.v.value")
+
+
+class TestSimpleServe:
+    class DaemonWrapper(Pyro5.server.Daemon):
+        def requestLoop(self, *args):
+            # override with empty method to fall out of the serveSimple call
+            pass
+
+    def testSimpleServeLegacy(self):
+        with TestSimpleServe.DaemonWrapper() as d:
+            o1 = MyThingPartlyExposed(1)
+            o2 = MyThingPartlyExposed(2)
+            objects = {o1: "test.o1", o2: None}
+            Pyro5.server.Daemon.serveSimple(objects, daemon=d, ns=False, verbose=False)
+            assert len(d.objectsById) == 3
+            assert "test.o1" in d.objectsById
+            assert o1 in d.objectsById.values()
+            assert o2 in d.objectsById.values()
+
+    def testSimpleServe(self):
+        with TestSimpleServe.DaemonWrapper() as d:
+            o1 = MyThingPartlyExposed(1)
+            o2 = MyThingPartlyExposed(2)
+            objects = {o1: "test.o1", o2: None}
+            Pyro5.server.serve(objects, daemon=d, use_ns=False, verbose=False)
+            assert len(d.objectsById) == 3
+            assert "test.o1" in d.objectsById
+            assert o1 in d.objectsById.values()
+            assert o2 in d.objectsById.values()
+
+    def testSimpleServeSameNamesLegacy(self):
+        with TestSimpleServe.DaemonWrapper() as d:
+            o1 = MyThingPartlyExposed(1)
+            o2 = MyThingPartlyExposed(2)
+            o3 = MyThingPartlyExposed(3)
+            objects = {o1: "test.name", o2: "test.name", o3: "test.othername"}
+            with pytest.raises(Pyro5.errors.DaemonError):
+                Pyro5.server.Daemon.serveSimple(objects, daemon=d, ns=False, verbose=False)
+
+    def testSimpleServeSameNames(self):
+        with TestSimpleServe.DaemonWrapper() as d:
+            o1 = MyThingPartlyExposed(1)
+            o2 = MyThingPartlyExposed(2)
+            o3 = MyThingPartlyExposed(3)
+            objects = {o1: "test.name", o2: "test.name", o3: "test.othername"}
+            with pytest.raises(Pyro5.errors.DaemonError):
+                Pyro5.server.serve(objects, daemon=d, use_ns=False, verbose=False)
+
+
+class TestExposeDecorator:
+    # note: the bulk of the tests for the @expose decorator are found in the test_util module
+    def testExposeInstancemodeDefault(self):
+        @Pyro5.server.expose
+        class TestClassOne:
+            def method(self):
+                pass
+        class TestClassTwo:
+            @Pyro5.server.expose
+            def method(self):
+                pass
+        class TestClassThree:
+            def method(self):
+                pass
+        with Pyro5.server.Daemon() as daemon:
+            daemon.register(TestClassOne)
+            daemon.register(TestClassTwo)
+            daemon.register(TestClassThree)
+            assert TestClassOne._pyroInstancing == ("session", None)
+            assert TestClassTwo._pyroInstancing == ("session", None)
+            assert TestClassThree._pyroInstancing == ("session", None)
+
+
+class TestBehaviorDecorator:
+    def testBehaviorInstancemodeInvalid(self):
+        with pytest.raises(ValueError):
+            @Pyro5.server.behavior(instance_mode="kaputt")
+            class TestClass:
+                def method(self):
+                    pass
+
+    def testBehaviorRequiresParams(self):
+        with pytest.raises(SyntaxError) as x:
+            @Pyro5.server.behavior
+            class TestClass:
+                def method(self):
+                    pass
+        assert "is missing argument" in str(x)
+
+    def testBehaviorInstancecreatorInvalid(self):
+        with pytest.raises(TypeError):
+            @Pyro5.server.behavior(instance_creator=12345)
+            class TestClass:
+                def method(self):
+                    pass
+
+    def testBehaviorOnMethodInvalid(self):
+        with pytest.raises(TypeError):
+            class TestClass:
+                @Pyro5.server.behavior(instance_mode="~invalidmode~")
+                def method(self):
+                    pass
+        with pytest.raises(TypeError):
+            class TestClass:
+                @Pyro5.server.behavior(instance_mode="percall", instance_creator=float)
+                def method(self):
+                    pass
+        with pytest.raises(TypeError):
+            class TestClass:
+                @Pyro5.server.behavior()
+                def method(self):
+                    pass
+
+    def testBehaviorInstancing(self):
+        @Pyro5.server.behavior(instance_mode="percall", instance_creator=float)
+        class TestClass:
+            def method(self):
+                pass
+        im, ic = TestClass._pyroInstancing
+        assert im == "percall"
+        assert ic is float
+
+    def testBehaviorWithExposeKeepsCorrectValues(self):
+        @Pyro5.server.behavior(instance_mode="percall", instance_creator=float)
+        @Pyro5.server.expose
+        class TestClass:
+            pass
+        im, ic = TestClass._pyroInstancing
+        assert im == "percall"
+        assert ic is float
+
+        @Pyro5.server.expose
+        @Pyro5.server.behavior(instance_mode="percall", instance_creator=float)
+        class TestClass2:
+            pass
+        im, ic = TestClass2._pyroInstancing
+        assert im == "percall"
+        assert ic is float
