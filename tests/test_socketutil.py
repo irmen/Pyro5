@@ -3,9 +3,13 @@ import os
 import platform
 import threading
 import socket
+import time
+import ssl
 import pytest
 import contextlib
-from Pyro5 import config, socketutil
+from Pyro5 import config, socketutil, protocol, errors, server, serializers, core
+from Pyro5.svr_threads import SocketServer_Threadpool
+from Pyro5.svr_multiplex import SocketServer_Multiplex
 
 
 # determine ipv6 capability
@@ -300,3 +304,232 @@ class TestSocketutil:
                 assert socketutil.USE_MSG_WAITALL
             else:
                 assert not socketutil.USE_MSG_WAITALL
+
+
+
+class ServerTestDaemon(server.Daemon):
+    pass
+
+
+class ServerCallback(object):
+    def _handshake(self, connection, denied_reason=None):
+        raise RuntimeError("this handshake method should never be called")
+
+    def handleRequest(self, connection):
+        if not isinstance(connection, socketutil.SocketConnection):
+            raise TypeError("handleRequest expected SocketConnection parameter")
+        msg = protocol.recv_stub(connection, [protocol.MSG_PING])
+        if msg.type == protocol.MSG_PING:
+            msg = protocol.SendingMessage(protocol.MSG_PING, 0, msg.seq, msg.serializer_id, b"ping")
+            connection.send(msg.data)
+        else:
+            print("unhandled message type", msg.type)
+            connection.close()
+
+    def _housekeeping(self):
+        pass
+
+
+class ServerCallback_BrokenHandshake(ServerCallback):
+    def _handshake(self, connection, denied_reason=None):
+        raise ZeroDivisionError("handshake crashed (on purpose)")
+
+
+class TestSocketServer:
+    def testServer_thread(self):
+        daemon = ServerCallback()
+        port = socketutil.find_probably_unused_port()
+        serv = SocketServer_Threadpool()
+        serv.init(daemon, "localhost", port)
+        assert serv.locationStr == "localhost:" + str(port)
+        assert serv.sock is not None
+        conn = socketutil.SocketConnection(serv.sock, "ID12345")
+        assert conn.objectId == "ID12345"
+        assert conn.sock is not None
+        conn.close()
+        conn.close()
+        assert conn.sock is not None, "connections keep their socket object even if it's closed"
+        serv.close()
+        serv.close()
+        assert serv.sock is None
+
+    def testServer_multiplex(self):
+        daemon = ServerCallback()
+        port = socketutil.find_probably_unused_port()
+        serv = SocketServer_Multiplex()
+        serv.init(daemon, "localhost", port)
+        assert serv.locationStr == "localhost:" + str(port)
+        assert serv.sock is not None
+        conn = socketutil.SocketConnection(serv.sock, "ID12345")
+        assert conn.objectId == "ID12345"
+        assert conn.sock is not None
+        conn.close()
+        conn.close()
+        assert conn.sock is not None, "connections keep their socket object even if it's closed"
+        serv.close()
+        serv.close()
+        assert serv.sock is None
+
+
+class TestServerDOS_multiplex:
+    def setup_method(self):
+        self.orig_poll_timeout = config.POLLTIMEOUT
+        self.orig_comm_timeout = config.COMMTIMEOUT
+        config.POLLTIMEOUT = 0.5
+        config.COMMTIMEOUT = 0.5
+        self.socket_server = SocketServer_Multiplex
+
+    def teardown_method(self):
+        config.POLLTIMEOUT = self.orig_poll_timeout
+        config.COMMTIMEOUT = self.orig_comm_timeout
+
+    class ServerThread(threading.Thread):
+        def __init__(self, server, daemon):
+            threading.Thread.__init__(self)
+            self.serv = server()
+            self.serv.init(daemon(), "localhost", 0)
+            self.locationStr = self.serv.locationStr
+            self.stop_loop = threading.Event()
+
+        def run(self):
+            self.serv.loop(loopCondition=lambda: not self.stop_loop.is_set())
+            self.serv.close()
+
+    def testConnectCrash(self):
+        serv_thread = TestServerDOS_multiplex.ServerThread(self.socket_server, ServerCallback_BrokenHandshake)
+        serv_thread.start()
+        time.sleep(0.2)
+        assert serv_thread.is_alive(), "server thread failed to start"
+        threadpool = getattr(serv_thread.serv, "pool", None)
+        if threadpool:
+            assert len(threadpool.idle) == 1
+            assert len(threadpool.busy) == 0
+        try:
+            host, port = serv_thread.locationStr.split(':')
+            port = int(port)
+            try:
+                # first connection attempt (will fail because server daemon _handshake crashes)
+                csock = socketutil.create_socket(connect=(host, port))
+                conn = socketutil.SocketConnection(csock, "uri")
+                protocol.recv_stub(conn, [protocol.MSG_CONNECTOK])
+            except errors.ConnectionClosedError:
+                pass
+            conn.close()
+            time.sleep(0.1)
+            if threadpool:
+                assert len(threadpool.idle) == 1
+                assert len(threadpool.busy) == 0
+            try:
+                # second connection attempt, should still work (i.e. server should still be running)
+                csock = socketutil.create_socket(connect=(host, port))
+                conn = socketutil.SocketConnection(csock, "uri")
+                protocol.recv_stub(conn, [protocol.MSG_CONNECTOK])
+            except errors.ConnectionClosedError:
+                pass
+        finally:
+            if conn:
+                conn.close()
+            serv_thread.stop_loop.set()
+            serv_thread.join()
+
+    def testInvalidMessageCrash(self):
+        serv_thread = TestServerDOS_multiplex.ServerThread(self.socket_server, ServerTestDaemon)
+        serv_thread.start()
+        time.sleep(0.2)
+        assert serv_thread.is_alive(), "server thread failed to start"
+        threadpool = getattr(serv_thread.serv, "pool", None)
+        if threadpool:
+            assert len(threadpool.idle) == 1
+            assert len(threadpool.busy) == 0
+
+        def connect(host, port):
+            # connect to the server
+            csock = socketutil.create_socket(connect=(host, port))
+            conn = socketutil.SocketConnection(csock, "uri")
+            # send the handshake/connect data
+            ser = serializers.serializers_by_id[serializers.MarshalSerializer.serializer_id]
+            data = ser.dumps({"handshake": "hello", "object": core.DAEMON_NAME})
+            msg = protocol.SendingMessage(protocol.MSG_CONNECT, 0, 0, serializers.MarshalSerializer.serializer_id, data)
+            conn.send(msg.data)
+            # get the handshake/connect response
+            protocol.recv_stub(conn, [protocol.MSG_CONNECTOK])
+            return conn
+
+        conn = None
+        try:
+            host, port = serv_thread.locationStr.split(':')
+            port = int(port)
+            conn = connect(host, port)
+            # invoke something, but screw up the message (in this case, mess with the protocol version)
+            orig_protocol_version = protocol.PROTOCOL_VERSION
+            protocol.PROTOCOL_VERSION = 9999
+            msgbytes = protocol.SendingMessage(protocol.MSG_PING, 42, 0, 0, b"something").data
+            protocol.PROTOCOL_VERSION = orig_protocol_version
+            conn.send(msgbytes)  # this should cause an error in the server because of invalid msg
+            try:
+                msg = protocol.recv_stub(conn, [protocol.MSG_RESULT])
+                data = msg.data.decode("ascii", errors="ignore")  # convert raw message to string to check some stuff
+                assert "Traceback" in data
+                assert "ProtocolError" in data
+                assert "version" in data
+            except errors.ConnectionClosedError:
+                # invalid message can cause the connection to be closed, this is fine
+                pass
+            # invoke something again, this should still work (server must still be running, but our client connection was terminated)
+            conn.close()
+            time.sleep(0.1)
+            if threadpool:
+                assert len(threadpool.idle) == 1
+                assert len(threadpool.busy) == 0
+            conn = connect(host, port)
+            msg = protocol.SendingMessage(protocol.MSG_PING, 42, 999, 0, b"something")  # a valid message this time
+            conn.send(msg.data)
+            msg = protocol.recv_stub(conn, [protocol.MSG_PING])
+            assert msg.type == protocol.MSG_PING
+            assert msg.seq == 999
+            assert msg.data == b"pong"
+        finally:
+            if conn:
+                conn.close()
+            serv_thread.stop_loop.set()
+            serv_thread.join()
+
+
+class TestServerDOS_threading(TestServerDOS_multiplex):
+    def setup_method(self):
+        super().setup_method()
+        self.socket_server = SocketServer_Threadpool
+        self.orig_numthreads = config.THREADPOOL_SIZE
+        self.orig_numthreads_min = config.THREADPOOL_SIZE_MIN
+        config.THREADPOOL_SIZE = 1
+        config.THREADPOOL_SIZE_MIN = 1
+
+    def teardown_method(self):
+        config.THREADPOOL_SIZE = self.orig_numthreads
+        config.THREADPOOL_SIZE_MIN = self.orig_numthreads_min
+
+
+class TestSSL:
+    def testContextAndSock(self):
+        cert_dir = "../../certs"
+        if not os.path.isdir(cert_dir):
+            cert_dir = "../certs"
+            if not os.path.isdir(cert_dir):
+                cert_dir = "./certs"
+                if not os.path.isdir(cert_dir):
+                    raise IOError("cannot locate test certs directory")
+        try:
+            config.SSL = True
+            config.SSL_REQUIRECLIENTCERT = True
+            server_ctx = socketutil.get_ssl_context(cert_dir+"/server_cert.pem", cert_dir+"/server_key.pem")
+            client_ctx = socketutil.get_ssl_context(clientcert=cert_dir+"/client_cert.pem", clientkey=cert_dir+"/client_key.pem")
+            assert server_ctx.verify_mode == ssl.CERT_REQUIRED
+            assert client_ctx.verify_mode == ssl.CERT_REQUIRED
+            assert client_ctx.check_hostname
+            sock = socketutil.create_socket(sslContext=server_ctx)
+            try:
+                assert hasattr(sock, "getpeercert")
+            finally:
+                sock.close()
+        finally:
+            config.SSL = False
