@@ -210,8 +210,6 @@ code at all, but shows what the system is going to look like later on.
 The ``Warehouse`` object simply stores an array of items which we can query, and allows for a person
 to take an item or to store an item. Here is the code (:file:`warehouse.py`)::
 
-    from __future__ import print_function
-
     class Warehouse(object):
         def __init__(self):
             self.contents = ["chair", "bike", "flashlight", "laptop", "couch"]
@@ -231,7 +229,6 @@ to take an item or to store an item. Here is the code (:file:`warehouse.py`)::
 Then there is a ``Person`` that can visit the warehouse. The person has a name and deposit and retrieve actions
 on a particular warehouse. Here is the code (:file:`person.py`)::
 
-    from __future__ import print_function
     import sys
 
     class Person(object):
@@ -314,7 +311,6 @@ You can ignore the ``@Pyro4.behavior`` line we also added for now (but it is req
 Finally we add a little ``main`` function so it will be started correctly, which should
 make the code now look like this (:file:`warehouse.py`)::
 
-    from __future__ import print_function
     import Pyro4
 
 
@@ -568,7 +564,6 @@ the symbols produced by various stock markets. It prints the symbols from the co
 interested in::
 
     # viewer.py
-    from __future__ import print_function
     from stockmarket import StockMarket
 
 
@@ -643,7 +638,6 @@ to turn it into a remote generator without your client program ever noticing.
 The complete code for the Pyro version of :file:`stockmarket.py` is as follows::
 
     # stockmarket.py
-    from __future__ import print_function
     import random
     import time
     import Pyro4
@@ -692,7 +686,6 @@ that to return all stock markets it knows about.  The ``Viewer`` class itself re
 
 
     # viewer.py
-    from __future__ import print_function
     import Pyro4
 
 

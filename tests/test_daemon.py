@@ -4,8 +4,6 @@ Tests for the daemon.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-from __future__ import print_function
-import sys
 import time
 import socket
 import uuid
@@ -17,7 +15,7 @@ import Pyro5.nameserver
 import Pyro5.protocol
 import Pyro5.socketutil
 import Pyro5.serializers
-from Pyro5.errors import DaemonError, PyroError, SerializeError
+from Pyro5.errors import DaemonError, PyroError
 from Pyro5 import config
 from Pyro5.callcontext import current_context
 from support import *
