@@ -417,7 +417,7 @@ class TestDaemon:
             msg = Pyro5.protocol.recv_stub(conn)
             assert msg.type == Pyro5.protocol.MSG_CONNECTOK
             assert msg.seq == 99
-            assert len(msg.annotations) == 2
+            assert len(msg.annotations) == 2     # XXX todo fix this, "CORR" annotation is missing
             assert msg.annotations["XYZZ"] == b"custom annotation set by daemon"
             assert msg.annotations["CORR"] == corr_id.bytes     # should have been set by sendHandshakeMessage
             ser = Pyro5.serializers.serializers_by_id[msg.serializer_id]

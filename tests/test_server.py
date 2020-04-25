@@ -1195,7 +1195,7 @@ class TestBehaviorDecorator:
             class TestClass:
                 def method(self):
                     pass
-        assert "is missing argument" in str(x)
+        assert "is missing argument" in str(x.value)
 
     def testBehaviorInstancecreatorInvalid(self):
         with pytest.raises(TypeError):
