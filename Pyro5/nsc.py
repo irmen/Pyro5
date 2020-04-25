@@ -24,12 +24,12 @@ def handle_command(namesrv, cmd, args):
         if len(args) == 0:
             print_list_result(namesrv.list(return_metadata=True))
         else:
-            print_list_result(namesrv.list(prefix=args[0], return_metadata=True), "- prefix '%s'" % args[1])
+            print_list_result(namesrv.list(prefix=args[0], return_metadata=True), "- prefix '%s'" % args[0])
 
     def cmd_listregex():
         if len(args) != 1:
             raise SystemExit("requires one argument: pattern")
-        print_list_result(namesrv.list(regex=args[0], return_metadata=True), "- regex '%s'" % args[1])
+        print_list_result(namesrv.list(regex=args[0], return_metadata=True), "- regex '%s'" % args[0])
 
     def cmd_lookup():
         if len(args) != 1:

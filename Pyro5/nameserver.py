@@ -292,8 +292,7 @@ class NameServer(object):
             uri, metadata = self.storage[name]
             uri = core.URI(uri)
             if return_metadata:
-                metadata = list(metadata) if metadata else []
-                return uri, metadata
+                return uri, set(metadata or [])
             return uri
         except KeyError:
             raise NamingError("unknown name: " + name)
@@ -315,9 +314,7 @@ class NameServer(object):
         with self.lock:
             if safe and name in self.storage:
                 raise NamingError("name already registered: " + name)
-            if metadata:
-                metadata = set(metadata)
-            self.storage[name] = uri, metadata
+            self.storage[name] = uri, set(metadata) if metadata else None
 
     def set_metadata(self, name, metadata):
         """update the metadata for an existing registration"""
@@ -329,9 +326,7 @@ class NameServer(object):
         with self.lock:
             try:
                 uri, old_meta = self.storage[name]
-                if metadata:
-                    metadata = set(metadata)
-                self.storage[name] = uri, metadata
+                self.storage[name] = uri, set(metadata) if metadata else None
             except KeyError:
                 raise NamingError("unknown name: " + name)
 
