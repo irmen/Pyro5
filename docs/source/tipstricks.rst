@@ -11,49 +11,41 @@ Tips & Tricks
 Best practices
 ==============
 
-.. index:: circular topology
 
 Make as little as possible remotely accessible.
 -----------------------------------------------
 
-Avoid sticking a ``@expose`` on the whole class, and instead mark only those methods exposed that you really
-want to be remotely accessible. Alternatively, make sure your exposed Pyro server class only consists of methods
+Try to avoid simply sticking an ``@expose`` on the whole class. Instead only mark the methods that you really
+want to be remotely accessible. Alternatively, make sure the exposed class only consists of methods
 that are okay to be accessed remotely.
 
 
 Avoid circular communication topologies.
 ----------------------------------------
 
-When you can have a circular communication pattern in your system (A-->B-->C-->A) this can cause some problems:
+When you can have a circular communication pattern in your system (A-->B-->C-->A) this has the potential to deadlock.
+You should try to avoid circularity.
+Possible ways to break a cycle are to use a oneway call somewhere in the chain or set an ``COMMTIMEOUT``
+so that after a certain period in a locking situation the caller aborts with a TimeoutError, effectively breaking the deadlock.
 
-* when reusing a proxy it causes a deadlock because the proxy is already being used for an active remote call. See the :file:`deadlock` example.
-* with the multiplex servertype, the server itself may also block for all other remote calls because the handling of the first is not yet completed.
-
-Avoid circularity, or use *oneway* method calls on at least one of the links in the chain.
-Another possible way out of a lock situation is to set ``COMMTIMEOUT`` so that after a certain period in a locking
-situation the caller aborts with a TimeoutError, effectively breaking the deadlock.
 
 .. index:: releasing a proxy
 .. _tipstricks_release_proxy:
 
-'After X simultaneous proxy connections, Pyro seems to freeze!' Fix: Release your proxies when you can.
--------------------------------------------------------------------------------------------------------
+Release proxies when no longer used. Avoids 'After X simultaneous proxy connections, Pyro seems to freeze!'
+-----------------------------------------------------------------------------------------------------------
+
 A connected proxy that is unused takes up resources on the server. In the case of the threadpool server type,
-it locks up a single thread. If you have too many connected proxies at the same time, the server may run out
-of threads and won't be able to accept new connections.
+it locks to a single thread. If you have too many connected proxies at the same time, the server runs out
+of threads and can't accept new connections.
 
 You can use the ``THREADPOOL_SIZE`` config item to increase the maximum number of threads that Pyro will use.
 Or use the multiplex server instead, which doesn't have this limitation.
-Another option is to set ``COMMTIMEOUT`` to a certain value *on your server*, which will free up unused connections after the given time.
-But your client code may now crash with a TimeoutError or ConnectionClosedError when it tries to use a proxy that worked earlier.
-You can use Pyro's autoreconnect feature to work around this but it makes the code more complex.
 
-It is however advised to close (release) proxies that your program no longer needs, to free resources
-both in the client and in the server. Don't worry about reconnecting, Pyro does that automatically
-for you once the proxy is used again.
-You can use explicit ``_pyroRelease`` calls or use the proxy from within a context manager.
-It's not a good idea to release it after every single remote method call though, because then the cost
-of reconnecting the socket can be bad for performance.
+To free resources in a timely manner, close (release) proxies that your program no longer needs.
+Pyro wil auto-reconnect a proxy when it is used again later.
+The easiest way is to use a proxy as a context manager. You can also use an explicit ``_pyroRelease`` call on the proxy.
+Releasing and then reconnecting a proxy is very costly so make sure you're not doing this too often.
 
 
 .. index:: binary blob
@@ -62,20 +54,24 @@ of reconnecting the socket can be bad for performance.
 Avoid large binary blobs over the wire.
 ---------------------------------------
 Pyro is not designed to efficiently transfer large amounts of binary data over the network.
-Try to find another protocol that better suits this requirement.
-Read :ref:`binarytransfer` for some more details about this.
-How to deal with Numpy data (large *or* small) is explained here :ref:`numpy`.
+Try to find another protocol that better suits this requirement if you do this regularly.
+
+There are a few tricks to speed up transfer of large blocks of data using Pyro,
+read :ref:`binarytransfer` for details about that.
 
 
 .. index:: object graphs
 
-Minimize object graphs that travel over the wire.
--------------------------------------------------
-Pyro will serialize the whole object graph you're passing, even when only a tiny fraction
-of it is used on the receiving end. Be aware of this: it may be necessary to define special lightweight objects
-for your Pyro interfaces that hold the data you need, rather than passing a huge object structure.
-It's good design practice as well to have an "external API" that is different from your internal code,
+Minimize object structures that travel over the wire.
+-----------------------------------------------------
+Pyro serializes the whole object structure you're passing, even when only a fraction
+of it is used on the receiving end. It may be necessary to define special lightweight objects
+for your Pyro interfaces that hold just the data you need, rather than passing a huge object structure.
+It's good design practice anyway to have an "external API" that is different from your internal code,
 and tuned for minimal communication overhead or complexity.
+
+This also ties in with just exposing the methods of your server object that should be remotely
+accessible, and using primitive types in the interfaces as much as possible to avoid serialization problems.
 
 
 Consider using basic data types instead of custom classes.
@@ -96,9 +92,9 @@ just the list of numbers or really needs an instance of your custom class.
 Logging
 =======
 If you configure it (see :ref:`config-items`) Pyro will write a bit of debug information, errors, and notifications to a log file.
-It uses Python's standard :py:mod:`logging` module for this (See https://docs.python.org/2/library/logging.html ).
+It uses Python's standard :py:mod:`logging` module for this.
 Once enabled, your own program code could use Pyro's logging setup as well.
-But if you want to configure your own logging, make sure you do that before any Pyro imports. Then Pyro will skip its own autoconfig.
+But if you want to configure your own logging, you have to do this before importing Pyro.
 
 A little example to enable logging by setting the required environment variables from the shell::
 
@@ -106,29 +102,29 @@ A little example to enable logging by setting the required environment variables
     $ export PYRO_LOGLEVEL=DEBUG
     $ python my_pyro_program.py
 
-Another way is by modifiying ``os.environ`` from within your code itself, *before* any import of Pyro4 is done::
+Another way is by modifiying ``os.environ`` from within your code itself, *before* any import of Pyro is done::
 
     import os
     os.environ["PYRO_LOGFILE"] = "pyro.log"
     os.environ["PYRO_LOGLEVEL"] = "DEBUG"
 
-    import Pyro4
+    import Pyro5.api
     # do stuff...
 
 Finally, it is possible to initialize the logging by means of the standard Python ``logging`` module only, but
-then you still have to tell Pyro4 what log level it should use (or it won't log anything)::
+then you still have to tell Pyro what log level it should use (or it won't log anything)::
 
     import logging
     logging.basicConfig()  # or your own sophisticated setup
-    logging.getLogger("Pyro4").setLevel(logging.DEBUG)
-    logging.getLogger("Pyro4.core").setLevel(logging.DEBUG)
+    logging.getLogger("Pyro5").setLevel(logging.DEBUG)
+    logging.getLogger("Pyro5.core").setLevel(logging.DEBUG)
     # ... set level of other logger names as desired ...
 
-    import Pyro4
+    import Pyro5.api
     # do stuff...
 
 The various logger names are similar to the module that uses the logger,
-so for instance logging done by code in ``Pyro4.core`` will use a logger category name of ``Pyro4.core``.
+so for instance logging done by code in ``Pyro5.core`` will use a logger category name of ``Pyro5.core``.
 Look at the top of the source code of the various modules from Pyro to see what the exact names are.
 
 
@@ -146,7 +142,7 @@ The name server however contains a little trick. The broadcast responder can als
 and it will in fact try to determine the correct ip address of the interface that a client needs to use
 to contact the name server on. So while you cannot run Pyro daemons on 0.0.0.0 (to respond to requests
 from all possible interfaces), sometimes it is possible to run only the name server on 0.0.0.0.
-The success ratio of all this depends heavily on your network setup.
+Success of this depends on your particular network setup.
 
 
 .. index:: wire protocol version
@@ -157,8 +153,7 @@ Wire protocol version
 =====================
 
 Here is a little tip to find out what wire protocol version a given Pyro server is using.
-This could be useful if you are getting ``ProtocolError: invalid data or unsupported protocol version``
-or something like that. It also works with Pyro 3.x.
+This could be useful if you are getting ``ProtocolError`` about invliad protocol version.
 
 **Server**
 
@@ -167,41 +162,22 @@ by reading the first 6 bytes from the server socket connection.
 The Pyro daemon will respond with a 4-byte string "``PYRO``" followed by a 2-byte number
 that is the protocol version used::
 
-    $ nc <pyroservername> <pyroserverport> | od -N 6 -t x1c
-    0000000  50  59  52  4f  00  05
-              P   Y   R   O  \0 005
+    $ nc <pyroservername> <pyroserverport> </dev/zero | od -N 6 -t x1c
+    0000000  50  59  52  4f  01  f6
+              P   Y   R   O 001 366
 
-This one is talking protocol version ``00 05`` (5).
-This low number means it is a Pyro 3.x server. When you try it on a Pyro 4 server::
-
-    $ nc <pyroservername> <pyroserverport> | od -N 6 -t x1c
-    0000000  50  59  52  4f  00  2c
-              P   Y   R   O  \0   ,
-
-This one is talking protocol version ``00 2c`` (44).
-For Pyro4 the protocol version started at 40 for the first release
-and is now at 46 for the current release at the time of writing.
+This one is talking protocol version ``01 f6`` (502).
 
 
 **Client**
 
 To find out the protocol version that your client code is using, you can use this::
 
-    $ python -c "import Pyro4.constants as c; print(c.PROTOCOL_VERSION)"
+    $ python -c "import Pyro5.protocol as p; print(p.PROTOCOL_VERSION)"
 
 
 
 .. index:: DNS
-
-DNS setup
-=========
-Pyro depends on a working DNS configuration, at least for your local hostname (i.e. 'pinging' your local hostname should work).
-If your local hostname doesn't resolve to an IP address, you'll have to fix this.
-This can usually be done by adding an entry to the hosts file. For OpenSUSE, you can also use Yast to fix it
-(go to Network Settings, enable "Assign hostname to loopback IP").
-
-If Pyro detects a problem with the dns setup it will log a WARNING in the logfile (if logging is enabled),
-something like: ``weird DNS setup: your-computer-hostname resolves to localhost (127.x.x.x)``
 
 
 .. index:: NAT, router, firewall
@@ -219,16 +195,16 @@ so that Pyro knows it needs to 'publish' URIs containing that *external* locatio
 using the internal addresses::
 
     # running on server1.lan
-    d = Pyro4.Daemon(port=9999, nathost="pyro.server.com", natport=5555)
+    d = Pyro5.api.Daemon(port=9999, nathost="pyro.server.com", natport=5555)
     uri = d.register(Something, "thing")
     print(uri)     # "PYRO:thing@pyro.server.com:5555"
 
 As you see, the URI now contains the external address.
 
-:py:meth:`Pyro4.core.Daemon.uriFor` by default returns URIs with a NAT address in it (if ``nathost``
+:py:meth:`Pyro5.server.Daemon.uriFor` by default returns URIs with a NAT address in it (if ``nathost``
 and ``natport`` were used). You can override this by setting ``nat=False``::
 
-    # d = Pyro4.Daemon(...)
+    # d = Pyro5.api.Daemon(...)
     print(d.uriFor("thing"))                # "PYRO:thing@pyro.server.com:5555"
     print(d.uriFor("thing", nat=False))     # "PYRO:thing@localhost:36124"
     uri2 = d.uriFor(uri.object, nat=False)  # get non-natted uri
@@ -270,7 +246,6 @@ Sometimes it can be because you configured Pyro wrong. A checklist to follow to 
 - do you have the same Pyro versions on both server and client?
 - what does the pyro logfiles tell you (enable it via the config items on both the server and the client, including the name server. See :ref:`logging`.
 - (if not using the default:) do you have a compatible serializer configuration?
-- (if not using the default:) do you have a symmetric hmac key configuration?
 - can you obtain a few bytes from the wire using netcat, see :ref:`wireprotocol`.
 
 
@@ -281,62 +256,66 @@ Sometimes it can be because you configured Pyro wrong. A checklist to follow to 
 Binary data transfer / file transfer
 ====================================
 
-.. sidebar:: ...if you do want to use Pyro for this...
+.. sidebar:: Using Pyro for large data transfers
 
     At the end of this paragraph, a few alternative approaches of reasonably efficient binary data transfer
-    are presented, where (almost) all of the code still uses just Pyro's high level abstractions.
+    are presented, where most of the code still uses just Pyro's high level abstractions.
 
-Pyro is not meant to transfer large amounts of binary data (images, sound files, video clips):
-the protocol is not designed nor optimized for these kinds of data. The occasional transmission of such data
+Pyro wasn't designed to transfer large amounts of binary data (images, sound files, video clips):
+the protocol is not optimized for these kinds of data. The occasional transmission of such data
 is fine but if you're dealing with a lot of them or with big files,
 it is usually better to use something else to do the actual data transfer (file share+file copy, ftp, http, scp, rsync).
 
-Also, Pyro has a 2 gigabyte message size limitation at this time (if your Python implementation and
-system memory even allow the process to reach this size).  You can avoid this problem if you use
+If you find that the default serializer (serpent) is slowing down your data transfer too much,
+you could simply try switching to the 'marshal' serializer. It is faster (but supports less types).
+
+.. sidebar:: Numpy arrays and Pyro
+
+    Numpy data types usually cannot be transferred directly, see :ref:`numpy` for more info.
+
+Pyro has a 1 gigabyte message size limitation.  You can avoid hitting this limit by using
 the remote iterator feature (return chunks via an iterator or generator function and consume them
 on demand in your client).
 
+
 .. note:: Serpent and binary data:
-    If you do transfer binary data using the serpent serializer, you have to be aware of the following.
-    The wire protocol is text based so serpent has to encode any binary data. It uses base-64 to do that.
+    If you transfer binary data using the serpent serializer, be aware of the following:
+    The wire protocol is text based so serpent has to encode binary data. It uses base-64 to do that.
     This means on the receiving side, instead of the raw bytes, you get a little dictionary
     like this instead: ``{'data': 'aXJtZW4gZGUgam9uZw==', 'encoding': 'base64'}``
-    Your client code needs to be aware of this and to get the original binary data back, it has to base-64
-    decode the data element by itself.  This is perhaps done the easiest by using the
+    Your client code needs to be explicitly aware of this and to get the original binary data back,
+    it has to base-64 decode the data element by itself.  The easiest way to do this is using the
     ``serpent.tobytes`` helper function from the ``serpent`` library, which will convert
-    the result to actual bytes if needed (and leave it untouched if it is already in bytes form)
+    the result to actual bytes if needed, and leave it untouched if it is already in bytes form.
 
 
 The following table is an indication of the relative speeds when dealing with large amounts
-of binary data. It lists the results of the :file:`hugetransfer` example, using python 3.5,
-over a 1000 Mbps LAN connection:
+of binary data. It lists the results of the :file:`hugetransfer` example, using python 3.8,
+over a 1 Gbit LAN connection:
 
 ========== ========== ============= ================ ====================
 serializer str mb/sec bytes mb/sec  bytearray mb/sec bytearray w/iterator
 ========== ========== ============= ================ ====================
-marshal    71.0       73.0          73.0             37.8
-serpent    25.0       14.1          13.5             13.5
-json       31.5       not supported not supported    not supported
+marshal    95.7       97.1          98.4             55.4
+serpent    41.0       23.2          24.3             22.3
+json       48.1       not supported not supported    not supported
 ========== ========== ============= ================ ====================
 
 The json serializer only works with strings, it can't serialize binary data at all.
 The serpent serializer can, but read the note above about why it's quite inefficent there.
-Marshal is relatively efficient, speed-wise.
-
-``numpy arrays``
-    usually cannot be transferred directly, see :ref:`numpy`.
+Marshal is very efficient and is almost saturating the 1 Gbit connection speed limit.
 
 
-**Alternative: avoid most of the serialization overhead by (ab)using annotations**
+**Alternative: avoid most of the serialization overhead by using annotations**
 
 Pyro allows you to add custom annotation chunks to the request and response messages
 (see  :ref:`msg_annotations`). Because these are binary chunks they will not be passed
-through the serializer at all. There is a 64Kb total annotation size limit on messages
-though, so you have to split up larger files. The ``filetransfer`` example contains
+through the serializer at all. Depending on what the configured maximum message size is
+you may have to split up larger files. The ``filetransfer`` example contains
 fully working example code to see this in action. It combines this with the remote
 iterator capability of Pyro to easily get all chunks of the file.
 It has to split up the file in small chunks but is still quite a bit faster than transmitting
-bytes through regular response values. Also it is using only regular Pyro high level logic
+bytes through regular response values as bytes or arrays. Also it is using only regular Pyro high level logic
 and no low level network or socket code.
 
 
@@ -351,41 +330,22 @@ but for actual file transfer it sets up a dedicated temporary socket connection 
 is transmitted.
 
 
-.. index:: MSG_WAITALL
-
-MSG_WAITALL socket option
-=========================
-Pyro will use the ``MSG_WAITALL`` socket option to receive large messages, if it decides that
-the feature is available and working correctly. This avoids having to use a slower function that
-needs a loop to get all data. On most systems that define the ``socket.MSG_WAITALL``
-symbol, it works fine, except on Windows: even though the option is there, it doesn't work reliably.
-Pyro thus won't use it by default on Windows, and will use it by default on other systems.
-You should set the ``USE_MSG_WAITALL`` config item to False yourself, if you find that your system has
-an unreliable implementation of this socket option. Please let me know what system (os/python version)
-it is so we could teach Pyro to select the correct option automatically in a new version.
-
-
 .. index:: IPv6
 
 IPV6 support
 ============
-Pyro4 supports IPv6 since version 4.18. You can use IPv6 addresses in the same places where you would
-normally have used IPv4 addresses. There's one exception: the address notation in a Pyro URI. For a numeric
-IPv6 address in a Pyro URI, you have to enclose it in brackets. For example:
+Pyro supports IPv6. You can use IPv6 addresses (enclosed in brackets) in the same places where you would
+normally have used IPv4 addresses. There's one exception: the address notation in a Pyro URI. For example:
 
 ``PYRO:objectname@[::1]:3456``
 
-points at a Pyro object located on the IPv6 "::1" address (localhost). When Pyro displays a numeric
+this points at a Pyro object located on the IPv6 "::1" address (localhost). When Pyro displays a numeric
 IPv6 location from an URI it will also use the bracket notation. This bracket notation is only used
 in Pyro URIs, everywhere else you just type the IPv6 address without brackets.
 
-To tell Pyro to prefer using IPv6 you can use the ``PREFER_IP_VERSION`` config item. It is set to 4 by default,
-for backward compatibility reasons.
-This means that unless you change it to 6 (or 0), Pyro will be using IPv4 addressing.
-
-There is a new method to see what IP addressing is used: :py:meth:`Pyro4.socketutil.getIpVersion`,
-and a few other methods in :py:mod:`Pyro4.socketutil`  gained a new optional argument to tell it if
-it needs to deal with an ipv6 address rather than ipv4, but these are rarely used in client code.
+To tell Pyro to prefer using IPv6 you can use the ``PREFER_IP_VERSION`` config item. It is set to 0 by default,
+which means that your operating system is selecting the preferred protocol. Often this is ipv6 if it is
+available, but not always, so you can force it by setting this config item to 6 (or 4, if you want ipv4)
 
 
 .. index:: Numpy, numpy.ndarray
@@ -401,9 +361,9 @@ trying to use numpy objects (ndarrays, etcetera) with Pyro::
     TypeError: don't know how to serialize class <type 'numpy.ndarray'>
       or
     TypeError: don't know how to serialize class <class 'numpy.int64'>
+      or similar.
 
-These errors are caused by Numpy datatypes not being serializable by serpent or json serializers.
-There are several reasons these datatypes are not supported out of the box:
+These errors are caused by Numpy datatypes not being recognised by Pyro's serializer. Why is this:
 
 #. numpy is a third party library and there are many, many others. It is not Pyro's responsibility to understand all of them.
 #. numpy is often used in scenarios with large amounts of data. Sending these large arrays over the wire through Pyro
@@ -413,21 +373,15 @@ There are several reasons these datatypes are not supported out of the box:
    would require a mapping to the appropriate Java or .NET type)
 
 
-If you understand this but still want to use numpy with Pyro, and pass numpy objects over the wire, you can do it!
-Choose one of the following options:
-
-#.  Don't use Numpy datatypes as arguments or return values.
-    Convert them to standard Python datatypes before using them in Pyro. So instead of just
-    ``na = numpy.array(...); return na;``, use this instead:  ``return na.tolist()``.
-    Or perhaps even ``return array.array('i', na)`` (serpent understands ``array.array`` just fine).
-    Note that the elements of a numpy array usually are of a special numpy datatype as well (such as ``numpy.int32``).
-    If you don't convert these individually as well, you will still get serialization errors. That is why something like
-    ``list(na)`` doesn't work: it seems to return a regular python list but the elements are still numpy datatypes.
-    You have to use the full conversions as mentioned earlier.
-    Note that you'll have to do a bit more work to deal with multi-dimensional arrays: you have to convert
-    the shape of the array separately.
-#.  If possible don't return the whole array. Redesign your API so that you might perhaps only return a single element from it,
-    or a few, if that is all the client really needs.
+If you still want to use numpy with Pyro, you'll have to convert the data to standard Python datatypes before using them in Pyro.
+So instead of just ``na = numpy.array(...); return na;``, use this instead:  ``return na.tolist()``.
+Or perhaps even ``return array.array('i', na)`` (serpent understands ``array.array`` just fine).
+Note that the elements of a numpy array usually are of a special numpy datatype as well (such as ``numpy.int32``).
+If you don't convert these individually as well, you will still get serialization errors. That is why something like
+``list(na)`` doesn't work: it seems to return a regular python list but the elements are still numpy datatypes.
+You have to use the full conversions as mentioned earlier.
+Note that you'll have to do a bit more work to deal with multi-dimensional arrays: you have to convert
+the shape of the array separately.
 
 
 .. index::
@@ -448,17 +402,16 @@ It also provides a simple web page that shows how stuff works.
 
 *Starting the gateway:*
 
-You can launch the HTTP gateway server via the command line tool.
-This will create a web server using Python's :py:mod:`wsgiref` server module.
+You can launch the HTTP gateway server conveniently via the command line tool.
 Because the gateway is written as a wsgi app, you can also stick it into a wsgi server of your own choice.
-Import ``pyro_app`` from ``Pyro4.utils.httpgateway`` to do that (that's the app you need to use).
+Import ``pyro_app`` from ``Pyro5.utils.httpgateway`` to do that (that's the app you need to use).
 
 
-synopsys: :command:`python -m Pyro4.utils.httpgateway [options]` (or simply: :command:`pyro4-httpgateway [options]`)
+:command:`python -m Pyro5.utils.httpgateway [options]` (or simply: :command:`pyro5-httpgateway [options]`)
 
 A short explanation of the available options can be printed with the help option:
 
-.. program:: Pyro4.utils.httpgateway
+.. program:: Pyro5.utils.httpgateway
 
 .. option:: -h, --help
 
@@ -471,13 +424,6 @@ internal object in your system. If you want to toy a bit with the examples provi
 web page, you'll have to change the option to something like: ``r'Pyro\.|test\.'`` so that those objects
 are exposed. This regex is the same as used when listing objects from the name server, so you can use the
 ``nsc`` tool to check it (with the listmatching command).
-
-
-*Setting Hmac keys for use by the gateway:*
-
-The ``-k`` and/or ``-g`` command line options to set the optional Hmac keys are deprecated since Pyro 4.72
-because setting a hmac key like this is a security issue. You should set these keys with the PYRO_HMAC_KEY
-and PYRO_HTTPGATEWAY_KEY environment variables instead, before starting the gateway.
 
 
 *Using the gateway:*
@@ -535,50 +481,50 @@ Client information on the current_context, correlation id
     This is an advanced/low-level Pyro topic.
 
 Pyro provides a *thread-local* object with some information about the current Pyro method call,
-such as the client that's performing the call. It is available as :py:data:`Pyro4.current_context`
-(shortcut to :py:data:`Pyro4.core.current_context`).
+such as the client that's performing the call. It is available as :py:data:`Pyro5.current_context`
+(shortcut to :py:data:`Pyro5.core.current_context`).
 When accessed in a Pyro server it contains various attributes:
 
-.. py:attribute:: Pyro4.current_context.client
+.. py:attribute:: Pyro5.current_context.client
 
-    (:py:class:`Pyro4.socketutil.SocketConnection`)
+    (:py:class:`Pyro5.socketutil.SocketConnection`)
     this is the socket connection with the client that's doing the request.
     You can check the source to see what this is all about, but perhaps the single most useful
     attribute exposed here is ``sock``, which is the socket connection.
-    So the client's IP address can for instance be obtained via :code:`Pyro4.current_context.client.sock.getpeername()[0]` .
+    So the client's IP address can for instance be obtained via :code:`Pyro5.current_context.client.sock.getpeername()[0]` .
     However, since for oneway calls the socket connection will likely be closed already, this is not 100% reliable.
     Therefore Pyro stores the result of the ``getpeername`` call in a separate attribute on the context:
     ``client_sock_addr`` (see below)
 
-.. py:attribute:: Pyro4.current_context.client_sock_addr
+.. py:attribute:: Pyro5.current_context.client_sock_addr
 
     (*tuple*) the socket address of the client doing the call. It is a tuple of the client host address and the port.
 
-.. py:attribute:: Pyro4.current_context.seq
+.. py:attribute:: Pyro5.current_context.seq
 
     (*int*) request sequence number
 
-.. py:attribute:: Pyro4.current_context.msg_flags
+.. py:attribute:: Pyro5.current_context.msg_flags
 
-    (*int*) message flags, see :py:class:`Pyro4.message.Message`
+    (*int*) message flags, see :py:class:`Pyro5.message.Message`
 
-.. py:attribute:: Pyro4.current_context.serializer_id
+.. py:attribute:: Pyro5.current_context.serializer_id
 
-    (*int*) numerical id of the serializer used for this communication, see :py:class:`Pyro4.message.Message` .
+    (*int*) numerical id of the serializer used for this communication, see :py:class:`Pyro5.message.Message` .
 
-.. py:attribute:: Pyro4.current_context.annotations
+.. py:attribute:: Pyro5.current_context.annotations
 
     (*dict*) message annotations, key is a 4-letter string and the value is a byte sequence.
     Used to send and receive annotations with Pyro requests.
     See :ref:`msg_annotations` for more information about that.
 
-.. py:attribute:: Pyro4.current_context.response_annotations
+.. py:attribute:: Pyro5.current_context.response_annotations
 
     (*dict*) message annotations, key is a 4-letter string and the value is a byte sequence.
     Used in client code, the annotations returned by a Pyro server are available here.
     See :ref:`msg_annotations` for more information about that.
 
-.. py:attribute:: Pyro4.current_context.correlation_id
+.. py:attribute:: Pyro5.current_context.correlation_id
 
     (:py:class:`uuid.UUID`, optional)  correlation id of the current request / response.
     If you set this (in your client code) before calling a method on a Pyro proxy, Pyro will transfer the
@@ -623,17 +569,17 @@ are allocated, thereby making them tracked resources on the client connection.
 These tracked resources will be automatically freed by Pyro if the client connection is closed.
 
 For this to work, the resource object should have a ``close`` method (Pyro will call this).
-If needed, you can also override :py:meth:`Pyro4.core.Daemon.clientDisconnect` and do the cleanup
+If needed, you can also override :py:meth:`Pyro5.core.Daemon.clientDisconnect` and do the cleanup
 yourself with the ``tracked_resources`` on the connection object.
 
 
-Resource tracking and untracking is done in your server class on the ``Pyro4.current_context`` object:
+Resource tracking and untracking is done in your server class on the ``Pyro5.current_context`` object:
 
-.. py:method:: Pyro4.current_context.track_resource(resource)
+.. py:method:: Pyro5.current_context.track_resource(resource)
 
     Let Pyro track the resource on the current client connection.
 
-.. py:method:: Pyro4.current_context.untrack_resource(resource)
+.. py:method:: Pyro5.current_context.untrack_resource(resource)
 
     Untrack a previously tracked resource, useful if you have freed it normally.
 
@@ -659,53 +605,32 @@ Message annotations
 
 Pyro's wire protocol allows for a very flexible messaging format by means of *annotations*.
 Annotations are extra information chunks that are added to the pyro messages traveling
-over the network. Pyro internally uses a couple of chunks to exchange extra data between a proxy
-and a daemon: correlation ids (annotation ``CORR``) and hmac signatures
-(annotation ``HMAC``). These chunk types are reserved and you should not touch them.
-All other annotation types are free to use in your own code (and will be ignored
-by Pyro itself). There's no limit on the number of annotations you can add to a message, but each
-individual annotation cannot be larger than 64 Kb.
-
-.. sidebar:: reserved annotation chunks
-
-    The following annotation chunks are used by Pyro internally and should not be touched or used:
-    ``CORR``, ``HMAC``, ``STRM`` and ``BLBI``.
+over the network.
 
 An annotation is a low level datastructure (to optimize the generation of network messages):
 a chunk identifier string of exactly 4 characters (such as "CODE"), and its value, a byte sequence.
 If you want to put specific data structures into an annotation chunk value, you have to
-encode them to a byte sequence yourself (of course, you could utilize a Pyro serializer for this).
-When processing a custom annotation, you have to decode it yourself as well.
+encode them to a byte sequence yourself (possibly by using one of Pyro's serializers, or any other).
+When processing a custom annotation, you have to decode it yourself too.
 Communicating annotations with Pyro is done via a normal dictionary of chunk id -> data bytes.
 Pyro will take care of encoding this dictionary into the wire message and extracting it out of a response message.
 
-*Custom user annotations:*
+*Adding annotations to messages:*
 
-You can add your own annotations to messages. For server code, you do this by setting the ``response_annotations``
-property of the :py:data:`Pyro4.current_context` in your Pyro object, right before returning the regular response value.
-Pyro will add the annotations dict to the response message.
-In client code, you can set the ``annotations`` property of the :py:data:`Pyro4.current_context` object right
+In client code, you can set the ``annotations`` property of the :py:data:`Pyro5.current_context` object right
 before the proxy method call. Pyro will then add that annotations dict to the request message.
+In server code, you do this by setting the ``response_annotations``
+property of the :py:data:`Pyro5.current_context` in your Pyro object, right before returning the regular response value.
+Pyro will add the annotations dict to the response message.
 
-The older method to to this (before Pyro 4.56) was to create a subclass of ``Proxy`` or ``Daemon`` and override the methods
-:py:meth:`Pyro4.core.Proxy._pyroAnnotations` or :py:meth:`Pyro4.core.Daemon.annotations` respectively.
-These methods should return the custom annotations dict that should be added to request/response messages.
-This is still possible to not break older code.
+*Using annotations:*
 
-*Reacting on annotations:*
-
-In your server code, in the Daemon, you can use the :py:data:`Pyro4.current_context` to access the ``annotations`` of the last message that was received.
 In your client code, you can do that as well, but you should look at the ``response_annotations`` of this context object instead.
 If you're using large annotation chunks, it is advised to clear these fields after use.
 See :ref:`current_context`.
+In your server code, in the Daemon, you can use the :py:data:`Pyro5.current_context` to access the ``annotations`` of the last message that was received.
 
-The older method to do this (before Pyro 4.56) for client code was to create a proxy subclass and override the method
-:py:meth:`Pyro4.core.Proxy._pyroResponseAnnotations`.
-Pyro calls this method with the dictionary of any annotations received in a response message from the daemon,
-and the message type identifier of the response message. This still works to not break older code.
-
-
-For an example of how you can work with custom message annotations, see the :py:mod:`callcontext` example.
+To see how you can work with custom message annotations, see the :py:mod:`callcontext` or :py:mod:`filetransfer` examples.
 
 
 .. index:: handshake
@@ -724,13 +649,13 @@ This is called the connection *handshake*. Part of it is the daemon returning th
 You can hook into this mechanism and influence the data that is initially exchanged during the connection setup,
 and you can act on this data. You can disallow the connection based on this, for example.
 
-You can set your own data on the proxy attribute :py:attr:`Pyro4.core.Proxy._pyroHandshake`. You can set any serializable object.
+You can set your own data on the proxy attribute :py:attr:`Pyro5.client.Proxy._pyroHandshake`. You can set any serializable object.
 Pyro will send this as the handshake message to the daemon when the proxy tries to connect.
-In the daemon, override the method :py:meth:`Pyro4.core.Daemon.validateHandshake` to customize/validate the connection setup.
+In the daemon, override the method :py:meth:`Pyro5.server.Daemon.validateHandshake` to customize/validate the connection setup.
 This method receives the data from the proxy and you can either raise an exception if you don't want to allow the connection,
 or return a result value if you are okay with the new connection. The result value again can be any serializable object.
 This result value will be received back in the Proxy where you can act on it
-if you subclass the proxy and override :py:meth:`Pyro4.core.Proxy._pyroValidateHandshake`.
+if you subclass the proxy and override :py:meth:`Pyro5.client.Proxy._pyroValidateHandshake`.
 
 
 For an example of how you can work with connections handshake validation, see the :py:mod:`handshake` example.
@@ -763,15 +688,15 @@ with this except for perhaps two things:
    to the same source code files that define the argument data types, that the client and server use.
 
 As long as the dispatcher itself  *doesn't have to know what is even in the actual
-message*, Pyro provides a way to avoid both issues mentioned above: use the :py:class:`Pyro4.core.SerializedBlob`.
+message*, Pyro provides a way to avoid both issues mentioned above: use the :py:class:`Pyro5.client.SerializedBlob`.
 If you use that as the (single) argument to a remote method call, Pyro will not deserialize the message payload
 *until you ask for it* by calling the ``deserialized()`` method on it. Which is something you only do in the
-actual server object, and not in the dispatcher.
+actual server object, and *not* in the dispatcher.
 Because the message is then never de/reserialized in the dispatcher code, you avoid the serializer overhead,
 and also don't have to include the source code for the serialized types in the dispatcher.
 It just deals with a blob of serialized bytes.
 
-An example that shows how this mechanism can be used, can be found as ``blob-dispatch`` in the examples folder.
+An example that shows how this mechanism can be used, can be found as :py:mod:`blob-dispatch` in the examples folder.
 
 
 .. index:: socketpair, user provided sockets
@@ -781,7 +706,7 @@ Hooking onto existing connected sockets such as from socketpair()
 
 For communication between threads or sub-processes, there is ``socket.socketpair()``. It creates
 spair of connected sockets that you can share between the threads or processes.
-Since Pyro 4.70 it is possible to tell Pyro to use a user-created socket like that, instead of creating
+Pyro can use a user-created socket like that, instead of creating
 new sockets itself, which means you can use Pyro to talk between threads or sub-processes
 over an efficient and isolated channel.
 You do this by creating a socket (or a pair) and providing it as the ``connected_socket`` parameter
@@ -793,5 +718,5 @@ Closing the proxy or the daemon will *not* close the underlying user-supplied so
 for another proxy (to access a different object). You created the socket(s) yourself,
 and you also have to close the socket(s) yourself.
 
-See the ``socketpair`` example for two example programs (one using threads, the other using fork
+See the :py:mod:`socketpair` example for two example programs (one using threads, the other using fork
 to create a child process).

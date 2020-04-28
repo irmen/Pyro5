@@ -1,3 +1,8 @@
+
+
+**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro4 TO Pyro5**
+
+
 .. index:: Name Server
 
 .. _name-server:
@@ -134,11 +139,6 @@ There are several command line options for this tool:
    (The broadcast responder listens to UDP broadcast packets on the local network subnet,
    to signal its location to clients that want to talk to the name server)
 
-.. option:: -k, --key
-
-   Specify hmac key to use. Deprecated: use SSL instead, or if you must, set the key via
-   the PYRO_HMAC_KEY environment variable before starting the name server.
-
 
 Starting the Name Server from within your own code
 ==================================================
@@ -214,11 +214,6 @@ synopsis: :command:`python -m Pyro4.nsc [options] command [arguments]` (or simpl
 .. option:: -u UNIXSOCKET, --unixsocket=UNIXSOCKET
 
    Provide the Unix domain socket name of the name server, rather than a normal TCP/IP socket.
-
-.. option:: -k, --key
-
-   Specify hmac key to use. Deprecated: use SSL instead, or if you must, set the key via
-   the PYRO_HMAC_KEY environment variable before starting the nsc tool.
 
 .. option:: -v, --verbose
 
@@ -312,7 +307,7 @@ As soon as you provide a specific hostname to the name server locator (by using 
 to the ``locateNS`` call, or by setting the ``NS_HOST`` config item, etc) it will no longer use
 a broadcast too try to find the name server.
 
-.. function:: locateNS([host=None, port=None, broadcast=True, hmac_key=key])
+.. function:: locateNS([host=None, port=None, broadcast=True])
 
     Get a proxy for a name server somewhere in the network.
     If you're not providing host or port arguments, the configured defaults are used.
@@ -330,7 +325,6 @@ a broadcast too try to find the name server.
         * host parameter not given: the port now means the broadcast port.
     :param broadcast: should a broadcast be used to locate the name server, if
         no location is specified? Default is True.
-    :param hmac_key: optional hmac key to use
 
 
 .. index:: PYRONAME protocol type

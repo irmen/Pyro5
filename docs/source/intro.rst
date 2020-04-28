@@ -8,26 +8,27 @@ Intro and Example
 This chapter contains a little overview of Pyro's features and a simple example to show how it looks like.
 
 
-Pyro5? Pyro4?
-=============
+Coming from Pyro4
+=================
 
-Pyro5 is the next major version after `Pyro4 <http://pypi.python.org/pypi/Pyro4/>`_.
-It borrows most of the concepts of Pyro4, but includes some major improvements.
-Using it should be very familiar to current Pyro4 users, but Pyro5 is not compatible with Pyro4 and vice versa.
+Pyro5 is the current version. It is based on most of the concepts of Pyro4, but includes some major improvements.
+Using it should be very familiar to current Pyro4 users, however Pyro5 is not compatible with Pyro4 and vice versa.
 To allow graceful upgrading, both versions can co-exist due to the new package name
-(this happened years ago as well when I upgraded Pyro 3 to Pyro4).
+(the same happened years ago when Pyro 3 was upgraded to Pyro4).
 
-Pyro5 is the new major version of Pyro, and this is where new features and changes will appear.
-Even though the API is pretty mature and extensible, there is no guarantee that no breaking API changes
-will occur in new versions to support possible new features or improvements.
+Pyro5 requires Python 3.5 or newer. If you're using an onder version of Python, you'll have to stick to Pyro4.
 
-If you absolutely require a stable API, consider using `Pyro4 <http://pypi.python.org/pypi/Pyro4/>`_ for production code for now.
-Pyro4 is in maintenance mode and only gets important bug fixes and security fixes, and no new features or other changes.
+Pyro5 provides a basic backward-compatibility module so much of existing Pyro4 code doesn't have to
+change (apart from adding a single import statement).
+This only works for code that imported Pyro4 symbols from the Pyro4 module
+directly, instead of from one of Pyro4's sub modules. So, for instance:
+``from Pyro4 import Proxy`` instead of: ``from Pyro4.core import Proxy``.
+*some* submodules are more or less emulated such as ``Pyro4.errors``, ``Pyro4.socketutil``.
+So you may first have to convert your old code to use the importing scheme to
+only import the Pyro4 module and not from its submodules, and then you should
+insert this at the top to enable the compatibility layer::
 
-**Python 2.7:**
-Also, if you're still using Python 2.7, you can't use Pyro5 because it requires Python 3.5 or newer.
-In this case use Pyro4 as well (or better: upgrade to Python 3.x because 2.7 will be End Of Life after january 2020)
-
+    from Pyro5.compatibility import Pyro4
 
 
 .. index:: features
@@ -35,12 +36,11 @@ In this case use Pyro4 as well (or better: upgrade to Python 3.x because 2.7 wil
 About Pyro: feature overview
 ============================
 
-Pyro is a library that enables you to build applications in which
+Pyro enables you to build applications in which
 objects can talk to each other over the network, with minimal programming effort.
-You can just use normal Python method calls, with almost every possible parameter
-and return value type, and Pyro takes care of locating the right object on the right
+You can just use normal Python method calls, and Pyro takes care of locating the right object on the right
 computer to execute the method. It is designed to be very easy to use, and to
-generally stay out of your way. But it also provides a set of powerful features that
+stay out of your way. But it also provides a set of powerful features that
 enables you to build distributed applications rapidly and effortlessly.
 Pyro is a pure Python library and runs on many different platforms and Python versions.
 
@@ -63,35 +63,15 @@ Here's a quick overview of Pyro's features:
 - batched invocations for greatly enhanced performance of many calls on the same object.
 - remote iterator on-demand item streaming avoids having to create large collections upfront and transfer them as a whole.
 - you can define timeouts on network communications to prevent a call blocking forever if there's something wrong.
-- asynchronous invocations if you want to get the results 'at some later moment in time'. Pyro will take care of gathering the result values in the background.
 - remote exceptions will be raised in the caller, as if they were local. You can extract detailed remote traceback information.
 - http gateway available for clients wanting to use http+json (such as browser scripts).
-- stable network communication code that works reliably on many platforms.
+- stable network communication code that has worked reliably on many platforms for over a decade.
 - can hook onto existing sockets created for instance with socketpair() to communicate efficiently between threads or sub-processes.
-- possibility to use Pyro's own event loop, or integrate it into your own (or third party) event loop.
+- possibility to integrate Pyro's event loop into your own (or third party) event loop.
 - three different possible instance modes for your remote objects (singleton, one per session, one per call).
 - many simple examples included to show various features and techniques.
 - large amount of unit tests and high test coverage.
-- reliable and established: built upon more than 15 years of existing Pyro history, with ongoing support and development.
-
-
-.. index:: history
-
-Pyro's history
-^^^^^^^^^^^^^^
-I started working on the first Pyro version in 1998, when remote method invocation technology such as Java's RMI
-and CORBA were quite popular. I wanted something like that in Python and there was nothing available, so I decided
-to write my own. Over the years it slowly gained features till it reached version 3.10 or so.
-At that point it was clear that the code base had become quite ancient and couldn't reliably support any new features,
-so Pyro4 was born in early 2010, written from scratch.
-
-``Pyro`` is the package name of the old and no longer supported 3.x version of Pyro.
-``Pyro4`` is the package name of the current version. Its concepts are similar to Pyro 3.x but it is not
-backwards compatible. To avoid conflicts, this version has a different package name.
-
-If you're somehow still interested in the old version, here is `its git repo <https://github.com/irmen/Pyro3>`_
-and it is also still `available on PyPi <http://pypi.python.org/pypi/Pyro/>`_ -- but don't use it unless
-you really have to.
+- reliable and established: built upon more than 20 years of existing Pyro history, with ongoing support and development.
 
 
 .. index:: usage
@@ -144,34 +124,34 @@ Here, we're making a simple greeting service that will return a personalized gre
 First let's see the server code::
 
     # saved as greeting-server.py
-    import Pyro4
+    import Pyro5.api
 
-    @Pyro4.expose
+    @Pyro5.api.expose
     class GreetingMaker(object):
         def get_fortune(self, name):
             return "Hello, {0}. Here is your fortune message:\n" \
                    "Behold the warranty -- the bold print giveth and the fine print taketh away.".format(name)
 
-    daemon = Pyro4.Daemon()                # make a Pyro daemon
-    uri = daemon.register(GreetingMaker)   # register the greeting maker as a Pyro object
+    daemon = Pyro5.api.Daemon()             # make a Pyro daemon
+    uri = daemon.register(GreetingMaker)    # register the greeting maker as a Pyro object
 
-    print("Ready. Object uri =", uri)      # print the uri so we can use it in the client later
-    daemon.requestLoop()                   # start the event loop of the server to wait for calls
+    print("Ready. Object uri =", uri)       # print the uri so we can use it in the client later
+    daemon.requestLoop()                    # start the event loop of the server to wait for calls
 
 Open a console window and start the greeting server::
 
     $ python greeting-server.py
-    Ready. Object uri = PYRO:obj_edb9e53007ce4713b371d0dc6a177955@localhost:51681
+    Ready. Object uri = PYRO:obj_fbfd1d6f83e44728b4bf89b9466965d5@localhost:35845
 
 Great, our server is running. Let's see the client code that invokes the server::
 
     # saved as greeting-client.py
-    import Pyro4
+    import Pyro5.api
 
     uri = input("What is the Pyro uri of the greeting object? ").strip()
     name = input("What is your name? ").strip()
 
-    greeting_maker = Pyro4.Proxy(uri)         # get a Pyro proxy to the greeting object
+    greeting_maker = Pyro5.api.Proxy(uri)     # get a Pyro proxy to the greeting object
     print(greeting_maker.get_fortune(name))   # call method normally
 
 Start this client program (from a different console window)::
@@ -196,16 +176,16 @@ corresponding uri.
 We'll have to modify a few lines in :file:`greeting-server.py` to make it register the object in the name server::
 
     # saved as greeting-server.py
-    import Pyro4
+    import Pyro5.api
 
-    @Pyro4.expose
+    @Pyro5.api.expose
     class GreetingMaker(object):
         def get_fortune(self, name):
             return "Hello, {0}. Here is your fortune message:\n" \
                    "Tomorrow's lucky number is 12345678.".format(name)
 
-    daemon = Pyro4.Daemon()                # make a Pyro daemon
-    ns = Pyro4.locateNS()                  # find the name server
+    daemon = Pyro5.server.Daemon()         # make a Pyro daemon
+    ns = Pyro5.api.locate_ns()             # find the name server
     uri = daemon.register(GreetingMaker)   # register the greeting maker as a Pyro object
     ns.register("example.greeting", uri)   # register the object with a name in the name server
 
@@ -215,26 +195,27 @@ We'll have to modify a few lines in :file:`greeting-server.py` to make it regist
 The :file:`greeting-client.py` is actually simpler now because we can use the name server to find the object::
 
     # saved as greeting-client.py
-    import Pyro4
+    import Pyro5.api
 
     name = input("What is your name? ").strip()
 
-    greeting_maker = Pyro4.Proxy("PYRONAME:example.greeting")    # use name server object lookup uri shortcut
+    greeting_maker = Pyro5.api.Proxy("PYRONAME:example.greeting")    # use name server object lookup uri shortcut
     print(greeting_maker.get_fortune(name))
 
 The program now needs a Pyro name server that is running. You can start one by typing the
-following command: :command:`python -m Pyro4.naming` (or simply: :command:`pyro4-ns`) in a separate console window
+following command: :command:`python -m Pyro5.nameserver` (or simply: :command:`pyro5-ns`) in a separate console window
 (usually there is just *one* name server running in your network).
 After that, start the server and client as before.
 There's no need to copy-paste the object uri in the client any longer, it will 'discover'
 the server automatically, based on the object name (:kbd:`example.greeting`).
 If you want you can check that this name is indeed known in the name server, by typing
-the command :command:`python -m Pyro4.nsc list` (or simply: :command:`pyro4-nsc list`), which will produce::
+the command :command:`python -m Pyro5.nsc list` (or simply: :command:`pyro5-nsc list`), which will produce::
 
-    $ pyro4-nsc list
+    $ pyro5-nsc list
     --------START LIST
     Pyro.NameServer --> PYRO:Pyro.NameServer@localhost:9090
-    example.greeting --> PYRO:obj_663a31d2dde54b00bfe52ec2557d4f4f@localhost:51707
+        metadata: {'class:Pyro5.nameserver.NameServer'}
+    example.greeting --> PYRO:obj_198af10aa51f4fa8ab54062e65fad96a@localhost:44687
     --------END LIST
 
 (Once again the uri for our object will be random)
@@ -258,21 +239,12 @@ and the server code details: :ref:`publish-objects`. The use of the name server 
 
 Performance
 ===========
-Pyro4 is pretty fast. On a typical networked system you can expect:
+Pyro is pretty fast, but speed depends largely on many external factors:
 
-- a few hundred new proxy connections per second to one server
-- similarly, a few hundred initial remote calls per second to one server
-- a few thousand remote method calls per second on a single proxy
-- tens of thousands batched or oneway remote calls per second
-- 10-100 Mb/sec data transfer
-
-Results do vary depending on many factors such as:
-
-- network speed
+- network connection speed
 - machine and operating system
 - I/O or CPU bound workload
 - contents and size of the pyro call request and response messages
 - the serializer being used
-- python version being used
 
 Experiment with the ``benchmark``, ``batchedcalls`` and ``hugetransfer`` examples to see what results you get on your own setup.

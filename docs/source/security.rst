@@ -1,3 +1,8 @@
+
+
+**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro4 TO Pyro5**
+
+
 .. index:: security
 
 .. _security:
@@ -77,8 +82,7 @@ as required. You'll need to specify the cert files to use, private keys, and pas
 By default, the SSL mode only has a cert on the server (which is similar to visiting a https url
 in your browser). This means your *clients* can be sure that they are connecting to the expected
 server, but the *server* has no way to know what clients are connecting.
-You can solve this by using a HMAC key (see :ref:`hmackey`), but if you're already using SSL,
-a better way is to do custom certificate verification.
+You can solve this using SSL and custom certificate verification.
 You can do this in your client (checks the server's cert) but you can also tell your clients
 to use certs as well and check these in your server. This makes it 2-way-SSL or mutual authentication.
 For more details see here :ref:`cert_verification`. The SSL config items are in :ref:`config-items`.
@@ -112,40 +116,6 @@ See :doc:`config` for the proper way to do this.
 
 Preventing arbitrary connections
 ================================
-
-.. _hmackey:
-
-...by using a HMAC signature via a shared private key
------------------------------------------------------
-
-You can use a `HMAC signature <http://docs.python.org/library/hmac.html>`_ on every network transfer
-to prevent malicious requests. The idea is to only have legit clients connect to your Pyro server.
-Using the HMAC signature ensures that only clients with the correct secret key can create valid requests,
-and that it is impossible to modify valid requests (even though the network data is not encrypted).
-The hashing algorithm that is used in the HMAC is SHA-1.
-
-.. sidebar:: consider alternatives
-
-    For industry standard encryption and connection verification, consider using SSL/TLS instead.
-
-
-You need to create and configure a secure shared key yourself.
-The key is a byte string and must be cryptographically secure (there are various methods to create such a key).
-Your server needs to set this key and every client that wants to connect to it also needs to
-set it. You can set the shared key via the ``_pyroHmacKey`` property on a proxy or a daemon::
-
-    daemon._pyroHmacKey = b"secretkey"
-    proxy._pyroHmacKey = b"secretkey"
-
-
-.. warning::
-    It is hard to keep a shared secret key actually secret!
-    People might read the source code of your software and extract the key from it.
-    Pyro itself provides no facilities to help you with this, sorry.
-    The Diffie-Hellman Key Exchange algorithm is one example of a secure solution to this problem.
-    There's the ``diffie-hellman`` example that shows the basics, but DO NOT use it directly
-    as being "the secure way to do this" -- it's only demo code.
-
 
 .. index:: certificate verification, 2-way-SSL
 

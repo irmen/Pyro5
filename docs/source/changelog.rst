@@ -9,6 +9,7 @@ Change Log
 - the 4 custom class (un)register methods on the SerializerBase class are now also directly available in the api module
 
 
+
 **Pyro 5.9.2**
 
 - fixed a silent error in the server when doing error handling (avoid calling getpeername() which may fail)
