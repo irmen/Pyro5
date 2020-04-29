@@ -5,6 +5,7 @@ Change Log
 **Pyro 5.10**
 
 - finally ported over the unit test suite from Pyro4
+- finally updated the documentation from Pyro4 to Pyro5 (there's likely still some errors or omissions though)
 - fixed regex lookup index error in nameserver
 - the 4 custom class (un)register methods on the SerializerBase class are now also directly available in the api module
 
