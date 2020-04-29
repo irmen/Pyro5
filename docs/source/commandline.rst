@@ -1,8 +1,3 @@
-
-
-**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro4 TO Pyro5**
-
-
 .. index:: command line tools
 
 .. _command-line:
@@ -14,11 +9,11 @@ Command line tools
 Pyro has several command line tools that you will be using sooner or later. They are
 generated and installed when you install Pyro.
 
-- :command:`pyro4-ns` (name server)
-- :command:`pyro4-nsc` (name server client tool)
-- :command:`pyro4-test-echoserver` (test echo server)
-- :command:`pyro4-check-config` (prints configuration)
-- :command:`pyro4-httpgateway` (http gateway server)
+- :command:`pyro5-ns` (name server)
+- :command:`pyro5-nsc` (name server client tool)
+- :command:`pyro5-echoserver` (test echo server)
+- :command:`pyro5-check-config` (prints configuration)
+- :command:`pyro5-httpgateway` (http gateway server)
 
 If you prefer, you can also invoke the various "executable modules" inside Pyro directly,
 by using Python's "-m" command line argument.
@@ -39,7 +34,7 @@ HTTP gateway server:
 
 Test echo server
 ================
-:command:`python -m Pyro4.test.echoserver [options]`  (or simply: :command:`pyro4-test-echoserver [options]`)
+:command:`python -m Pyro5.utils.echoserver [options]`  (or simply: :command:`pyro5-echoserver [options]`)
 
 This is a simple built-in server that can be used for testing purposes.
 It launches a Pyro object that has several methods suitable for various tests (see below).
@@ -48,7 +43,7 @@ Pyro server plus name server up with just a few keystrokes.
 
 A short explanation of the available options can be printed with the help option:
 
-.. program:: Pyro4.test.echoserver
+.. program:: Pyro5.utils.echoserver
 
 .. option:: -h, --help
 
@@ -73,10 +68,10 @@ The echo server object is available by the name ``test.echoserver``. It exposes 
 
 Configuration check
 ===================
-:command:`python -m Pyro4.configuration`  (or simply: :command:`pyro4-check-config`)
+:command:`python -m Pyro5.configure`  (or simply: :command:`pyro5-check-config`)
 This is the equivalent of::
 
-  >>> import Pyro4
-  >>> print(Pyro4.config.dump())
+  >>> import Pyro5
+  >>> print(Pyro5.config.dump())
 
 It prints the Pyro version, the location it is imported from, and a dump of the active configuration items.
