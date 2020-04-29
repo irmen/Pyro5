@@ -1,6 +1,6 @@
 
 
-**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro4 TO Pyro5**
+**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro5 TO Pyro5**
 
 
 .. index:: exceptions, remote traceback
@@ -15,7 +15,7 @@ Have a look at the ``exceptions`` example in the :file:`examples` directory.
 Pyro exceptions
 ---------------
 
-Pyro's exception classes can be found in :mod:`Pyro4.errors`.
+Pyro's exception classes can be found in :mod:`Pyro5.errors`.
 They are used by Pyro if something went wrong inside Pyro itself or related to something Pyro was doing.
 
 .. index:: remote errors
@@ -31,9 +31,9 @@ Say you have a remote object that can divide arbitrary numbers.
 It will probably raise a ``ZeroDivisionError`` when you supply ``0`` as the divisor.
 This can be dealt with as follows::
 
-    import Pyro4
+    import Pyro5
 
-    divider=Pyro4.Proxy( ... )
+    divider=Pyro5.Proxy( ... )
     try:
         result = divider.div(999,0)
     except ZeroDivisionError:
@@ -48,44 +48,44 @@ object (``_pyroTraceback``). The traceback is stored as a list of strings (each 
 the traceback text, including newlines). You can use this data on the client to print or process the
 traceback text from the exception as it occurred in the Pyro object on the server.
 
-There is a utility function in :mod:`Pyro4.util` to make it easy to deal with this:
-:func:`Pyro4.util.getPyroTraceback`
+There is a utility function in :mod:`Pyro5.util` to make it easy to deal with this:
+:func:`Pyro5.util.getPyroTraceback`
 
 You use it like this::
 
-    import Pyro4.util
+    import Pyro5.util
     try:
         result = proxy.method()
     except Exception:
         print("Pyro traceback:")
-        print("".join(Pyro4.util.getPyroTraceback()))
+        print("".join(Pyro5.util.getPyroTraceback()))
 
 
 .. index:: exception hook
 
 Also, there is another function that you can install in ``sys.excepthook``, if you want Python
 to automatically print the complete Pyro traceback including the remote traceback, if any:
-:func:`Pyro4.util.excepthook`
+:func:`Pyro5.util.excepthook`
 
 A full Pyro exception traceback, including the remote traceback on the server, looks something like this::
 
     Traceback (most recent call last):
       File "client.py", line 50, in <module>
         print(test.complexerror())     # due to the excepthook, the exception will show the pyro error
-      File "E:\Projects\Pyro4\src\Pyro4\core.py", line 130, in __call__
+      File "E:\Projects\Pyro5\src\Pyro5\core.py", line 130, in __call__
         return self.__send(self.__name, args, kwargs)
-      File "E:\Projects\Pyro4\src\Pyro4\core.py", line 242, in _pyroInvoke
+      File "E:\Projects\Pyro5\src\Pyro5\core.py", line 242, in _pyroInvoke
         raise data
     TypeError: unsupported operand type(s) for //: 'str' and 'int'
      +--- This exception occured remotely (Pyro) - Remote traceback:
      | Traceback (most recent call last):
-     |   File "E:\Projects\Pyro4\src\Pyro4\core.py", line 760, in handleRequest
+     |   File "E:\Projects\Pyro5\src\Pyro5\core.py", line 760, in handleRequest
      |     data=method(*vargs, **kwargs)   # this is the actual method call to the Pyro object
-     |   File "E:\projects\Pyro4\examples\exceptions\excep.py", line 17, in complexerror
+     |   File "E:\projects\Pyro5\examples\exceptions\excep.py", line 17, in complexerror
      |     x.crash()
-     |   File "E:\projects\Pyro4\examples\exceptions\excep.py", line 22, in crash
+     |   File "E:\projects\Pyro5\examples\exceptions\excep.py", line 22, in crash
      |     s.crash2('going down...')
-     |   File "E:\projects\Pyro4\examples\exceptions\excep.py", line 25, in crash2
+     |   File "E:\projects\Pyro5\examples\exceptions\excep.py", line 25, in crash2
      |     x=arg//2
      | TypeError: unsupported operand type(s) for //: 'str' and 'int'
      +--- End of remote traceback
@@ -110,26 +110,26 @@ traceback is extended with details of the values of the local variables in every
     |  EXCEPTION <type 'exceptions.TypeError'>: unsupported operand type(s) for //: 'str' and 'int'
     |  Extended stacktrace follows (most recent call last)
     | ----------------------------------------------------
-    | File "E:\Projects\Pyro4\src\Pyro4\core.py", line 760, in Daemon.handleRequest
+    | File "E:\Projects\Pyro5\src\Pyro5\core.py", line 760, in Daemon.handleRequest
     | Source code:
     |     data=method(*vargs, **kwargs)   # this is the actual method call to the Pyro object
     | ----------------------------------------------------
-    | File "E:\projects\Pyro4\examples\exceptions\excep.py", line 17, in TestClass.complexerror
+    | File "E:\projects\Pyro5\examples\exceptions\excep.py", line 17, in TestClass.complexerror
     | Source code:
     |     x.crash()
     | Local values:
     |     self = <excep.TestClass object at 0x02392830>
-    |         self._pyroDaemon = <Pyro4.core.Daemon object at 0x02392330>
+    |         self._pyroDaemon = <Pyro5.core.Daemon object at 0x02392330>
     |         self._pyroId = 'obj_c63d47dd140f44dca8782151643e0c55'
     |     x = <excep.Foo object at 0x023929D0>
     | ----------------------------------------------------
-    | File "E:\projects\Pyro4\examples\exceptions\excep.py", line 22, in Foo.crash
+    | File "E:\projects\Pyro5\examples\exceptions\excep.py", line 22, in Foo.crash
     | Source code:
     |     self.crash2('going down...')
     | Local values:
     |     self = <excep.Foo object at 0x023929D0>
     | ----------------------------------------------------
-    | File "E:\projects\Pyro4\examples\exceptions\excep.py", line 25, in Foo.crash2
+    | File "E:\projects\Pyro5\examples\exceptions\excep.py", line 25, in Foo.crash2
     | Source code:
     |     x=arg//2
     | Local values:

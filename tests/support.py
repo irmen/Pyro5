@@ -4,7 +4,6 @@ Support code for the test suite.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
-import pickle
 import threading
 from Pyro5 import errors
 from Pyro5.api import expose, behavior, current_context, config, oneway
@@ -20,7 +19,7 @@ config.reset(False)   # reset the config to default
 
 class NonserializableError(Exception):
     def __reduce__(self):
-        raise pickle.PicklingError("to make this error non-serializable")
+        raise Exception("to make this error non-serializable")
 
 
 class MyThingPartlyExposed(object):
