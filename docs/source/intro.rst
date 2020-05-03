@@ -8,33 +8,10 @@ Intro and Example
 This chapter contains a little overview of Pyro's features and a simple example to show how it looks like.
 
 
-Coming from Pyro4
-=================
-
-Pyro5 is the current version. It is based on most of the concepts of Pyro4, but includes some major improvements.
-Using it should be very familiar to current Pyro4 users, however Pyro5 is not compatible with Pyro4 and vice versa.
-To allow graceful upgrading, both versions can co-exist due to the new package name
-(the same happened years ago when Pyro 3 was upgraded to Pyro4).
-
-Pyro5 requires Python 3.5 or newer. If you're using an onder version of Python, you'll have to stick to Pyro4.
-
-Pyro5 provides a basic backward-compatibility module so much of existing Pyro4 code doesn't have to
-change (apart from adding a single import statement).
-This only works for code that imported Pyro4 symbols from the Pyro4 module
-directly, instead of from one of Pyro4's sub modules. So, for instance:
-``from Pyro4 import Proxy`` instead of: ``from Pyro4.core import Proxy``.
-*some* submodules are more or less emulated such as ``Pyro4.errors``, ``Pyro4.socketutil``.
-So you may first have to convert your old code to use the importing scheme to
-only import the Pyro4 module and not from its submodules, and then you should
-insert this at the top to enable the compatibility layer::
-
-    from Pyro5.compatibility import Pyro4
-
-
 .. index:: features
 
-About Pyro: feature overview
-============================
+Features
+========
 
 Pyro enables you to build applications in which
 objects can talk to each other over the network, with minimal programming effort.
@@ -111,6 +88,32 @@ running on it, you should be able to talk to it using Pyro from any other part o
 
 Have a look at the :file:`examples` directory in the source archive, perhaps one of the many example
 programs in there gives even more inspiration of possibilities.
+
+
+.. index:: upgrading from Pyro4
+
+Upgrading from Pyro4
+====================
+
+Pyro5 is the current version. It is based on most of the concepts of Pyro4, but includes some major improvements.
+Using it should be very familiar to current Pyro4 users, however Pyro5 is not compatible with Pyro4 and vice versa.
+To allow graceful upgrading, both versions can co-exist due to the new package name
+(the same happened years ago when Pyro 3 was upgraded to Pyro4).
+
+Pyro5 requires Python 3.5 or newer. If you're using an onder version of Python, you'll have to stick to Pyro4.
+
+Pyro5 provides a basic backward-compatibility module so much of existing Pyro4 code doesn't have to
+change (apart from adding a single import statement).
+This only works for code that imported Pyro4 symbols from the Pyro4 module
+directly, instead of from one of Pyro4's sub modules. So, for instance:
+``from Pyro4 import Proxy`` instead of: ``from Pyro4.core import Proxy``.
+*some* submodules are more or less emulated such as ``Pyro4.errors``, ``Pyro4.socketutil``.
+So you may first have to convert your old code to use the importing scheme to
+only import the Pyro4 module and not from its submodules, and then you should
+insert this at the top to enable the compatibility layer::
+
+    from Pyro5.compatibility import Pyro4
+
 
 
 .. index:: example

@@ -7,6 +7,9 @@ Pyro - Python Remote Objects - |version|
     :alt: PYRO logo
 
 
+Manual :ref:`genindex`
+
+
 .. index:: what is Pyro
 
 What is Pyro?
@@ -46,8 +49,8 @@ New code should use Pyro5 if at all possible.
    license.rst
 
 
-Indices and tables
-==================
+Index
+=====
 
 * :ref:`genindex`
 * :ref:`search`

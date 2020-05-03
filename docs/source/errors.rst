@@ -1,8 +1,3 @@
-
-
-**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro5 TO Pyro5**
-
-
 .. index:: exceptions, remote traceback
 
 ********************************
@@ -16,77 +11,77 @@ Pyro exceptions
 ---------------
 
 Pyro's exception classes can be found in :mod:`Pyro5.errors`.
-They are used by Pyro if something went wrong inside Pyro itself or related to something Pyro was doing.
+They are used by Pyro itself if something went wrong inside Pyro itself or related to something Pyro was doing.
+All errors are of type ``PyroError`` or a subclass thereof.
 
 .. index:: remote errors
 
 Remote exceptions
 -----------------
-More interesting are the exceptions that occur in *your own* objects (the remote Pyro objects).
-Pyro is doing its best to make the remote objects appear as normal, local, Python objects.
-That also means that if they raise an error, Pyro will make it appear in the caller,
-as if the error occurred locally.
+More interesting are how Pyro treats exeptions that occur in *your own* objects (the remote Pyro objects):
+it is making the remote objects appear as normal, local, Python objects.
+That also means that if they raise an error, Pyro will make it appear in the caller (client progam),
+as if the error occurred locally at the point of the call.
 
-Say you have a remote object that can divide arbitrary numbers.
-It will probably raise a ``ZeroDivisionError`` when you supply ``0`` as the divisor.
-This can be dealt with as follows::
+Assume you have a remote object that can divide arbitrary numbers.
+It will raise a ``ZeroDivisionError`` when using 0 as the divisor.
+This can be dealt with by just catching the exception as if you were writing regular code::
 
-    import Pyro5
+    import Pyro5.api
 
-    divider=Pyro5.Proxy( ... )
+    divider=Pyro5.api.Proxy( ... )
     try:
         result = divider.div(999,0)
     except ZeroDivisionError:
         print("yup, it crashed")
 
-Just catch the exception as if you were writing code that deals with normal objects.
 
-But, since the error occurred in a *remote* object, and Pyro itself raises it again on the client
-side, you lose some information: the actual traceback of the error at the time it occurred in the server.
-Pyro fixes this because it stores the traceback information on a special attribute on the exception
-object (``_pyroTraceback``). The traceback is stored as a list of strings (each is a line from
+Since the error occurred in a *remote* object, and Pyro itself raises it again on the client
+side, some information is initially lost: the actual traceback of the crash itself in the server code.
+Pyro stores the traceback information on a special attribute on the exception
+object (``_pyroTraceback``), as a list of strings (each is a line from
 the traceback text, including newlines). You can use this data on the client to print or process the
 traceback text from the exception as it occurred in the Pyro object on the server.
 
-There is a utility function in :mod:`Pyro5.util` to make it easy to deal with this:
-:func:`Pyro5.util.getPyroTraceback`
+There is a utility function in :mod:`Pyro5.errors` to make it easy to deal with this:
+:func:`Pyro5.errors.get_pyro_traceback`
 
 You use it like this::
 
-    import Pyro5.util
+    import Pyro5.errors
     try:
         result = proxy.method()
     except Exception:
         print("Pyro traceback:")
-        print("".join(Pyro5.util.getPyroTraceback()))
+        print("".join(Pyro5.errors.get_pyro_traceback()))
 
 
 .. index:: exception hook
 
 Also, there is another function that you can install in ``sys.excepthook``, if you want Python
 to automatically print the complete Pyro traceback including the remote traceback, if any:
-:func:`Pyro5.util.excepthook`
+:func:`Pyro5.errors.excepthook`
 
 A full Pyro exception traceback, including the remote traceback on the server, looks something like this::
 
     Traceback (most recent call last):
-      File "client.py", line 50, in <module>
-        print(test.complexerror())     # due to the excepthook, the exception will show the pyro error
-      File "E:\Projects\Pyro5\src\Pyro5\core.py", line 130, in __call__
+      File "client.py", line 54, in <module>
+        print(test.complexerror())  # due to the excepthook, the exception will show the pyro error
+      File "/home/irmen/Projects/pyro5/Pyro5/client.py", line 476, in __call__
         return self.__send(self.__name, args, kwargs)
-      File "E:\Projects\Pyro5\src\Pyro5\core.py", line 242, in _pyroInvoke
-        raise data
+      File "/home/irmen/Projects/pyro5/Pyro5/client.py", line 243, in _pyroInvoke
+        raise data  # if you see this in your traceback, you should probably inspect the remote traceback as well
     TypeError: unsupported operand type(s) for //: 'str' and 'int'
      +--- This exception occured remotely (Pyro) - Remote traceback:
      | Traceback (most recent call last):
-     |   File "E:\Projects\Pyro5\src\Pyro5\core.py", line 760, in handleRequest
-     |     data=method(*vargs, **kwargs)   # this is the actual method call to the Pyro object
-     |   File "E:\projects\Pyro5\examples\exceptions\excep.py", line 17, in complexerror
+     |   File "/home/irmen/Projects/pyro5/Pyro5/server.py", line 466, in handleRequest
+     |     data = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
+     |   File "/home/irmen/Projects/pyro5/examples/exceptions/excep.py", line 24, in complexerror
      |     x.crash()
-     |   File "E:\projects\Pyro5\examples\exceptions\excep.py", line 22, in crash
-     |     s.crash2('going down...')
-     |   File "E:\projects\Pyro5\examples\exceptions\excep.py", line 25, in crash2
-     |     x=arg//2
+     |   File "/home/irmen/Projects/pyro5/examples/exceptions/excep.py", line 32, in crash
+     |     self.crash2('going down...')
+     |   File "/home/irmen/Projects/pyro5/examples/exceptions/excep.py", line 36, in crash2
+     |     x = arg // 2
      | TypeError: unsupported operand type(s) for //: 'str' and 'int'
      +--- End of remote traceback
 
@@ -105,43 +100,39 @@ There is another utility that Pyro has to make it easier to debug remote object 
 If you enable the ``DETAILED_TRACEBACK`` config item on the server (see :ref:`config-items`), the remote
 traceback is extended with details of the values of the local variables in every frame::
 
-    +--- This exception occured remotely (Pyro) - Remote traceback:
-    | ----------------------------------------------------
-    |  EXCEPTION <type 'exceptions.TypeError'>: unsupported operand type(s) for //: 'str' and 'int'
-    |  Extended stacktrace follows (most recent call last)
-    | ----------------------------------------------------
-    | File "E:\Projects\Pyro5\src\Pyro5\core.py", line 760, in Daemon.handleRequest
-    | Source code:
-    |     data=method(*vargs, **kwargs)   # this is the actual method call to the Pyro object
-    | ----------------------------------------------------
-    | File "E:\projects\Pyro5\examples\exceptions\excep.py", line 17, in TestClass.complexerror
-    | Source code:
-    |     x.crash()
-    | Local values:
-    |     self = <excep.TestClass object at 0x02392830>
-    |         self._pyroDaemon = <Pyro5.core.Daemon object at 0x02392330>
-    |         self._pyroId = 'obj_c63d47dd140f44dca8782151643e0c55'
-    |     x = <excep.Foo object at 0x023929D0>
-    | ----------------------------------------------------
-    | File "E:\projects\Pyro5\examples\exceptions\excep.py", line 22, in Foo.crash
-    | Source code:
-    |     self.crash2('going down...')
-    | Local values:
-    |     self = <excep.Foo object at 0x023929D0>
-    | ----------------------------------------------------
-    | File "E:\projects\Pyro5\examples\exceptions\excep.py", line 25, in Foo.crash2
-    | Source code:
-    |     x=arg//2
-    | Local values:
-    |     arg = 'going down...'
-    |     self = <excep.Foo object at 0x023929D0>
-    | ----------------------------------------------------
-    |  EXCEPTION <type 'exceptions.TypeError'>: unsupported operand type(s) for //: 'str' and 'int'
-    | ----------------------------------------------------
-    +--- End of remote traceback
+     +--- This exception occured remotely (Pyro) - Remote traceback:
+     | ----------------------------------------------------
+     |  EXCEPTION <class 'TypeError'>: unsupported operand type(s) for //: 'str' and 'int'
+     |  Extended stacktrace follows (most recent call last)
+     | ----------------------------------------------------
+     | File "/home/irmen/Projects/pyro5/Pyro5/server.py", line 466, in Daemon.handleRequest
+     | Source code:
+     |     data = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
+     | ----------------------------------------------------
+     | File "/home/irmen/Projects/pyro5/examples/exceptions/excep.py", line 24, in TestClass.complexerror
+     | Source code:
+     |     x.crash()
+     | Local values:
+     |     self = <excep.TestClass object at 0x7f8dec533b20>
+     |     x = <excep.Foo object at 0x7f8dec550f40>
+     | ----------------------------------------------------
+     | File "/home/irmen/Projects/pyro5/examples/exceptions/excep.py", line 32, in Foo.crash
+     | Source code:
+     |     self.crash2('going down...')
+     | Local values:
+     |     self = <excep.Foo object at 0x7f8dec550f40>
+     | ----------------------------------------------------
+     | File "/home/irmen/Projects/pyro5/examples/exceptions/excep.py", line 36, in Foo.crash2
+     | Source code:
+     |     x = arg // 2
+     | Local values:
+     |     arg = 'going down...'
+     |     self = <excep.Foo object at 0x7f8dec550f40>
+     | ----------------------------------------------------
+     |  EXCEPTION <class 'TypeError'>: unsupported operand type(s) for //: 'str' and 'int'
+     | ----------------------------------------------------
+     +--- End of remote traceback
+
 
 You can immediately see why the call produced a ``TypeError`` without the need to have a debugger running
 (the ``arg`` variable is a string and dividing that string by 2 is the cause of the error).
-
-Of course it is also possible to enable ``DETAILED_TRACEBACK`` on the client, but it is not as useful there
-(normally it is no problem to run the client code inside a debugger).

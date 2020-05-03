@@ -1,8 +1,3 @@
-
-
-**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro4 TO Pyro5**
-
-
 .. index:: Pyrolite, Java, .NET, C#
 
 *******************************************
@@ -15,5 +10,4 @@ objects.
 
 https://github.com/irmen/Pyrolite
 
-@TODO update this library to understand Pyro5's wire protocol; it currently only works for Pyro4.
-
+@TODO currently the Pyrolite library hasn't been updated for Pyro5 yet. It only works for Pyro4 for now.

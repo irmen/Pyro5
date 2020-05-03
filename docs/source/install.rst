@@ -1,8 +1,3 @@
-
-
-**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro4 TO Pyro5**
-
-
 .. index:: installing Pyro
 
 ***************
@@ -16,8 +11,8 @@ This chapter will show how to obtain and install Pyro.
 
 Compatibility
 -------------
-Pyro is written in 100% Python. It works on any recent operating system where a suitable supported Python implementation is available
-(3.5 or newer).
+Pyro is written in 100% Python. It works on any recent operating system where a suitable
+supported Python implementation is available (3.5 or newer).
 
 
 .. index::
@@ -32,10 +27,10 @@ Obtaining and installing Pyro
     in a virtualenv.
 
 **Anaconda**
-    There is not yet an Anaconda package for Pyro5. Use one of the other methods.
+    Anaconda users can install the Pyro5 package from conda-forge using ``conda install -c conda-forge pyro5``
 
 **Pip install**
-    ``pip install Pyro5`` should do the trick.   Pyro is available `here <http://pypi.python.org/pypi/Pyro5/>`_  on pypi.
+    ``pip install Pyro5`` should do the trick.   Pyro is available `here on pypi <http://pypi.python.org/pypi/Pyro5/>`_ .
 
 **Manual installation from source**
     Download the source distribution archive (Pyro5-X.YZ.tar.gz) from Pypi or Github, extract and ``python setup.py install``.
@@ -56,19 +51,13 @@ Third party libraries that Pyro5 uses
     Install this to use the msgpack serializer.
 
 
-Stuff you get extra in the source distribution archive and not with packaged versions
--------------------------------------------------------------------------------------
-If you decide to download the distribution (.tar.gz) you have a bunch of extras over simply installing the Pyro library directly.
-It contains:
+Interesting stuff that is extra in the source distribution archive and not with packaged versions
+-------------------------------------------------------------------------------------------------
+If you decide to download the distribution (.tar.gz) you have a bunch of extras over simply installing the Pyro library directly:
 
-  docs/
-    the Sphinx/RST sources for this manual, https://pyro5.readthedocs.io/
   examples/
     dozens of examples that demonstrate various Pyro features (highly recommended to examine these,
     many paragraphs in this manual refer to relevant examples here)
+
   tests/
     the unittest suite that checks for correctness and regressions
-  Pyro5/
-    The actual Pyro library's source code (only this part is installed if you install the ``Pyro5`` package)
-  and a couple of other files:
-    a setup script and other miscellaneous files such as the license (see :doc:`license`).

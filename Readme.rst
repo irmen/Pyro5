@@ -39,7 +39,7 @@ If you're familiar with Pyro4, most of the things are the same in Pyro5. These a
 - Requires Python 3.5 or newer.
 - the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
-  - Pyro5 is the new package name (duh)
+  - Pyro5 is the new package name
   - restructured the submodules, renamed some submodules (naming -> nameserver,
     message -> protocol, util -> serializers)
   - most classes and method names are the same or at least similar but may have been shuffled around to other modules
@@ -84,8 +84,3 @@ If you're familiar with Pyro4, most of the things are the same in Pyro5. These a
 - annotations on the protocol message are now stored as no-copy memoryviews. A memoryview doesn't support all
   methods you might expect so sometimes it may be required now to convert it to bytes or bytearray in your
   own code first, before further processing. Note that this will create a copy again, so it's best avoided.
-
-
-@TODO:
-
-- separate protocol and network i/o logic to allow for async server implementation.

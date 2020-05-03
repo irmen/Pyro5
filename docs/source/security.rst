@@ -1,8 +1,3 @@
-
-
-**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro4 TO Pyro5**
-
-
 .. index:: security
 
 .. _security:
@@ -81,8 +76,12 @@ see the ``ssl`` example.
 
 Dotted names (object traversal)
 ===============================
-Using dotted names on Pyro proxies (such as ``proxy.aaa.bbb.ccc()``) is not possible in Pyro, because it is a security vulnerability
+Using "dotted names" to traverse attributes on Pyro proxies (like ``proxy.aaa.bbb.ccc()``)
+is not possible. because that is a security vulnerability
 (for similar reasons as described here https://legacy.python.org/news/security/PSF-2005-001/ ).
+
+If you require access to a nested attribute, you'll have to explicitly add a method or attribute
+on the proxy itself to access it directly.
 
 
 .. index::
@@ -95,9 +94,6 @@ If you can't trust the environment in which your script is running, it may be a 
 to reset the config items to their default builtin values, without using any environment variables.
 See :doc:`config` for the proper way to do this.
 
-
-.. index::
-    double: security; HMAC signature
 
 Preventing arbitrary connections
 ================================
@@ -116,7 +112,7 @@ The server hostname and cert expiration dates *are* checked automatically, but
 other attributes you have to verify yourself.
 
 This is fairly easy to do: you can use :ref:`conn_handshake` for this. You can then get the peer certificate
-using :py:meth:`Pyro4.socketutil.SocketConnection.getpeercert`.
+using :py:meth:`Pyro5.socketutil.SocketConnection.getpeercert`.
 
 If you configure a client cert as well as a server cert, you can/should also do verification of
 client certificates in your server. This is a good way to be absolutely certain that you only
