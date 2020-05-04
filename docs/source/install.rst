@@ -33,7 +33,8 @@ Obtaining and installing Pyro
     ``pip install Pyro5`` should do the trick.   Pyro is available `here on pypi <http://pypi.python.org/pypi/Pyro5/>`_ .
 
 **Manual installation from source**
-    Download the source distribution archive (Pyro5-X.YZ.tar.gz) from Pypi or Github, extract and ``python setup.py install``.
+    Download the source distribution archive (Pyro5-X.YZ.tar.gz) from Pypi or from a `Github release <https://github.com/irmen/Pyro5/releases>`_,
+    extract it and ``python setup.py install``.
     The `serpent <https://pypi.python.org/pypi/serpent>`_ serialization library must also be installed.
 
 **Github**

@@ -4,16 +4,14 @@ to make porting existing code from Pyro4 to Pyro5 easier.
 
 This only works for code that imported Pyro4 symbols from the Pyro4 module
 directly, instead of from one of Pyro4's sub modules. So, for instance:
-    from Pyro4 import Proxy
-instead of
-    from Pyro4.core import Proxy
+from Pyro4 import Proxy  instead of:  from Pyro4.core import Proxy
 
 *some* submodules are more or less emulated such as Pyro4.errors, Pyro4.socketutil.
 
 So, you may first have to convert your old code to use the importing scheme to
 only import the Pyro4 module and not from its submodules, and then you should
 insert this at the top to enable the compatibility layer:
-    from Pyro5.compatibility import Pyro4
+from Pyro5.compatibility import Pyro4
 
 
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).

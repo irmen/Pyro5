@@ -40,9 +40,6 @@ class TestCore:
         assert p.object == "12345"
         assert p.sockname == "/path with spaces/sockname  "
 
-
-# XXXX FROM HERE CONVERTED from Pyro4  test_core  :
-
     def testConfig(self):
         assert type(config.COMPRESSION) is bool
         assert type(config.NS_PORT) is int

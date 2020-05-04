@@ -1,9 +1,15 @@
+"""
+Deals with the context variables of a Pyro call.
+
+Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
+"""
+
 import threading
 from . import errors
 
 
-# call context thread local
 class _CallContext(threading.local):
+    """call context thread local"""
     def __init__(self):
         # per-thread initialization
         self.client = None
@@ -44,4 +50,4 @@ class _CallContext(threading.local):
 
 
 current_context = _CallContext()
-"""the context object for the current call. (thread-local)"""
+"""the thread-local context object for the current Pyro call"""

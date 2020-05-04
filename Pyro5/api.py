@@ -1,5 +1,9 @@
 """
-Single module that centralizes the main symbols from the Pyro5 API
+Single module that centralizes the main symbols from the Pyro5 API.
+It imports most of the other packages that it needs
+and provides shortcuts to the most frequently used objects and functions from those packages.
+This means you can mostly just ``import Pyro5.api`` in your code to have access to most of
+the Pyro5 objects and functions.
 
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
