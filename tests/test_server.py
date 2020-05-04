@@ -117,7 +117,7 @@ class NotEverythingExposedClass(object):
         return self.name
 
     def unexposed(self):
-        return "you should not see this"    # .... only when REQUIRE_EXPOSE is set to True is this valid
+        return "you should not see this"
 
 
 class DaemonLoopThread(threading.Thread):
@@ -619,8 +619,8 @@ class TestServerThreadNoTimeout:
             assert p._pyroOneway == set()  # when not bound, no meta info exchange has been done
             p._pyroBind()
             assert "oneway_multiply" in p._pyroOneway  # after binding, meta info has been processed
-            assert p.multiply(5, 11) == 55  # not tagged as @Pyro5.oneway
-            assert p.oneway_multiply(5, 11) is None   # tagged as @Pyro5.oneway
+            assert p.multiply(5, 11) == 55  # not tagged as @Pyro5.server.oneway
+            assert p.oneway_multiply(5, 11) is None   # tagged as @Pyro5.server.oneway
             p._pyroOneway = set()
             assert p.multiply(5, 11) == 55
             assert p.oneway_multiply(5, 11) == 55
@@ -1114,7 +1114,7 @@ class TestMetaAndExpose:
 class TestSimpleServe:
     class DaemonWrapper(Pyro5.server.Daemon):
         def requestLoop(self, *args):
-            # override with empty method to fall out of the serveSimple call
+            # override with empty method to fall out of the serve() call
             pass
 
     def testSimpleServeLegacy(self):
@@ -1122,7 +1122,7 @@ class TestSimpleServe:
             o1 = MyThingPartlyExposed(1)
             o2 = MyThingPartlyExposed(2)
             objects = {o1: "test.o1", o2: None}
-            Pyro5.server.Daemon.serveSimple(objects, daemon=d, ns=False, verbose=False)
+            Pyro5.server.serve(objects, daemon=d, ns=False, verbose=False)
             assert len(d.objectsById) == 3
             assert "test.o1" in d.objectsById
             assert o1 in d.objectsById.values()
@@ -1146,7 +1146,7 @@ class TestSimpleServe:
             o3 = MyThingPartlyExposed(3)
             objects = {o1: "test.name", o2: "test.name", o3: "test.othername"}
             with pytest.raises(Pyro5.errors.DaemonError):
-                Pyro5.server.Daemon.serveSimple(objects, daemon=d, ns=False, verbose=False)
+                Pyro5.server.serve(objects, daemon=d, ns=False, verbose=False)
 
     def testSimpleServeSameNames(self):
         with TestSimpleServe.DaemonWrapper() as d:

@@ -1,8 +1,3 @@
-
-
-**@TODO: UPDATE THIS MANUAL CHAPTER FROM Pyro4 TO Pyro5**
-
-
 .. index:: server code
 
 *****************************
@@ -25,9 +20,8 @@ Make sure you are familiar with Pyro's :ref:`keyconcepts` before reading on.
 
 .. index::
     single: decorators
-    single: @Pyro4.expose
-    single: @Pyro4.oneway
-    single: REQUIRE_EXPOSE
+    single: @Pyro5.server.expose
+    single: @Pyro5.server.oneway
     double: decorator; expose
     double: decorator; oneway
 
@@ -37,7 +31,7 @@ Make sure you are familiar with Pyro's :ref:`keyconcepts` before reading on.
 Creating a Pyro class and exposing its methods and properties
 =============================================================
 
-Exposing classes, methods and properties is done using the ``@Pyro4.expose`` decorator.
+Exposing classes, methods and properties is done using the ``@Pyro5.server.expose`` decorator.
 It lets you mark the following items to be available for remote access:
 
 - methods (including classmethod and staticmethod). You cannot expose a 'private' method, i.e. name starting with underscore.
@@ -59,7 +53,7 @@ Anything that isn't decorated with ``@expose`` is not remotely accessible.
 
 Here's a piece of example code that shows how a partially exposed Pyro class may look like::
 
-    import Pyro4
+    import Pyro5.server
 
     class PyroService(object):
 
@@ -74,60 +68,41 @@ Here's a piece of example code that shows how a partially exposed Pyro class may
         def __private(self):        # not exposed
             pass
 
-        @Pyro4.expose
+        @Pyro5.server.expose
         def get_value(self):        # exposed
             return self.value
 
-        @Pyro4.expose
+        @Pyro5.server.expose
         @property
         def attr(self):             # exposed as 'proxy.attr' remote attribute
             return self.value
 
-        @Pyro4.expose
+        @Pyro5.server.expose
         @attr.setter
         def attr(self, value):      # exposed as 'proxy.attr' writable
             self.value = value
 
 
-.. note::
-    Prior to Pyro version 4.46, the default behavior was different: Pyro exposed everything, no special
-    action was needed in your server side code to make it available to remote calls. Probably the easiest way
-    to make old code that was written for this model to fit the new default behavior is to add a single
-    ``@Pyro4.expose`` decorator on all of your Pyro classes. Better (safer) is to only add it to the methods
-    and properties of the classes that are accessed remotely.
-    If you cannot (or don't want to) change your code to be compatible with the new behavior, you can set
-    the ``REQUIRE_EXPOSE`` config item back to ``False`` (it is now ``True`` by default). This will restore
-    the old behavior.
-
-    Notice that it has been possible for a long time already for older code to utilize
-    the ``@expose`` decorator and the current, safer, behavior by having ``REQUIRE_EXPOSE`` set to ``True``.
-    That choice has now simply become the default.
-    Before upgrading to Pyro 4.46 or newer you can try setting it to ``True`` yourself and
-    then adding ``@expose`` decorators to your Pyro classes or methods as required. Once everything
-    works as it should you can then effortlessly upgrade Pyro itself.
-
-
-
 .. index:: oneway decorator
 
-**Specifying one-way methods using the @Pyro4.oneway decorator:**
+**Specifying one-way methods using the @Pyro5.server.oneway decorator:**
 
 You decide on the class of your Pyro object on the server, what methods are to be called as one-way.
-You use the ``@Pyro4.oneway`` decorator on these methods to mark them for Pyro.
+You use the ``@Pyro5.server.oneway`` decorator on these methods to mark them for Pyro.
 When the client proxy connects to the server it gets told automatically what methods are one-way,
 you don't have to do anything on the client yourself. Any calls your client code makes on the proxy object
-to methods that are marked with ``@Pyro4.oneway`` on the server, will happen as one-way calls::
+to methods that are marked with ``@Pyro5.server.oneway`` on the server, will happen as one-way calls::
 
-    import Pyro4
+    import Pyro5
 
-    @Pyro4.expose
+    @Pyro5.server.expose
     class PyroService(object):
 
         def normal_method(self, args):
             result = do_long_calculation(args)
             return result
 
-        @Pyro4.oneway
+        @Pyro5.server.oneway
         def oneway_method(self, args):
             result = do_long_calculation(args)
             # no return value, cannot return anything to the client
@@ -147,11 +122,6 @@ you don't want to 'taint' with a Pyro dependency because it's used elsewhere too
 
 There are a few possibilities to deal with this:
 
-**Don't use @expose at all** (not recommended)
-
-You can disable the requirement for adding ``@expose`` to classes/methods by setting ``REQUIRE_EXPOSE`` back to False.
-This is a global setting however and will affect all your Pyro classes in the server, so be careful.
-
 **Use adapter classes**
 
 The preferred solution is to not use the classes from the third party library directly, but create an adapter class yourself
@@ -170,10 +140,10 @@ Remember that Python decorators are just functions that return another function 
 call them as a regular function yourself, which allows you to use classes from third party libraries like this::
 
     from awesome_thirdparty_library import SomeClassFromLibrary
-    import Pyro4
+    import Pyro5.server
 
     # expose the class from the library using @expose as wrapper function:
-    ExposedClass = Pyro4.expose(SomeClassFromLibrary)
+    ExposedClass = Pyro5.server.expose(SomeClassFromLibrary)
 
     daemon.register(ExposedClass)    # register the exposed class rather than the library class itself
 
@@ -203,14 +173,14 @@ requests and to process them. Both are handled by the *Pyro daemon*.
 In its most basic form, you create one or more classes that you want to publish as Pyro objects,
 you create a daemon, register the class(es) with the daemon, and then enter the daemon's request loop::
 
-    import Pyro4
+    import Pyro5.server
 
-    @Pyro4.expose
+    @Pyro5.server.expose
     class MyPyroThing(object):
         # ... methods that can be called go here...
         pass
 
-    daemon = Pyro4.Daemon()
+    daemon = Pyro5.server.Daemon()
     uri = daemon.register(MyPyroThing)
     print(uri)
     daemon.requestLoop()
@@ -251,27 +221,27 @@ Client programs use these uris to access the specific Pyro objects.
     Most of the the time a Daemon will keep running. However it's still possible to nicely free its resources
     when the request loop terminates by simply using it as a context manager in a ``with`` statement, like so::
 
-        with Pyro4.Daemon() as daemon:
+        with Pyro5.server.Daemon() as daemon:
             daemon.register(...)
             daemon.requestLoop()
 
 
-.. index:: publishing objects oneliner, serveSimple
+.. index:: publishing objects oneliner, serve
 .. _server-servesimple:
 
-Oneliner Pyro object publishing: serveSimple()
-----------------------------------------------
-Ok not really a one-liner, but one statement: use :py:meth:`serveSimple` to publish a dict of objects/classes and start Pyro's request loop.
+Oneliner Pyro object publishing: Pyro5.server.serve()
+-----------------------------------------------------
+Ok not really a one-liner, but one statement: use :py:meth:`serve` to publish a dict of objects/classes and start Pyro's request loop.
 The code above could also be written as::
 
-    import Pyro4
+    import Pyro5.server
 
-    @Pyro4.expose
+    @Pyro5.server.expose
     class MyPyroThing(object):
         pass
 
     obj = MyPyroThing()
-    Pyro4.Daemon.serveSimple(
+    Pyro5.server.serve(
         {
             MyPyroThing: None,    # register the class
             obj: None             # register one specific instance
@@ -280,11 +250,11 @@ The code above could also be written as::
 
 You can perform some limited customization:
 
-.. py:staticmethod:: Daemon.serveSimple(objects [host=None, port=0, daemon=None, ns=True, verbose=True])
+.. py:method:: serve(objects [host=None, port=0, daemon=None, ns=True, verbose=True])
 
     Very basic method to fire up a daemon that hosts a bunch of objects.
     The objects will be registered automatically in the name server if you specify this.
-    API reference: :py:func:`Pyro4.core.Daemon.serveSimple`
+    API reference: :py:func:`Pyro5.server.serve`
 
     :param objects: mapping of objects/classes to names, these are the Pyro objects that will be hosted by the daemon, using the names you provide as values in the mapping.
         Normally you'll provide a name yourself but in certain situations it may be useful to set it to ``None``. Read below for the exact behavior there.
@@ -295,8 +265,8 @@ You can perform some limited customization:
     :type port: int
     :param daemon: optional existing daemon to use, that you created yourself.
         If you don't specify this, the method will create a new daemon object by itself.
-    :type daemon: Pyro4.core.Daemon
-    :param ns: optional, if True (the default), the objects will also be registered in the name server (located using :py:meth:`Pyro4.locateNS`) for you.
+    :type daemon: Pyro5.server.Daemon
+    :param ns: optional, if True (the default), the objects will also be registered in the name server (located using :py:meth:`Pyro5.core.locate_ns`) for you.
         If this parameters is False, your objects will only be hosted in the daemon and are not published in a name server.
         Read below about the exact behavior of the object names you provide in the ``objects`` dictionary.
     :type ns: bool
@@ -322,15 +292,15 @@ The uri that is used to register your objects in the name server with, is of cou
 So if you need to influence that, for instance because of NAT/firewall issues,
 it is the daemon's configuration you should be looking at.
 
-If you don't provide a daemon yourself, :py:meth:`serveSimple` will create a new one for you using the default configuration or
+If you don't provide a daemon yourself, :py:meth:`serve` will create a new one for you using the default configuration or
 with a few custom parameters you can provide in the call, as described above.
 If you don't specify the ``host`` and ``port`` parameters, it will simple create a Daemon using the default settings.
 If you *do* specify ``host`` and/or ``port``, it will use these as parameters for creating the Daemon (see next paragraph).
 If you need to further tweak the behavior of the daemon, you have to create one yourself first, with the desired
 configuration. Then provide it to this function using the ``daemon`` parameter. Your daemon will then be used instead of a new one::
 
-    custom_daemon = Pyro4.Daemon(host="example", nathost="example")    # some additional custom configuration
-    Pyro4.Daemon.serveSimple(
+    custom_daemon = Pyro5.server.Daemon(host="example", nathost="example")    # some additional custom configuration
+    Pyro5.server.serve(
         {
             MyPyroThing: None
         },
@@ -342,11 +312,11 @@ configuration. Then provide it to this function using the ``daemon`` parameter. 
 
 Creating a Daemon
 -----------------
-Pyro's daemon is ``Pyro4.Daemon`` (shortcut to :class:`Pyro4.core.Daemon`).
+Pyro's daemon is ``Pyro5.server.Daemon``.
 It has a few optional arguments when you create it:
 
 
-.. function:: Daemon([host=None, port=0, unixsocket=None, nathost=None, natport=None, interface=DaemonObject])
+.. function:: Daemon([host=None, port=0, unixsocket=None, nathost=None, natport=None, interface=DaemonObject, connected_socket=None])
 
     Create a new Pyro daemon.
 
@@ -364,7 +334,9 @@ It has a few optional arguments when you create it:
                     Pyro will replace the NAT-port by the internal port number to facilitate one-to-one NAT port mappings.
     :type port: int
     :param interface: optional alternative daemon object implementation (that provides the Pyro API of the daemon itself)
-    :type interface: Pyro4.core.DaemonObject
+    :type interface: Pyro5.server.DaemonObject
+    :param connected_socket: optional existing socket connection to use instead of creating a new server socket
+    :type interface: socket
 
 
 .. index::
@@ -386,7 +358,7 @@ You can let Pyro choose a unique object id for you, or provide a more readable o
         If you set this to True, the previous registration (if present) will be silently overwritten.
     :type force: bool
     :returns: an uri for the object
-    :rtype: :class:`Pyro4.core.URI`
+    :rtype: :class:`Pyro5.core.URI`
 
 It is important to do something with the uri that is returned: it is the key to access the Pyro object.
 You can save it somewhere, or perhaps print it to the screen.
@@ -398,12 +370,12 @@ See :doc:`nameserver` for more information (:ref:`nameserver-registering`), but 
 getting a name server proxy and using its ``register`` method::
 
     uri = daemon.register(some_object)
-    ns = Pyro4.locateNS()
+    ns = Pyro5.core.locate_ns()
     ns.register("example.objectname", uri)
 
 
 .. note::
-    If you ever need to create a new uri for an object, you can use :py:meth:`Pyro4.core.Daemon.uriFor`.
+    If you ever need to create a new uri for an object, you can use :py:meth:`Pyro5.server.Daemon.uriFor`.
     The reason this method exists on the daemon is because an uri contains location information and
     the daemon is the one that knows about this.
 
@@ -412,21 +384,21 @@ Intermission: Example 1: server and client not using name server
 A little code example that shows the very basics of creating a daemon and publishing a Pyro object with it.
 Server code::
 
-    import Pyro4
+    import Pyro5.server
 
-    @Pyro4.expose
+    @Pyro5.server.expose
     class Thing(object):
         def method(self, arg):
             return arg*2
 
     # ------ normal code ------
-    daemon = Pyro4.Daemon()
+    daemon = Pyro5.server.Daemon()
     uri = daemon.register(Thing)
     print("uri=",uri)
     daemon.requestLoop()
 
-    # ------ alternatively, using serveSimple -----
-    Pyro4.Daemon.serveSimple(
+    # ------ alternatively, using serve -----
+    Pyro5.server.serve(
         {
             Thing: None
         },
@@ -434,10 +406,10 @@ Server code::
 
 Client code example to connect to this object::
 
-    import Pyro4
+    import Pyro5.client
     # use the URI that the server printed:
     uri = "PYRO:obj_b2459c80671b4d76ac78839ea2b0fb1f@localhost:49383"
-    thing = Pyro4.Proxy(uri)
+    thing = Pyro5.client.Proxy(uri)
     print(thing.method(42))   # prints 84
 
 With correct additional parameters --described elsewhere in this chapter-- you can control on which port the daemon is listening,
@@ -449,22 +421,23 @@ A little code example that shows the very basics of creating a daemon and publis
 this time using the name server for easier object lookup.
 Server code::
 
-    import Pyro4
+    import Pyro5.server
+    import Pyro5.core
 
-    @Pyro4.expose
+    @Pyro5.server.expose
     class Thing(object):
         def method(self, arg):
             return arg*2
 
     # ------ normal code ------
-    daemon = Pyro4.Daemon(host="yourhostname")
-    ns = Pyro4.locateNS()
+    daemon = Pyro5.server.Daemon(host="yourhostname")
+    ns = Pyro5.core.locate_ns()
     uri = daemon.register(Thing)
     ns.register("mythingy", uri)
     daemon.requestLoop()
 
-    # ------ alternatively, using serveSimple -----
-    Pyro4.Daemon.serveSimple(
+    # ------ alternatively, using serve -----
+    Pyro5.server.serve(
         {
             Thing: "mythingy"
         },
@@ -472,8 +445,8 @@ Server code::
 
 Client code example to connect to this object::
 
-    import Pyro4
-    thing = Pyro4.Proxy("PYRONAME:mythingy")
+    import Pyro5.client
+    thing = Pyro5.client.Proxy("PYRONAME:mythingy")
     print(thing.method(42))   # prints 84
 
 
@@ -513,8 +486,8 @@ If you want to use a Pyro daemon in your own program that already has an event l
 you can't simply call ``requestLoop`` because that will block your program.
 A daemon provides a few tools to let you integrate it into your own event loop:
 
-* :py:attr:`Pyro4.core.Daemon.sockets` - list of all socket objects used by the daemon, to inject in your own event loop
-* :py:meth:`Pyro4.core.Daemon.events` - method to call from your own event loop when Pyro needs to process requests. Argument is a list of sockets that triggered.
+* :py:attr:`Pyro5.server.Daemon.sockets` - list of all socket objects used by the daemon, to inject in your own event loop
+* :py:meth:`Pyro5.server.Daemon.events` - method to call from your own event loop when Pyro needs to process requests. Argument is a list of sockets that triggered.
 
 For more details and example code, see the :file:`eventloop` and :file:`gui_eventloop` examples.
 They show how to use Pyro including a name server, in your own event loop, and also possible ways
@@ -528,7 +501,7 @@ In certain situations you will be dealing with more than one daemon at the same 
 For instance, when you want to run your own Daemon together with an 'embedded' Name Server Daemon,
 or perhaps just another daemon with different settings.
 
-Usually you run the daemon's :meth:`Pyro4.core.Daemon.requestLoop` method to handle incoming requests.
+Usually you run the daemon's :meth:`Pyro5.server.Daemon.requestLoop` method to handle incoming requests.
 But when you have more than one daemon to deal with, you have to run the loops of all of them in parallel somehow.
 There are a few ways to do this:
 
@@ -537,7 +510,7 @@ There are a few ways to do this:
    daemon when one of its connections send a request.
    You can do this using :mod:`selectors` or :mod:`select` and you can even integrate other (non-Pyro)
    file-like selectables into such a loop. Also see the paragraph above.
-3. use :meth:`Pyro4.core.Daemon.combine` to combine several daemons into one,
+3. use :meth:`Pyro5.server.Daemon.combine` to combine several daemons into one,
    so that you only have to call the requestLoop of that "master daemon".
    Basically Pyro will run an integrated multiplexed event loop for you.
    You can combine normal Daemon objects, the NameServerDaemon and also the name server's BroadcastServer.
@@ -552,7 +525,7 @@ There are a few ways to do this:
 Cleaning up
 -----------
 To clean up the daemon itself (release its resources) either use the daemon object
-as a context manager in a ``with`` statement, or manually call :py:meth:`Pyro4.core.Daemon.close`.
+as a context manager in a ``with`` statement, or manually call :py:meth:`Pyro5.server.Daemon.close`.
 
 Of course, once the daemon is running, you first need a clean way to stop the request loop before
 you can even begin to clean things up.
@@ -565,7 +538,7 @@ the daemon to stop the loop. You could use some form of semi-global variable for
 (But if you're using the threaded server type, you have to also set ``COMMTIMEOUT`` because otherwise
 the daemon simply keeps blocking inside one of the worker threads).
 
-Another possibility is calling  :py:meth:`Pyro4.core.Daemon.shutdown` on the running daemon object.
+Another possibility is calling  :py:meth:`Pyro5.server.Daemon.shutdown` on the running daemon object.
 This will also break out of the request loop and allows your code to neatly clean up after itself,
 and will also work on the threaded server type without any other requirements.
 
@@ -573,7 +546,7 @@ If you are using your own event loop mechanism you have to use something else, d
 
 
 .. index::
-    single: @Pyro4.behavior
+    single: @Pyro5.server.behavior
     instance modes; instance_mode
     instance modes; instance_creator
 .. _server-instancemode:
@@ -586,22 +559,22 @@ it is actually preferred that you register a *class* instead.
 When doing that, it is Pyro itself that creates an instance (object) when it needs it.
 This allows for more control over when and for how long Pyro creates objects.
 
-Controlling the instance mode and creation is done by decorating your class with ``Pyro4.behavior``
+Controlling the instance mode and creation is done by decorating your class with ``Pyro5.server.behavior``
 and setting its ``instance_mode`` or/and ``instance_creator`` parameters. It can only be used
 on a class definition, because these behavioral settings only make sense at that level.
 
 By default, Pyro will create an instance of your class per *session* (=proxy connection)
 Here is an example of registering a class that will have one new instance for *every single method call* instead::
 
-    import Pyro4
+    import Pyro5.server
 
-    @Pyro4.behavior(instance_mode="percall")
+    @Pyro5.server.behavior(instance_mode="percall")
     class MyPyroThing(object):
-        @Pyro4.expose
+        @Pyro5.server.expose
         def method(self):
             return "something"
 
-    daemon = Pyro4.Daemon()
+    daemon = Pyro5.server.Daemon()
     uri = daemon.register(MyPyroThing)
     print(uri)
     daemon.requestLoop()
@@ -655,9 +628,7 @@ There is a :file:`autoproxy` example that shows the use of this feature,
 and several other examples also make use of it.
 
 Note that when using the marshal serializer, this feature doesn't work. You have to use
-one of the other serializers to use autoproxying. Also, it doesn't work correctly when
-you are using old-style classes (but they are from Python 2.2 and earlier, you should
-not be using these anyway).
+one of the other serializers to use autoproxying.
 
 
 .. index:: concurrency model, server types, SERVERTYPE
@@ -760,7 +731,7 @@ Attributes added to Pyro objects
 The following attributes will be added to your object if you register it as a Pyro object:
 
 * ``_pyroId`` - the unique id of this object (a ``str``)
-* ``_pyroDaemon`` - a reference to the :py:class:`Pyro4.core.Daemon` object that contains this object
+* ``_pyroDaemon`` - a reference to the :py:class:`Pyro5.server.Daemon` object that contains this object
 
 Even though they start with an underscore (and are private, in a way),
 you can use them as you so desire. As long as you don't modify them!
@@ -792,8 +763,8 @@ For more details, refer to the chapters in this manual about the relevant Pyro c
 Pyro provides a couple of utility functions to help you with finding the appropriate IP address
 to bind your servers on if you want to make them publicly accessible:
 
-* :py:func:`Pyro4.socketutil.getIpAddress`
-* :py:func:`Pyro4.socketutil.getInterfaceAddress`
+* :py:func:`Pyro5.socketutil.get_ip_address`
+* :py:func:`Pyro5.socketutil.get_interface`
 
 
 Cleaning up / disconnecting stale client connections
@@ -816,14 +787,14 @@ Daemon Pyro interface
 ---------------------
 A rather interesting aspect of Pyro's Daemon is that it (partly) is a Pyro object itself.
 This means it exposes a couple of remote methods that you can also invoke yourself if you want.
-The object exposed is :class:`Pyro4.core.DaemonObject` (as you can see it is a bit limited still).
+The object exposed is :class:`Pyro5.server.DaemonObject` (as you can see it is a bit limited still).
 
 You access this object by creating a proxy for the ``"Pyro.Daemon"`` object. That is a reserved
 object name. You can use it directly but it is preferable to use the constant
-``Pyro4.constants.DAEMON_NAME``. An example follows that accesses the daemon object from a running name server::
+``Pyro5.constants.DAEMON_NAME``. An example follows that accesses the daemon object from a running name server::
 
-    >>> import Pyro4
-    >>> daemon=Pyro4.Proxy("PYRO:"+Pyro4.constants.DAEMON_NAME+"@localhost:9090")
+    >>> import Pyro5.client
+    >>> daemon=Pyro5.client.Proxy("PYRO:"+Pyro5.constants.DAEMON_NAME+"@localhost:9090")
     >>> daemon.ping()
     >>> daemon.registered()
     ['Pyro.NameServer', 'Pyro.Daemon']
