@@ -22,65 +22,55 @@ Pyro5
     :target: https://lgtm.com/projects/g/irmen/Pyro5/alerts
 
 
-Pyro enables you to build applications in which objects can talk to each other over the network, with minimal programming effort. You can just use normal Python method calls to call objects on other machines. Pyro is a pure Python library so it runs on many different platforms and Python versions.
+Info
+----
 
-Pyro5 is the next major version of the Pyro library and requires Python 3.5 or later.
+Pyro enables you to build applications in which
+objects can talk to each other over the network, with minimal programming effort.
+You can just use normal Python method calls, and Pyro takes care of locating the right object on the right
+computer to execute the method. It is designed to be very easy to use, and to
+stay out of your way. But it also provides a set of powerful features that
+enables you to build distributed applications rapidly and effortlessly.
+Pyro is a pure Python library and runs on many different platforms and Python versions.
 
 
-Documentation
--------------
-Docs are here: https://pyro5.readthedocs.io/  (they are still being updated from Pyro4 to Pyro5)
+Pyro is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).  Please read :doc:`license`.
 
-What has changed since Pyro4
-----------------------------
+Pyro can be found on Pypi as `Pyro5 <http://pypi.python.org/pypi/Pyro5/>`_.  Source is on Github: https://github.com/irmen/Pyro5
+Documentation is here: https://pyro5.readthedocs.io/
 
-If you're familiar with Pyro4, most of the things are the same in Pyro5. These are the changes though:
+Pyro5 is the current version of Pyro. `Pyro4 <https://pyro4.readthedocs.io/>`_ is the predecessor
+that only gets important bugfixes and security fixes, but is otherwise no longer being improved.
+New code should use Pyro5 if at all possible.
 
-- Requires Python 3.5 or newer.
-- the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
-  - Pyro5 is the new package name
-  - restructured the submodules, renamed some submodules (naming -> nameserver,
-    message -> protocol, util -> serializers)
-  - most classes and method names are the same or at least similar but may have been shuffled around to other modules
-  - all toplevel functions are renamed to pep8 code style (but class method names are unchanged from Pyro4 for now)
-  - instead of the global package namespace you should now ``import Pyro5.api`` if you want to have one place to access the most important things
-  - *compatibility layer:* to make upgrading easier there's a (limited) Pyro4 compatibility layer,
-    enable this by ``from Pyro5.compatibility import Pyro4`` at the top of your modules. Read the docstring of this module for more details.
+Features
+--------
 
-- Proxy moved from core to new client module
-- Daemon moved from core to new server module
-- no support for unsafe serializers AT ALL (pickle, dill, cloudpickle) - only safe serializers (serpent, marshal, json, msgpack)
-- for now, requires ``msgpack`` to be installed as well as ``serpent``.
-- no need anymore for the ability to configure the accepted serializers in a daemon, because of the previous change
-- removed some other obscure config items
-- removed all from future imports and all sys.version_info checks because we're Python 3 only
-- removed Flame (utils/flameserver.py, utils/flame.py)  (although maybe the remote module access may come back in some form)
-- moved test.echoserver to utils.echoserver (next to httpgateway)
-- threadpool module moved into the same module as threadpool-server
-- moved the multiplex and thread socketservers modules into main package
-- no custom futures module anymore (you should use Python's own concurrent.futures instead)
-- async proxy removed (may come back but probably not directly integrated into the Proxy class)
-- batch calls now via client.BatchProxy, no convenience functions anymore ('batch')
-- nameserver storage option 'dbm' removed (only memory and sql possible now)
-- naming_storage module merged into nameserver module
-- no Hmac key anymore, use SSL and 2-way certs if you want true security
-- metadata in proxy can no longer be switched off
-- having to use the @expose decorator to expose classes or methods can no longer be switched off
-- @expose and other decorators moved from core to new server module
-- now prefers ipv6 over ipv4 if your os agrees
-- autoproxy always enabled for now (but this feature may be removed completely though)
-- values from constants module scattered to various other more relevant modules
-- util traceback and excepthook functions moved to errors module
-- util methods regarding object/class inspection moved to new server module
-- rest of util module renamed to serializers module
-- replaced deprecated usages of optparse with argparse
-- moved metadata search in the name server to a separate yplookup method (instead of using list as well)
-- proxy doesn't have a thread lock anymore and no can longer be shared across different threads.
-  A single thread is the sole "owner" of a proxy. Another thread can use proxy._pyroClaimOwnership to take over.
-- simplified serializers by moving the task of compressing data to the protocol module instead (where it belonged)
-- optimized wire messages (less code, sometimes less data copying by using memoryviews, no more checksumming)
-- much larger annotations possible (4Gb instead of 64Kb) so it can be (ab)used for things like efficient binary data transfer
-- annotations on the protocol message are now stored as no-copy memoryviews. A memoryview doesn't support all
-  methods you might expect so sometimes it may be required now to convert it to bytes or bytearray in your
-  own code first, before further processing. Note that this will create a copy again, so it's best avoided.
+- written in 100% Python so extremely portable, runs on Python 3.5 and newer, and Pypy3
+- works between different system architectures and operating systems.
+- able to communicate between different Python versions transparently.
+- defaults to a safe serializer (`serpent <https://pypi.python.org/pypi/serpent>`_) that supports many Python data types.
+- supports different serializers (serpent, json, marshal, msgpack).
+- can use IPv4, IPv6 and Unix domain sockets.
+- optional secure connections via SSL/TLS (encryption, authentication and integrity), including certificate validation on both ends (2-way ssl).
+- lightweight client library available for .NET and Java native code ('Pyrolite', provided separately).
+- designed to be very easy to use and get out of your way as much as possible, but still provide a lot of flexibility when you do need it.
+- name server that keeps track of your object's actual locations so you can move them around transparently.
+- yellow-pages type lookups possible, based on metadata tags on registrations in the name server.
+- support for automatic reconnection to servers in case of interruptions.
+- automatic proxy-ing of Pyro objects which means you can return references to remote objects just as if it were normal objects.
+- one-way invocations for enhanced performance.
+- batched invocations for greatly enhanced performance of many calls on the same object.
+- remote iterator on-demand item streaming avoids having to create large collections upfront and transfer them as a whole.
+- you can define timeouts on network communications to prevent a call blocking forever if there's something wrong.
+- remote exceptions will be raised in the caller, as if they were local. You can extract detailed remote traceback information.
+- http gateway available for clients wanting to use http+json (such as browser scripts).
+- stable network communication code that has worked reliably on many platforms for over a decade.
+- can hook onto existing sockets created for instance with socketpair() to communicate efficiently between threads or sub-processes.
+- possibility to integrate Pyro's event loop into your own (or third party) event loop.
+- three different possible instance modes for your remote objects (singleton, one per session, one per call).
+- many simple examples included to show various features and techniques.
+- large amount of unit tests and high test coverage.
+- reliable and established: built upon more than 20 years of existing Pyro history, with ongoing support and development.
+
