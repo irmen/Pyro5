@@ -250,7 +250,7 @@ The code above could also be written as::
 
 You can perform some limited customization:
 
-.. py:method:: serve(objects [host=None, port=0, daemon=None, ns=True, verbose=True])
+.. py:method:: serve(objects [host=None, port=0, daemon=None, use_ns=True, verbose=True])
 
     Very basic method to fire up a daemon that hosts a bunch of objects.
     The objects will be registered automatically in the name server if you specify this.
@@ -266,7 +266,7 @@ You can perform some limited customization:
     :param daemon: optional existing daemon to use, that you created yourself.
         If you don't specify this, the method will create a new daemon object by itself.
     :type daemon: Pyro5.server.Daemon
-    :param ns: optional, if True (the default), the objects will also be registered in the name server (located using :py:meth:`Pyro5.core.locate_ns`) for you.
+    :param use_ns: optional, if True (the default), the objects will also be registered in the name server (located using :py:meth:`Pyro5.core.locate_ns`) for you.
         If this parameters is False, your objects will only be hosted in the daemon and are not published in a name server.
         Read below about the exact behavior of the object names you provide in the ``objects`` dictionary.
     :type ns: bool
@@ -274,12 +274,12 @@ You can perform some limited customization:
     :type verbose: bool
     :returns: nothing, it starts the daemon request loop and doesn't return until that stops.
 
-If you set ``ns=True`` your objects will appear in the name server as well (this is the default setting).
+If you set ``use_ns=True`` (the default) your objects will appear in the name server as well.
 Usually this means you provide a logical name for every object in the ``objects`` dictionary.
 If you don't (= set it to ``None``), the object will still be available in the daemon (by a generated name) but will *not* be registered
 in the name server (this is a bit strange, but hey, maybe you don't want all the objects to be visible in the name server).
 
-When not using a name server at all (``ns=False``), the names you provide are used as the object names
+When not using a name server at all (``use_ns=False``), the names you provide are used as the object names
 in the daemon itself. If you set the name to ``None`` in this case, your object will get an automatically generated internal name,
 otherwise your own name will be used.
 

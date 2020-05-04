@@ -1122,7 +1122,7 @@ class TestSimpleServe:
             o1 = MyThingPartlyExposed(1)
             o2 = MyThingPartlyExposed(2)
             objects = {o1: "test.o1", o2: None}
-            Pyro5.server.serve(objects, daemon=d, ns=False, verbose=False)
+            Pyro5.server.serve(objects, daemon=d, use_ns=False, verbose=False)
             assert len(d.objectsById) == 3
             assert "test.o1" in d.objectsById
             assert o1 in d.objectsById.values()
@@ -1146,7 +1146,7 @@ class TestSimpleServe:
             o3 = MyThingPartlyExposed(3)
             objects = {o1: "test.name", o2: "test.name", o3: "test.othername"}
             with pytest.raises(Pyro5.errors.DaemonError):
-                Pyro5.server.serve(objects, daemon=d, ns=False, verbose=False)
+                Pyro5.server.serve(objects, daemon=d, use_ns=False, verbose=False)
 
     def testSimpleServeSameNames(self):
         with TestSimpleServe.DaemonWrapper() as d:
