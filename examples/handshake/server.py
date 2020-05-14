@@ -1,15 +1,23 @@
-from Pyro5.api import Daemon
 import Pyro5.core
-
+import Pyro5.api
 
 secret_code = "pancakes"
 
 
-class CustomDaemon(Daemon):
+class CustomDaemon(Pyro5.api.Daemon):
     def validateHandshake(self, conn, data):
         print("Daemon received handshake request from:", conn.sock.getpeername())
         print("Handshake data:", data)
-        # if needed, you can inspect Pyro5.callcontext.current_context
+
+        # if needed, you can inspect Pyro5.callcontext.current_context:
+        ctx = Pyro5.api.current_context
+        print("  context.client: ", ctx.client)
+        print("  context.client_sock_addr: ", ctx.client_sock_addr)
+        print("  context.seq: ", ctx.seq)
+        print("  context.msg_flags: ", ctx.msg_flags)
+        print("  context.serializer_id: ", ctx.serializer_id)
+        print("  context.correlation_id:", ctx.correlation_id)
+
         if data == secret_code:
             print("Secret code okay! Connection accepted.")
             # return some custom handshake data:
