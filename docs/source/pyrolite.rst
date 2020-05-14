@@ -10,4 +10,6 @@ objects.
 
 https://github.com/irmen/Pyrolite
 
-@TODO The Pyrolite library hasn't been updated for Pyro5 yet. It only works for Pyro4 for now.
+
+The 5.x version works with Pyro5.
+(Use the 4.x version for Pyro4).
