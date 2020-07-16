@@ -248,12 +248,12 @@ def process_pyro_request(environ, path, parameters, start_response):
                 elif msg.flags & protocol.FLAGS_EXCEPTION:
                     # got an exception response so send a 500 status
                     start_response('500 Internal Server Error', [('Content-Type', 'application/json; charset=utf-8')])
-                    return [msg.data]
+                    return [bytes(msg.data)]
                 else:
                     # normal response
                     start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8'),
                                               ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id))])
-                    return [msg.data]
+                    return [bytes(msg.data)]
     except Exception as x:
         stderr = environ["wsgi.errors"]
         print("ERROR handling {0} with params {1}:".format(path, parameters), file=stderr)
