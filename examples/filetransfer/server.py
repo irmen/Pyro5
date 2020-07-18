@@ -75,7 +75,7 @@ class FileServer(object):
 class FileServerDaemon(Daemon):
     def __init__(self, host=None, port=0):
         super(FileServerDaemon, self).__init__(host, port)
-        host, _ = self.transportServer.sock.getsockname()
+        host = self.transportServer.sock.getsockname()[0]
         self.blobsocket = Pyro5.socketutil.create_socket(bind=(host, 0), timeout=config.COMMTIMEOUT, nodelay=False)
         print("Blob socket available on:", self.blobsocket.getsockname())
 

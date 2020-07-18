@@ -11,7 +11,7 @@ the test objects (such as the test echo server).
 
 For completeness, also start the test echoserver (pyro5-echoserver -n,
 or python -m Pyro5.utils.echoserver -n)
-Then run a client of your choosing:l
+Then run a client of your choosing:
 
 client.js:  javascript client code, for node.js
 client.py:  python (3.x) client code
