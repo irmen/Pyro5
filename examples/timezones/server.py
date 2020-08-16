@@ -11,22 +11,24 @@ fmt = '%Y-%m-%d %H:%M:%S %Z%z'
 @expose
 class Server(object):
     def echo(self, date):
-        print("ECHO:")
-        print(" [raw] ", repr(date))
-        if hasattr(date, "isoformat"):
-            print(" [iso] ", date.isoformat())
+        print("RETURNING:", repr(date))
         return date
 
     def pytz(self):
         tz_nl = pytz.timezone("Europe/Amsterdam")
-        return tz_nl.localize(datetime.datetime.now())
+        result = tz_nl.localize(datetime.datetime.now())
+        print("RETURNING:", repr(result))
+        return result
 
     def dateutil(self):
         tz_nl = dateutil.tz.gettz("Europe/Amsterdam")
-        return datetime.datetime.now(tz_nl)
+        result = datetime.datetime.now(tz_nl)
+        print("RETURNING:", repr(result))
+        return result
 
     def pendulum(self):
         tz_nl = pendulum.now("Europe/Amsterdam")
+        print("RETURNING:", repr(tz_nl))
         return tz_nl
 
 

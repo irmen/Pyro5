@@ -2,6 +2,14 @@
 Change Log
 **********
 
+**Pyro 5.11**
+
+- reworked the timezones example. (it didn't work as intended)
+- httpgateway message data bytearray type fix
+- fixed ipv6 error in filetransfer example
+
+
+
 **Pyro 5.10**
 
 - finally ported over the unit test suite from Pyro4
