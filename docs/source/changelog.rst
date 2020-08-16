@@ -7,7 +7,7 @@ Change Log
 - reworked the timezones example. (it didn't work as intended)
 - httpgateway message data bytearray type fix
 - fixed ipv6 error in filetransfer example
-
+- added methodcall_error_handler in documentation
 
 
 **Pyro 5.10**

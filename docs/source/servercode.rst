@@ -799,3 +799,19 @@ object name. You can use it directly but it is preferable to use the constant
     >>> daemon.registered()
     ['Pyro.NameServer', 'Pyro.Daemon']
 
+
+Intercepting errors in user code executed in a method call
+----------------------------------------------------------
+When a method call is executed in a Pyro server/daemon, it eventually will execute some
+user written code that implements the remote method. This user code may raise an exception
+(intentionally or not). Normally, Pyro will only report the exception to the calling client.
+
+It may be useful however to also process the error on the *server*, for instance, to log the error
+somewhere for later reference. For this purpose, you can set the ``methodcall_error_handler`` attribute
+on the daemon object to a custom error handler function. See the :file:`exceptions` example.
+This function's signature is::
+
+    def custom_error_handler(daemon: Daemon, client_sock: socketutil.SocketConnection,
+                             method: Callable, vargs: Sequence[Any], kwargs: Dict[str, Any],
+                             exception: Exception) -> None
+
