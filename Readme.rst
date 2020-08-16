@@ -34,7 +34,7 @@ enables you to build distributed applications rapidly and effortlessly.
 Pyro is a pure Python library and runs on many different platforms and Python versions.
 
 
-Pyro is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).  Please read :doc:`license`.
+Pyro is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).  Please read the file ``license``.
 
 Pyro can be found on Pypi as `Pyro5 <http://pypi.python.org/pypi/Pyro5/>`_.  Source is on Github: https://github.com/irmen/Pyro5
 Documentation is here: https://pyro5.readthedocs.io/
