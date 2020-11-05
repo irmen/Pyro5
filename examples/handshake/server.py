@@ -6,6 +6,14 @@ secret_code = "pancakes"
 
 class CustomDaemon(Pyro5.api.Daemon):
     def validateHandshake(self, conn, data):
+        """
+        Validate the salt.
+
+        Args:
+            self: (todo): write your description
+            conn: (todo): write your description
+            data: (todo): write your description
+        """
         print("Daemon received handshake request from:", conn.sock.getpeername())
         print("Handshake data:", data)
 
@@ -27,6 +35,13 @@ class CustomDaemon(Pyro5.api.Daemon):
             raise ValueError("wrong secret code, connection refused")
 
     def clientDisconnect(self, conn):
+        """
+        Establish a connection
+
+        Args:
+            self: (todo): write your description
+            conn: (todo): write your description
+        """
         print("Daemon client disconnects:", conn.sock.getpeername())
 
 

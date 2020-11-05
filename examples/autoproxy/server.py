@@ -5,6 +5,13 @@ from thingy import Thingy
 @expose
 class Factory(object):
     def createSomething(self, number):
+        """
+        Create a pyroemon.
+
+        Args:
+            self: (todo): write your description
+            number: (int): write your description
+        """
         # create a new item
         thing = Thingy(number)
         # connect it to the Pyro daemon to make it a Pyro object

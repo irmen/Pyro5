@@ -10,6 +10,12 @@ print("SSL enabled (2-way).")
 
 
 def verify_cert(cert):
+    """
+    Verifies the certificate.
+
+    Args:
+        cert: (str): write your description
+    """
     if not cert:
         raise Pyro5.errors.CommunicationError("cert missing")
     # note: hostname and expiry date validation is already successfully performed by the SSL layer itself
@@ -38,6 +44,13 @@ def verify_cert(cert):
 # to make Pyro verify the certificate on new connections, use the handshake mechanism:
 class CertCheckingProxy(Pyro5.api.Proxy):
     def _pyroValidateHandshake(self, response):
+        """
+        Validate the response.
+
+        Args:
+            self: (todo): write your description
+            response: (todo): write your description
+        """
         cert = self._pyroConnection.getpeercert()
         verify_cert(cert)
 

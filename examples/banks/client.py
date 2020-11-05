@@ -11,9 +11,23 @@ from Pyro5.api import locate_ns, Proxy
 # A bank client.
 class client(object):
     def __init__(self, name):
+        """
+        Sets the name.
+
+        Args:
+            self: (todo): write your description
+            name: (str): write your description
+        """
         self.name = name
 
     def doBusiness(self, bank):
+        """
+        Create a bank.
+
+        Args:
+            self: (todo): write your description
+            bank: (todo): write your description
+        """
         print("\n*** %s is doing business with %s:" % (self.name, bank.name()))
         print("Creating account")
         try:

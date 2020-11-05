@@ -11,6 +11,12 @@ class MandelZoomer(object):
     res_y = 40
 
     def __init__(self):
+        """
+        Initialize meta data
+
+        Args:
+            self: (todo): write your description
+        """
         self.result = []
         with locate_ns() as ns:
             mandels = ns.yplookup(meta_any={"class:mandelbrot_calc"})
@@ -21,6 +27,14 @@ class MandelZoomer(object):
         time.sleep(2)
 
     def screen(self, start, width):
+        """
+        Return screen screen.
+
+        Args:
+            self: (todo): write your description
+            start: (int): write your description
+            width: (int): write your description
+        """
         dr = width / self.res_x
         di = dr*(self.res_x/self.res_y)
         di *= 0.8   # aspect ratio correction
@@ -38,6 +52,12 @@ class MandelZoomer(object):
         return "\n".join(self.result)
 
     def cls(self):
+        """
+        Prints the platform.
+
+        Args:
+            self: (todo): write your description
+        """
         if platform.platform().startswith("Windows"):
             os.system("cls")
         else:

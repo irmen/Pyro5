@@ -26,6 +26,12 @@ class Configuration:
     ]
 
     def __init__(self):
+        """
+        Reset the internal state.
+
+        Args:
+            self: (todo): write your description
+        """
         self.reset()
 
     def reset(self, use_environment=True):
@@ -128,6 +134,11 @@ global_config = Configuration()
 
 
 def dump():
+    """
+    Dump global config to file
+
+    Args:
+    """
     print(global_config.dump())
 
 

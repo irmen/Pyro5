@@ -5,6 +5,13 @@ from Pyro5.api import Proxy
 
 
 def wordfreq(book, counter_uri):
+    """
+    Calculates of a counter.
+
+    Args:
+        book: (todo): write your description
+        counter_uri: (str): write your description
+    """
     begin = time.time()
     with Proxy(counter_uri) as counter:
         totals = counter.count(book)

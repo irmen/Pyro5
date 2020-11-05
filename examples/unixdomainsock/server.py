@@ -5,6 +5,13 @@ from Pyro5.api import expose, Daemon
 @expose
 class Thingy(object):
     def message(self, arg):
+        """
+        Print a message
+
+        Args:
+            self: (todo): write your description
+            arg: (str): write your description
+        """
         print("Message received:", arg)
         return "Roger!"
 

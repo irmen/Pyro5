@@ -8,6 +8,13 @@ from Pyro5.api import Proxy
 # So we use wider margins for that, to check if the delays are ok.
 
 def approxEqual(x, y):
+    """
+    Approximate the integral of y
+
+    Args:
+        x: (array): write your description
+        y: (array): write your description
+    """
     return abs(x - y) < 0.2
 
 # disable timeout globally

@@ -1,5 +1,13 @@
 class Workitem(object):
     def __init__(self, itemId, data):
+        """
+        Initialize item id
+
+        Args:
+            self: (todo): write your description
+            itemId: (str): write your description
+            data: (todo): write your description
+        """
         print("Created workitem %s" % itemId)
         self.itemId = itemId
         self.data = data
@@ -7,6 +15,12 @@ class Workitem(object):
         self.processedBy = None
 
     def __str__(self):
+        """
+        Returns the string representation of this item.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<Workitem id=%s>" % str(self.itemId)
 
     @staticmethod

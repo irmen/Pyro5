@@ -8,6 +8,13 @@ import Pyro5.socketutil
 class Worker(object):
     @expose
     def factorize(self, n):
+        """
+        Factorize n times.
+
+        Args:
+            self: (todo): write your description
+            n: (array): write your description
+        """
         print("factorize request received for", n)
         result = self._factorize(n)
         print("    -->", result)
@@ -17,6 +24,12 @@ class Worker(object):
         """simple algorithm to find the prime factorials of the given number n"""
 
         def isPrime(n):
+            """
+            Returns true if n is equal false otherwise false.
+
+            Args:
+                n: (int): write your description
+            """
             return not any(x for x in range(2, int(sqrt(n)) + 1) if n % x == 0)
 
         primes = []

@@ -13,6 +13,12 @@ datasize = 5 * 1024 * 1024  # 5 mb
 
 
 def do_test(data):
+    """
+    Test for the test.
+
+    Args:
+        data: (array): write your description
+    """
     assert len(data) == datasize
     totalsize = 0
 
@@ -34,6 +40,11 @@ def do_test(data):
 
 
 def do_test_chunks():
+    """
+    Do a chunk of chunks.
+
+    Args:
+    """
     with Proxy(uri) as p:
         totalsize = 0
         begin = time.time()

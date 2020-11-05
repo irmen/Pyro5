@@ -10,6 +10,12 @@ res_y = 800
 
 class MandelWindow(object):
     def __init__(self):
+        """
+        Initialize widget
+
+        Args:
+            self: (todo): write your description
+        """
         self.root = tkinter.Tk()
         self.root.title("Mandelbrot (Single CPU core)")
         canvas = tkinter.Canvas(self.root, width=res_x, height=res_y, bg="#000000")
@@ -22,6 +28,13 @@ class MandelWindow(object):
         tkinter.mainloop()
 
     def draw_line(self, y):
+        """
+        Draw a line
+
+        Args:
+            self: (todo): write your description
+            y: (int): write your description
+        """
         _, pixeldata = self.mandel.calc_photoimage_line(y, res_x, res_y)
         self.img.put(pixeldata, (0, y))
         if y < res_y:

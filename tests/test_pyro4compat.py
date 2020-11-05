@@ -4,6 +4,11 @@ from Pyro5.compatibility import Pyro4
 
 
 def test_compat_config():
+    """
+    Test if config file
+
+    Args:
+    """
     import Pyro4
     conf = Pyro4.config.asDict()
     assert conf["NS_PORT"] == 9090
@@ -13,6 +18,11 @@ def test_compat_config():
 
 
 def test_compat_layer():
+    """
+    Test the network layer.
+
+    Args:
+    """
     from Pyro4 import naming
     from Pyro4 import socketutil
     from Pyro4 import util

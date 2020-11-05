@@ -6,12 +6,27 @@ from Pyro5.api import expose, Proxy
 
 class Chain(object):
     def __init__(self, name, next_node):
+        """
+        Create a new node.
+
+        Args:
+            self: (todo): write your description
+            name: (str): write your description
+            next_node: (str): write your description
+        """
         self.name = name
         self.nextName = next_node
         self.next = None
 
     @expose
     def process(self, message):
+        """
+        Process the next message
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         if self.next is None:
             self.next = Proxy("PYRONAME:example.chain." + self.nextName)
         if self.name in message:

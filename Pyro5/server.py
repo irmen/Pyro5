@@ -120,6 +120,12 @@ def behavior(instance_mode: str = "session", instance_creator: Optional[Callable
     Decorator to specify the server behavior of your Pyro class.
     """
     def _behavior(clazz):
+        """
+        Create a function that clazz the decorated class.
+
+        Args:
+            clazz: (todo): write your description
+        """
         if not inspect.isclass(clazz):
             raise TypeError("behavior decorator can only be used on a class")
         if instance_mode not in ("single", "session", "percall"):
@@ -138,6 +144,13 @@ class DaemonObject(object):
     """The part of the daemon that is exposed as a Pyro object."""
 
     def __init__(self, daemon):
+        """
+        Initialize the daemon.
+
+        Args:
+            self: (todo): write your description
+            daemon: (todo): write your description
+        """
         self.daemon = daemon
 
     def registered(self):
@@ -170,6 +183,13 @@ class DaemonObject(object):
             raise errors.DaemonError("unknown object")
 
     def get_next_stream_item(self, streamId):
+        """
+        Return the next stream item.
+
+        Args:
+            self: (todo): write your description
+            streamId: (str): write your description
+        """
         if streamId not in self.daemon.streaming_responses:
             raise errors.PyroError("item stream terminated")
         client, timestamp, linger_timestamp, stream = self.daemon.streaming_responses[streamId]
@@ -184,6 +204,13 @@ class DaemonObject(object):
             raise
 
     def close_stream(self, streamId):
+        """
+        Close the stream
+
+        Args:
+            self: (todo): write your description
+            streamId: (str): write your description
+        """
         if streamId in self.daemon.streaming_responses:
             del self.daemon.streaming_responses[streamId]
 
@@ -195,6 +222,20 @@ class Daemon(object):
     """
 
     def __init__(self, host=None, port=0, unixsocket=None, nathost=None, natport=None, interface=DaemonObject, connected_socket=None):
+        """
+        Initialize a connection.
+
+        Args:
+            self: (todo): write your description
+            host: (str): write your description
+            port: (int): write your description
+            unixsocket: (todo): write your description
+            nathost: (str): write your description
+            natport: (str): write your description
+            interface: (str): write your description
+            DaemonObject: (todo): write your description
+            connected_socket: (todo): write your description
+        """
         if connected_socket:
             nathost = natport = None
         else:
@@ -308,6 +349,12 @@ class Daemon(object):
 
     @property
     def _shutting_down(self):
+        """
+        Shutting down down down down.
+
+        Args:
+            self: (todo): write your description
+        """
         return self.__mustshutdown.is_set()
 
     def _handshake(self, conn, denied_reason=None):
@@ -509,6 +556,13 @@ class Daemon(object):
                 raise  # re-raise if flagged as callback, communication or security error.
 
     def _clientDisconnect(self, conn):
+        """
+        Called when a connection is established.
+
+        Args:
+            self: (todo): write your description
+            conn: (todo): write your description
+        """
         if config.ITER_STREAM_LINGER > 0:
             # client goes away, keep streams around for a bit longer (allow reconnect)
             for streamId in list(self.streaming_responses):
@@ -562,6 +616,13 @@ class Daemon(object):
         Find or create a new instance of the class
         """
         def createInstance(clazz, creator):
+            """
+            Create an instance.
+
+            Args:
+                clazz: (str): write your description
+                creator: (todo): write your description
+            """
             try:
                 if creator:
                     obj = creator(clazz)
@@ -753,11 +814,23 @@ class Daemon(object):
         self.transportServer.combine_loop(daemon.transportServer)
 
     def __annotations(self):
+        """
+        Annotated annotations.
+
+        Args:
+            self: (todo): write your description
+        """
         annotations = current_context.response_annotations
         annotations.update(self.annotations())
         return annotations
 
     def __repr__(self):
+        """
+        Return a string representation for this object.
+
+        Args:
+            self: (todo): write your description
+        """
         if hasattr(self, "locationStr"):
             family = socketutil.family_str(self.sock)
             return "<%s.%s at 0x%x; %s - %s; %d objects>" % (self.__class__.__module__, self.__class__.__name__,
@@ -767,22 +840,58 @@ class Daemon(object):
             return "<%s.%s at 0x%x; unusable>" % (self.__class__.__module__, self.__class__.__name__, id(self))
 
     def __enter__(self):
+        """
+        Enter the transport.
+
+        Args:
+            self: (todo): write your description
+        """
         if not self.transportServer:
             raise errors.PyroError("cannot reuse this object")
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Called when an exception is raised.
+
+        Args:
+            self: (todo): write your description
+            exc_type: (todo): write your description
+            exc_value: (todo): write your description
+            traceback: (todo): write your description
+        """
         self.close()
 
     def __getstate__(self):
+        """
+        Return the state of the state.
+
+        Args:
+            self: (todo): write your description
+        """
         # A little hack to make it possible to serialize Pyro objects, because they can reference a daemon,
         # but it is not meant to be able to properly serialize/deserialize Daemon objects.
         return tuple()
 
     def __setstate__(self, state):
+        """
+        Sets the state of the given state.
+
+        Args:
+            self: (todo): write your description
+            state: (dict): write your description
+        """
         assert len(state) == 0
 
     def _streamResponse(self, data, client):
+        """
+        Handle a stream.
+
+        Args:
+            self: (todo): write your description
+            data: (array): write your description
+            client: (todo): write your description
+        """
         if isinstance(data, collections.abc.Iterator) or inspect.isgenerator(data):
             if config.ITER_STREAMING:
                 if type(data) in (type({}.keys()), type({}.values()), type({}.items())):
@@ -794,6 +903,13 @@ class Daemon(object):
         return False, data
 
     def __deserializeBlobArgs(self, protocolmsg):
+        """
+        Deserializes a blob object.
+
+        Args:
+            self: (todo): write your description
+            protocolmsg: (str): write your description
+        """
         import marshal
         blobinfo = protocolmsg.annotations["BLBI"]
         blobinfo, objId, method = marshal.loads(blobinfo)
@@ -963,6 +1079,16 @@ def _set_exposed_property_value(obj: Any, propname: str, value: Any, only_expose
 
 class _OnewayCallThread(threading.Thread):
     def __init__(self, pyro_method, vargs, kwargs, pyro_daemon, pyro_client_sock):
+        """
+        Initialize a pyro_method.
+
+        Args:
+            self: (todo): write your description
+            pyro_method: (str): write your description
+            vargs: (todo): write your description
+            pyro_daemon: (todo): write your description
+            pyro_client_sock: (todo): write your description
+        """
         super(_OnewayCallThread, self).__init__(target=self._methodcall, name="oneway-call")
         self.daemon = True
         self.parent_context = current_context.to_global()
@@ -973,10 +1099,22 @@ class _OnewayCallThread(threading.Thread):
         self.pyro_kwars = kwargs
 
     def run(self):
+        """
+        Start the current context.
+
+        Args:
+            self: (todo): write your description
+        """
         current_context.from_global(self.parent_context)
         super(_OnewayCallThread, self).run()
 
     def _methodcall(self):
+        """
+        Calls the pyro_method.
+
+        Args:
+            self: (todo): write your description
+        """
         try:
             self.pyro_method(*self.pyro_vargs, **self.pyro_kwars)
         except Exception as xv:

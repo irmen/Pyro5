@@ -74,9 +74,21 @@ class EchoServer(object):
         yield "three"
 
     def nan(self):
+        """
+        Return the number of nans.
+
+        Args:
+            self: (todo): write your description
+        """
         return float("nan")
 
     def inf(self):
+        """
+        Returns the infos.
+
+        Args:
+            self: (todo): write your description
+        """
         return float("inf")
 
     @server.oneway
@@ -109,21 +121,47 @@ class EchoServer(object):
 
     @property
     def verbose(self):
+        """
+        The verbose verbose verbose.
+
+        Args:
+            self: (todo): write your description
+        """
         return self._verbose
 
     @verbose.setter
     def verbose(self, onoff):
+        """
+        Turn on on or off.
+
+        Args:
+            self: (todo): write your description
+            onoff: (float): write your description
+        """
         self._verbose = bool(onoff)
 
 
 class NameServer(threading.Thread):
     def __init__(self, hostname):
+        """
+        Initialize the thread.
+
+        Args:
+            self: (todo): write your description
+            hostname: (str): write your description
+        """
         super(NameServer, self).__init__()
         self.setDaemon(1)
         self.hostname = hostname
         self.started = threading.Event()
 
     def run(self):
+        """
+        Run the server.
+
+        Args:
+            self: (todo): write your description
+        """
         self.uri, self.ns_daemon, self.bc_server = nameserver.start_ns(self.hostname)
         self.started.set()
         if self.bc_server:
@@ -132,6 +170,12 @@ class NameServer(threading.Thread):
 
 
 def start_nameserver(host):
+    """
+    Start a namespace
+
+    Args:
+        host: (str): write your description
+    """
     ns = NameServer(host)
     ns.start()
     ns.started.wait()
@@ -139,6 +183,12 @@ def start_nameserver(host):
 
 
 def main(args=None, returnWithoutLooping=False):
+    """
+    Main function.
+
+    Args:
+        returnWithoutLooping: (bool): write your description
+    """
     parser = ArgumentParser(description="Pyro test echo/nameserver command line launcher.")
     parser.add_argument("-H", "--host", default="localhost", help="hostname to bind server on (default=%(default)s)")
     parser.add_argument("-p", "--port", type=int, default=0, help="port to bind server on")

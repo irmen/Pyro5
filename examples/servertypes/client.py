@@ -57,6 +57,12 @@ else:
 
 
 def func(uri):
+    """
+    Run a function
+
+    Args:
+        uri: (str): write your description
+    """
     # This will run in a thread. Create a proxy just for this thread:
     with Proxy(uri) as p:
         processed = p.delay()

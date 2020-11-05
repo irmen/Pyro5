@@ -45,6 +45,13 @@ class URI(object):
     uriRegEx = re.compile(r"(?P<protocol>[Pp][Yy][Rr][Oo][a-zA-Z]*):(?P<object>\S+?)(@(?P<location>.+))?$")
 
     def __init__(self, uri):
+        """
+        Initialize the connection.
+
+        Args:
+            self: (todo): write your description
+            uri: (str): write your description
+        """
         if isinstance(uri, URI):
             state = uri.__getstate__()
             self.__setstate__(state)
@@ -71,6 +78,14 @@ class URI(object):
             raise errors.PyroError("invalid uri (protocol)")
 
     def _parseLocation(self, location, defaultPort):
+        """
+        Parses a port.
+
+        Args:
+            self: (todo): write your description
+            location: (str): write your description
+            defaultPort: (todo): write your description
+        """
         if not location:
             return
         if location.startswith("./u:"):
@@ -113,6 +128,12 @@ class URI(object):
             return None
 
     def __str__(self):
+        """
+        Returns a string representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         if self.protocol == "PYROMETA":
             result = "PYROMETA:" + ",".join(self.object)
         else:
@@ -122,23 +143,62 @@ class URI(object):
         return result
 
     def __repr__(self):
+        """
+        Return a human - readable representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<%s.%s at 0x%x; %s>" % (self.__class__.__module__, self.__class__.__name__, id(self), str(self))
 
     def __eq__(self, other):
+        """
+        Determine if two values are equal.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         if not isinstance(other, URI):
             return False
         return self.__getstate__() == other.__getstate__()
 
     def __ne__(self, other):
+        """
+        Determine if self and false otherwise.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         return not self.__eq__(other)
 
     def __hash__(self):
+        """
+        Return the hash of the hash.
+
+        Args:
+            self: (todo): write your description
+        """
         return hash(self.__getstate__())
 
     def __getstate__(self):
+        """
+        Return the state of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return self.protocol, self.object, self.sockname, self.host, self.port
 
     def __setstate__(self, state):
+        """
+        Sets the port.
+
+        Args:
+            self: (todo): write your description
+            state: (dict): write your description
+        """
         self.protocol, self.object, self.sockname, self.host, self.port = state
 
 
@@ -149,9 +209,22 @@ class _ExceptionWrapper(object):
     flag is useless and another mechanism was needed."""
 
     def __init__(self, exception):
+        """
+        Initialize the exception.
+
+        Args:
+            self: (todo): write your description
+            exception: (todo): write your description
+        """
         self.exception = exception
 
     def raiseIt(self):
+        """
+        Raise an exception.
+
+        Args:
+            self: (todo): write your description
+        """
         raise self.exception
 
     def __serialized_dict__(self):

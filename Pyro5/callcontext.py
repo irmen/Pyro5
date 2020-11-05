@@ -11,6 +11,12 @@ from . import errors
 class _CallContext(threading.local):
     """call context thread local"""
     def __init__(self):
+        """
+        Initialize the transport.
+
+        Args:
+            self: (todo): write your description
+        """
         # per-thread initialization
         self.client = None
         self.client_sock_addr = None
@@ -22,9 +28,22 @@ class _CallContext(threading.local):
         self.correlation_id = None
 
     def to_global(self):
+        """
+        Returns a dict to a dictionary.
+
+        Args:
+            self: (todo): write your description
+        """
         return dict(self.__dict__)
 
     def from_global(self, values):
+        """
+        Initialize the global graph from a dict.
+
+        Args:
+            self: (todo): write your description
+            values: (str): write your description
+        """
         self.client = values["client"]
         self.seq = values["seq"]
         self.msg_flags = values["msg_flags"]

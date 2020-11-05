@@ -8,16 +8,36 @@ from Pyro5.api import expose, oneway, Proxy, Daemon
 
 class Chatter(object):
     def __init__(self):
+        """
+        Initialize chat
+
+        Args:
+            self: (todo): write your description
+        """
         self.chatbox = Proxy('PYRONAME:example.chatbox.server')
         self.abort = 0
 
     @expose
     @oneway
     def message(self, nick, msg):
+        """
+        Print the current user.
+
+        Args:
+            self: (todo): write your description
+            nick: (str): write your description
+            msg: (str): write your description
+        """
         if nick != self.nick:
             print('[{0}] {1}'.format(nick, msg))
 
     def start(self):
+        """
+        Starts the chat
+
+        Args:
+            self: (todo): write your description
+        """
         nicks = self.chatbox.getNicks()
         if nicks:
             print('The following people are on the server: %s' % (', '.join(nicks)))
@@ -49,11 +69,24 @@ class Chatter(object):
 
 class DaemonThread(threading.Thread):
     def __init__(self, chatter):
+        """
+        Initialize the thread.
+
+        Args:
+            self: (todo): write your description
+            chatter: (todo): write your description
+        """
         threading.Thread.__init__(self)
         self.chatter = chatter
         self.setDaemon(True)
 
     def run(self):
+        """
+        Run the daemon.
+
+        Args:
+            self: (todo): write your description
+        """
         with Daemon() as daemon:
             daemon.register(self.chatter)
             daemon.requestLoop(lambda: not self.chatter.abort)

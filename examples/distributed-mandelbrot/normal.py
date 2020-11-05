@@ -10,6 +10,13 @@ res_y = 40
 
 
 def screen(start, width):
+    """
+    Return a string representing the screen.
+
+    Args:
+        start: (int): write your description
+        width: (int): write your description
+    """
     mandel = Mandelbrot()
     dr = width / res_x
     di = dr*(res_x/res_y)
@@ -19,6 +26,11 @@ def screen(start, width):
 
 
 def cls():
+    """
+    Print the platform
+
+    Args:
+    """
     if platform.platform().startswith("Windows"):
         os.system("cls")
     else:
@@ -26,6 +38,11 @@ def cls():
 
 
 def zoom():
+    """
+    Zoom in the screen.
+
+    Args:
+    """
     start = -2.0-1.0j
     width = 3.0
     duration = 30.0

@@ -7,6 +7,17 @@ class Mandelbrot(object):
     maxiters = 500
 
     def calc_line(self, start, res_x, ii, dr, line_nr):
+        """
+        Calculate a line number of points.
+
+        Args:
+            self: (todo): write your description
+            start: (todo): write your description
+            res_x: (todo): write your description
+            ii: (array): write your description
+            dr: (array): write your description
+            line_nr: (todo): write your description
+        """
         line = ""
         z = start + complex(0, ii)
         for r in range(res_x):
@@ -16,6 +27,18 @@ class Mandelbrot(object):
         return line_nr, line
 
     def calc_lines(self, start, res_x, dr, di, start_line_nr, num_lines):
+        """
+        Calculate lines from start and end lines.
+
+        Args:
+            self: (todo): write your description
+            start: (todo): write your description
+            res_x: (todo): write your description
+            dr: (array): write your description
+            di: (array): write your description
+            start_line_nr: (str): write your description
+            num_lines: (int): write your description
+        """
         lines = []
         for i in range(num_lines):
             line = ""
@@ -27,6 +50,13 @@ class Mandelbrot(object):
         return lines
 
     def iterations(self, z):
+        """
+        Returns an iterator over all iterations.
+
+        Args:
+            self: (todo): write your description
+            z: (todo): write your description
+        """
         c = z
         for n in range(self.maxiters):
             if abs(z) > 2:
@@ -40,6 +70,15 @@ class MandelbrotColorPixels(object):
     maxiters = 500
 
     def calc_photoimage_line(self, y, res_x, res_y):
+        """
+        Calculate the photo line.
+
+        Args:
+            self: (todo): write your description
+            y: (todo): write your description
+            res_x: (todo): write your description
+            res_y: (todo): write your description
+        """
         line = []
         for x in range(res_x):
             rgb = self.mandel_iterate(x, y, res_x, res_y)
@@ -48,6 +87,16 @@ class MandelbrotColorPixels(object):
         return y, "{"+" ".join("#%02x%02x%02x" % rgb for rgb in line)+"}"
 
     def mandel_iterate(self, x, y, res_x, res_y):
+        """
+        Iterate the color of the range.
+
+        Args:
+            self: (todo): write your description
+            x: (todo): write your description
+            y: (todo): write your description
+            res_x: (todo): write your description
+            res_y: (todo): write your description
+        """
         zr = (x/res_x - 0.5) * 1 - 0.3
         zi = (y/res_y - 0.5) * 1 - 0.9
         zi *= res_y/res_x  # aspect correction

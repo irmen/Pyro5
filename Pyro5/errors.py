@@ -70,6 +70,12 @@ def get_pyro_traceback(ex_type=None, ex_value=None, ex_tb=None):
     you do not supply the objects yourself."""
 
     def formatRemoteTraceback(remote_tb_lines):
+        """
+        Formats a list.
+
+        Args:
+            remote_tb_lines: (bool): write your description
+        """
         result = [" +--- This exception occured remotely (Pyro) - Remote traceback:"]
         for line in remote_tb_lines:
             if line.endswith("\n"):
@@ -110,6 +116,12 @@ def format_traceback(ex_type=None, ex_value=None, ex_tb=None, detailed=False):
         ex_type, ex_value, ex_tb = sys.exc_info()
     if detailed:
         def makeStrValue(value):
+            """
+            Convert value to a value.
+
+            Args:
+                value: (todo): write your description
+            """
             try:
                 return repr(value)
             except Exception:

@@ -3,10 +3,22 @@ from stockmarket import StockMarket
 
 class Viewer(object):
     def __init__(self):
+        """
+        Initialize a set of symbols.
+
+        Args:
+            self: (todo): write your description
+        """
         self.markets = set()
         self.symbols = set()
 
     def start(self):
+        """
+        Start a list of the symbols
+
+        Args:
+            self: (todo): write your description
+        """
         print("Shown quotes:", self.symbols)
         quote_sources = {
             market.name: market.quotes() for market in self.markets
@@ -20,6 +32,11 @@ class Viewer(object):
 
 
 def main():
+    """
+    Main function.
+
+    Args:
+    """
     nasdaq = StockMarket("NASDAQ", ["AAPL", "CSCO", "MSFT", "GOOG"])
     newyork = StockMarket("NYSE", ["IBM", "HPQ", "BP"])
     viewer = Viewer()

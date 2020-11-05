@@ -12,6 +12,15 @@ class DrunkenGameObserver(remote.GameObserver):
     @oneway
     @expose
     def world_update(self, iteration, world, robotdata):
+        """
+        Update the world.
+
+        Args:
+            self: (todo): write your description
+            iteration: (int): write your description
+            world: (todo): write your description
+            robotdata: (todo): write your description
+        """
         # change directions randomly
         if random.random() > 0.8:
             self.robot._pyroClaimOwnership()   # lets our thread do the proxy calls
@@ -26,6 +35,12 @@ class DrunkenGameObserver(remote.GameObserver):
 
 class AngryGameObserver(remote.GameObserver):
     def __init__(self):
+        """
+        Initialize the direction.
+
+        Args:
+            self: (todo): write your description
+        """
         super(AngryGameObserver, self).__init__()
         self.directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]  # clockwise motion
         self.directioncounter = 0
@@ -33,6 +48,15 @@ class AngryGameObserver(remote.GameObserver):
     @oneway
     @expose
     def world_update(self, iteration, world, robotdata):
+        """
+        Updates the world
+
+        Args:
+            self: (todo): write your description
+            iteration: (int): write your description
+            world: (todo): write your description
+            robotdata: (todo): write your description
+        """
         # move in a loop yelling angry stuff
         self.robot._pyroClaimOwnership()  # lets our thread do the proxy calls
         if iteration % 50 == 0:
@@ -44,6 +68,12 @@ class AngryGameObserver(remote.GameObserver):
 
 class ScaredGameObserver(remote.GameObserver):
     def __init__(self):
+        """
+        Initialize a random gradient.
+
+        Args:
+            self: (todo): write your description
+        """
         super(ScaredGameObserver, self).__init__()
         # run to a corner
         self.direction = random.choice([(-1, -1), (1, -1), (1, 1), (-1, 1)])
@@ -51,12 +81,27 @@ class ScaredGameObserver(remote.GameObserver):
     @oneway
     @expose
     def start(self):
+        """
+        Starts the direction.
+
+        Args:
+            self: (todo): write your description
+        """
         super(ScaredGameObserver, self).start()
         self.robot.change_direction(self.direction)
 
     @oneway
     @expose
     def world_update(self, iteration, world, robotdata):
+        """
+        Update the world.
+
+        Args:
+            self: (todo): write your description
+            iteration: (int): write your description
+            world: (todo): write your description
+            robotdata: (todo): write your description
+        """
         if iteration % 50 == 0:
             self.robot._pyroClaimOwnership()   # lets our thread do the proxy calls
             self.robot.emote("I'm scared!")
@@ -75,6 +120,11 @@ register_dict_to_class("robot.Robot", robot.Robot.dict_to_robot)
 
 
 def main(args):
+    """
+    Main function.
+
+    Args:
+    """
     if len(args) != 3:
         print("usage: client.py <robotname> <robottype>")
         print("   type is one of: %s" % list(observers.keys()))

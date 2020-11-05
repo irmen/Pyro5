@@ -16,11 +16,25 @@ datablobs = {}      # in-memory
 @expose
 class FileServer(object):
     def get_with_pyro(self, size):
+        """
+        Gets pyroro.
+
+        Args:
+            self: (todo): write your description
+            size: (int): write your description
+        """
         print("sending %d bytes" % size)
         data = b"x" * size
         return data
 
     def iterator(self, size):
+        """
+        Iterator that yields chunks from the given size.
+
+        Args:
+            self: (todo): write your description
+            size: (int): write your description
+        """
         chunksize = size//100
         print("sending %d bytes via iterator, chunks of %d bytes" % (size, chunksize))
         data = b"x" * size
@@ -30,6 +44,13 @@ class FileServer(object):
             i += chunksize
 
     def annotation_stream(self, with_checksum=False):
+        """
+        Yields a generator of the given annotation.
+
+        Args:
+            self: (todo): write your description
+            with_checksum: (bool): write your description
+        """
         # create a large temporary file
         f = tempfile.TemporaryFile()
         for _ in range(5000):
@@ -50,6 +71,13 @@ class FileServer(object):
                 yield f.tell(), zlib.crc32(chunk) if with_checksum else 0
 
     def prepare_file_blob(self, size):
+        """
+        Prepare blobs for blobs
+
+        Args:
+            self: (todo): write your description
+            size: (int): write your description
+        """
         print("preparing file-based blob of size %d" % size)
         file_id = str(uuid.uuid4())
         f = tempfile.TemporaryFile()
@@ -65,6 +93,13 @@ class FileServer(object):
         return file_id, blobsock_info
 
     def prepare_memory_blob(self, size):
+        """
+        Prepare blobs for blobs.
+
+        Args:
+            self: (todo): write your description
+            size: (int): write your description
+        """
         print("preparing in-memory blob of size %d" % size)
         file_id = str(uuid.uuid4())
         datablobs[file_id] = b"x" * size
@@ -74,16 +109,37 @@ class FileServer(object):
 
 class FileServerDaemon(Daemon):
     def __init__(self, host=None, port=0):
+        """
+        Initialize blobs
+
+        Args:
+            self: (todo): write your description
+            host: (str): write your description
+            port: (int): write your description
+        """
         super(FileServerDaemon, self).__init__(host, port)
         host = self.transportServer.sock.getsockname()[0]
         self.blobsocket = Pyro5.socketutil.create_socket(bind=(host, 0), timeout=config.COMMTIMEOUT, nodelay=False)
         print("Blob socket available on:", self.blobsocket.getsockname())
 
     def close(self):
+        """
+        Closes the file.
+
+        Args:
+            self: (todo): write your description
+        """
         self.blobsocket.close()
         super(FileServerDaemon, self).close()
 
     def requestLoop(self, loopCondition=lambda: True):
+        """
+        Starts events.
+
+        Args:
+            self: (todo): write your description
+            loopCondition: (todo): write your description
+        """
         while loopCondition:
             rs = [self.blobsocket]
             rs.extend(self.sockets)
@@ -98,12 +154,26 @@ class FileServerDaemon(Daemon):
                 self.events(daemon_events)
 
     def handle_blob_connect(self, sock):
+        """
+        Handle a blob blob.
+
+        Args:
+            self: (todo): write your description
+            sock: (todo): write your description
+        """
         csock, caddr = sock.accept()
         thread = threading.Thread(target=self.blob_client, args=(csock,))
         thread.daemon = True
         thread.start()
 
     def blob_client(self, csock):
+        """
+        Reads the contents of the client.
+
+        Args:
+            self: (todo): write your description
+            csock: (todo): write your description
+        """
         file_id = Pyro5.socketutil.receive_data(csock, 36).decode()
         print("{0} requesting file id {1}".format(csock.getpeername(), file_id))
         is_file, data = self.find_blob_data(file_id)
@@ -130,6 +200,13 @@ class FileServerDaemon(Daemon):
         csock.close()
 
     def find_blob_data(self, file_id):
+        """
+        Find blob file with given file_id.
+
+        Args:
+            self: (todo): write your description
+            file_id: (str): write your description
+        """
         if file_id in datablobs:
             return False, datablobs.pop(file_id)
         elif file_id in datafiles:

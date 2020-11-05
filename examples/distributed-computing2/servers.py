@@ -18,6 +18,13 @@ class WordCounter(object):
 
     @expose
     def count(self, lines):
+        """
+        Count the number of lines.
+
+        Args:
+            self: (todo): write your description
+            lines: (list): write your description
+        """
         counts = Counter()
         for num, line in enumerate(lines):
             if line:
@@ -36,11 +43,26 @@ def grouper(n, iterable, padvalue=None):
 
 class Dispatcher(object):
     def count_chunk(self, counter, chunk):
+        """
+        Counts the number of times in a counter.
+
+        Args:
+            self: (todo): write your description
+            counter: (int): write your description
+            chunk: (todo): write your description
+        """
         with Proxy(counter) as c:
             return c.count(chunk)
 
     @expose
     def count(self, lines):
+        """
+        Count the number of lines in a list.
+
+        Args:
+            self: (todo): write your description
+            lines: (list): write your description
+        """
         # use the name server's prefix lookup to get all registered wordcounters
         with locate_ns() as ns:
             all_counters = ns.list(prefix="example.dc2.wordcount.")

@@ -5,6 +5,13 @@ import Pyro5.api
 class Safe(object):
     @Pyro5.api.expose
     def echo(self, message):
+        """
+        Echo message
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         print("got message:", message)
         return "hi!"
 
@@ -19,6 +26,14 @@ print("SSL enabled (2-way).")
 
 class CertValidatingDaemon(Pyro5.api.Daemon):
     def validateHandshake(self, conn, data):
+        """
+        Validate a certificate.
+
+        Args:
+            self: (todo): write your description
+            conn: (todo): write your description
+            data: (todo): write your description
+        """
         cert = conn.getpeercert()
         if not cert:
             raise Pyro5.errors.CommunicationError("client cert missing")

@@ -3,6 +3,13 @@ from Pyro5.api import Proxy
 
 class CustomHandshakeProxy(Proxy):
     def _pyroValidateHandshake(self, response):
+        """
+        Check if the response.
+
+        Args:
+            self: (todo): write your description
+            response: (todo): write your description
+        """
         # this will get called if the connection is okay by the server
         print("Proxy received handshake response data: ", response)
 

@@ -8,16 +8,34 @@ sys.excepthook = Pyro5.errors.excepthook
 
 
 def get_user_token():
+    """
+    Gets the user token.
+
+    Args:
+    """
     return "user123"
 
 
 class DbAccessor(threading.Thread):
     def __init__(self, uri):
+        """
+        Initialize the application.
+
+        Args:
+            self: (todo): write your description
+            uri: (str): write your description
+        """
         super(DbAccessor, self).__init__()
         self.uri = uri
         self.daemon = True
 
     def run(self):
+        """
+        Starts the user.
+
+        Args:
+            self: (todo): write your description
+        """
         proxy = Pyro5.api.Proxy(self.uri)
         for i in range(3):
             try:

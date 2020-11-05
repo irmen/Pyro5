@@ -71,6 +71,18 @@ class SendingMessage:
     """Wire protocol message that will be sent."""
 
     def __init__(self, msgtype, flags, seq, serializer_id, payload, annotations=None):
+        """
+        Initialize the message.
+
+        Args:
+            self: (todo): write your description
+            msgtype: (str): write your description
+            flags: (int): write your description
+            seq: (str): write your description
+            serializer_id: (todo): write your description
+            payload: (todo): write your description
+            annotations: (dict): write your description
+        """
         self.type = msgtype
         self.seq = seq
         self.serializer_id = serializer_id
@@ -102,6 +114,12 @@ class SendingMessage:
         self.data = header_data + b"".join(annotation_data) + payload
 
     def __repr__(self):
+        """
+        Return a repr representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<{:s}.{:s} at 0x{:x}; type={:d} flags={:d} seq={:d} size={:d}>" \
             .format(self.__module__, self.__class__.__name__, id(self), self.type, self.flags, self.seq, len(self.data))
 
@@ -130,6 +148,12 @@ class ReceivingMessage:
             self.add_payload(payload)
 
     def __repr__(self):
+        """
+        Return a repr representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<{:s}.{:s} at 0x{:x}; type={:d} flags={:d} seq={:d} size={:d}>" \
             .format(self.__module__, self.__class__.__name__, id(self), self.type, self.flags, self.seq, len(self.data or ""))
 
