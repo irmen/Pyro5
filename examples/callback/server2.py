@@ -6,6 +6,13 @@ class CallbackServer(object):
     @expose
     @oneway
     def doCallback(self, callback):
+        """
+        ::
+
+        Args:
+            self: (todo): write your description
+            callback: (todo): write your description
+        """
         print("\n\nserver: doing callback 1 to client")
         callback._pyroClaimOwnership()
         try:

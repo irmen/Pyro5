@@ -15,6 +15,11 @@ proxy.ping()    # call it, the proxy is now connected and bound to the main thre
 # and Pyro will raise an exception to tell you that:
 
 def other_thread_call():
+    """
+    Call this thread
+
+    Args:
+    """
     try:
         proxy.ping()
         print("You should not see this!! the call succeeded in thread", threading.current_thread())
@@ -31,6 +36,12 @@ time.sleep(1)
 # SOLUTION 1:  create a new proxy in the other thread.
 
 def new_proxy_thread_call(uri):
+    """
+    Create a new thread thread.
+
+    Args:
+        uri: (str): write your description
+    """
     proxy = Pyro5.api.Proxy(uri)
     proxy.ping()
     print("Solution 1. The call succeeded in thread", threading.current_thread())
@@ -44,6 +55,12 @@ time.sleep(1)
 # SOLUTION 2:  transfer ownership of our proxy to the other thread.
 
 def new_owner_thread_call(proxy):
+    """
+    Creates a new thread.
+
+    Args:
+        proxy: (todo): write your description
+    """
     proxy._pyroClaimOwnership()
     proxy.ping()
     print("Solution 2. The call succeeded in thread", threading.current_thread())

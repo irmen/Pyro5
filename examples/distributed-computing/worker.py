@@ -16,6 +16,12 @@ def factorize(n):
     """simple algorithm to find the prime factorials of the given number n"""
 
     def isPrime(n):
+        """
+        Returns true if n is equal false otherwise false.
+
+        Args:
+            n: (int): write your description
+        """
         return not any(x for x in range(2, int(sqrt(n)) + 1) if n % x == 0)
 
     primes = []
@@ -29,6 +35,12 @@ def factorize(n):
 
 
 def process(item):
+    """
+    Prints an item.
+
+    Args:
+        item: (todo): write your description
+    """
     print("factorizing %s -->" % item.data)
     sys.stdout.flush()
     item.result = factorize(int(item.data))
@@ -37,6 +49,11 @@ def process(item):
 
 
 def main():
+    """
+    Main function.
+
+    Args:
+    """
     dispatcher = Proxy("PYRONAME:example.distributed.dispatcher")
     print("This is worker %s" % WORKERNAME)
     print("getting work from dispatcher.")

@@ -5,6 +5,13 @@ import threading
 @Pyro5.api.expose
 class EchoServer(object):
     def echo(self, message):
+        """
+        Echo a message
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         ctx = Pyro5.api.current_context
         print("\nGot Message:", message)
         print("  thread: ", threading.current_thread().ident)
@@ -22,11 +29,24 @@ class EchoServer(object):
 
     @Pyro5.api.oneway
     def oneway(self, message):
+        """
+        Hook.
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         return self.echo(message)
 
 
 class CustomDaemon(Pyro5.api.Daemon):
     def annotations(self):
+        """
+        Return the annotations.
+
+        Args:
+            self: (todo): write your description
+        """
         return {"DDAA": b"custom response annotation set by the daemon"}
 
 

@@ -15,6 +15,14 @@ sys.excepthook = Pyro5.errors.excepthook
 @expose
 class Subber(Subscriber):
     def consume_message(self, topic, message):
+        """
+        Consume a message
+
+        Args:
+            self: (todo): write your description
+            topic: (str): write your description
+            message: (str): write your description
+        """
         # In this case, this consume message method is called by our own code loop.
         print("\nPROCESSING MESSAGE:")
         print("   topic:", topic)
@@ -23,6 +31,12 @@ class Subber(Subscriber):
         print("    data:", message.data)
 
     def manual_message_loop(self):
+        """
+        Manage message loop.
+
+        Args:
+            self: (todo): write your description
+        """
         print("Entering manual message processing loop (5 messages).")
         processed = 0
         while processed < 5:

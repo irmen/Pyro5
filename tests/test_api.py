@@ -9,6 +9,11 @@ from Pyro5.serializers import SerializerBase
 
 
 def test_api():
+    """
+    Register a pyro5 api class.
+
+    Args:
+    """
     assert hasattr(Pyro5.api, "__version__")
     assert Pyro5.api.config.SERIALIZER == "serpent"
     assert Pyro5.api.URI is Pyro5.core.URI

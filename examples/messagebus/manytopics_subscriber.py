@@ -13,6 +13,13 @@ from messagebus.messagebus import Subscriber
 @expose
 class Subber(Subscriber):
     def init_counters(self, topics):
+        """
+        Initialize counters.
+
+        Args:
+            self: (todo): write your description
+            topics: (todo): write your description
+        """
         self.message_counter = {}
         self.last_message = {}
         for t in topics:
@@ -20,11 +27,24 @@ class Subber(Subscriber):
             self.last_message[t] = None
 
     def consume_message(self, topic, message):
+        """
+        Consume a message.
+
+        Args:
+            self: (todo): write your description
+            topic: (str): write your description
+            message: (str): write your description
+        """
         self.message_counter[topic] += 1
         self.last_message[topic] = message
 
 
 def clear_screen():
+    """
+    Clear screen screen.
+
+    Args:
+    """
     os.system(['clear', 'cls'][os.name == 'nt'])
 
 

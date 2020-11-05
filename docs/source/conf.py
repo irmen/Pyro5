@@ -229,6 +229,12 @@ man_pages = [
 ]
 
 def setup(app):
+    """
+    Add sphinx extension.
+
+    Args:
+        app: (todo): write your description
+    """
     # add custom css
     app.add_stylesheet("css/customize.css")
     from sphinx.ext.autodoc import cut_lines

@@ -69,6 +69,12 @@ def get_ip_address(hostname: str, workaround127: bool = False, version: int = No
             return addr
 
     def getaddr(ip_version):
+        """
+        Return the ip address.
+
+        Args:
+            ip_version: (str): write your description
+        """
         if ip_version == 6:
             family = socket.AF_INET6
         elif ip_version == 4:
@@ -104,6 +110,11 @@ def get_interface(ip_address: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Ad
 
 
 def __retrydelays():
+    """
+    Retry the retry.
+
+    Args:
+    """
     # first try a few very short delays,
     # if that doesn't work, increase by 0.1 sec every time
     yield 0.0001
@@ -413,6 +424,17 @@ except ImportError:
 class SocketConnection(object):
     """A wrapper class for plain sockets, containing various methods such as :meth:`send` and :meth:`recv`"""
     def __init__(self, sock: socket.socket, objectId: str = None, keep_open: bool = False) -> None:
+        """
+        Initialize the socket.
+
+        Args:
+            self: (todo): write your description
+            sock: (todo): write your description
+            socket: (todo): write your description
+            socket: (todo): write your description
+            objectId: (str): write your description
+            keep_open: (bool): write your description
+        """
         self.sock = sock
         self.objectId = objectId
         self.pyroInstances = {}    # type: Dict[Type, Any]   # pyro objects for instance_mode=session
@@ -420,21 +442,62 @@ class SocketConnection(object):
         self.keep_open = keep_open
 
     def __del__(self):
+        """
+        Closes the stream.
+
+        Args:
+            self: (todo): write your description
+        """
         self.close()
 
     def __enter__(self):
+        """
+        Decor function.
+
+        Args:
+            self: (todo): write your description
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Called when an exception is raised.
+
+        Args:
+            self: (todo): write your description
+            exc_type: (todo): write your description
+            exc_val: (todo): write your description
+            exc_tb: (todo): write your description
+        """
         self.close()
 
     def send(self, data: bytes) -> None:
+        """
+        Send data to the socket.
+
+        Args:
+            self: (todo): write your description
+            data: (todo): write your description
+        """
         send_data(self.sock, data)
 
     def recv(self, size: int) -> bytes:
+        """
+        Receive a message from the socket.
+
+        Args:
+            self: (todo): write your description
+            size: (int): write your description
+        """
         return receive_data(self.sock, size)
 
     def close(self) -> None:
+        """
+        Closes the socket.
+
+        Args:
+            self: (todo): write your description
+        """
         if self.keep_open:
             return
         with contextlib.suppress(Exception):
@@ -448,18 +511,49 @@ class SocketConnection(object):
         self.tracked_resources.clear()
 
     def fileno(self) -> int:
+        """
+        Return the number of filters.
+
+        Args:
+            self: (todo): write your description
+        """
         return self.sock.fileno()
 
     def family(self) -> str:
+        """
+        Return the family family.
+
+        Args:
+            self: (todo): write your description
+        """
         return family_str(self.sock)
 
     def settimeout(self, timeout: Optional[float]) -> None:
+        """
+        Sets the socket.
+
+        Args:
+            self: (todo): write your description
+            timeout: (float): write your description
+        """
         self.sock.settimeout(timeout)
 
     def gettimeout(self) -> Optional[float]:
+        """
+        Get the number of the socket.
+
+        Args:
+            self: (todo): write your description
+        """
         return self.sock.gettimeout()
 
     def getpeercert(self) -> Optional[dict]:
+        """
+        Return the next socket.
+
+        Args:
+            self: (todo): write your description
+        """
         try:
             return self.sock.getpeercert()      # type: ignore
         except AttributeError:
@@ -469,6 +563,12 @@ class SocketConnection(object):
 
 
 def family_str(sock) -> str:
+    """
+    Return the string representation of a family.
+
+    Args:
+        sock: (todo): write your description
+    """
     f = sock.family
     if f == socket.AF_INET:
         return "IPv4"

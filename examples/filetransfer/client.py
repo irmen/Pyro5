@@ -8,6 +8,12 @@ from Pyro5.api import Proxy, current_context
 
 
 def regular_pyro(uri):
+    """
+    Run regular regular regular python implementation.
+
+    Args:
+        uri: (str): write your description
+    """
     blobsize = 10*1024*1024
     num_blobs = 10
     total_size = 0
@@ -25,6 +31,12 @@ def regular_pyro(uri):
 
 
 def via_iterator(uri):
+    """
+    Iterator that generates a iterator.
+
+    Args:
+        uri: (str): write your description
+    """
     blobsize = 10*1024*1024
     num_blobs = 10
     total_size = 0
@@ -42,6 +54,12 @@ def via_iterator(uri):
 
 
 def via_annotation_stream(uri):
+    """
+    Show a stream.
+
+    Args:
+        uri: (str): write your description
+    """
     name = threading.currentThread().name
     start = time.time()
     total_size = 0
@@ -60,6 +78,12 @@ def via_annotation_stream(uri):
 
 
 def raw_socket(uri):
+    """
+    Retrieve a blobs from a given uri.
+
+    Args:
+        uri: (str): write your description
+    """
     blobsize = 40*1024*1024
     num_blobs = 10
     total_size = 0

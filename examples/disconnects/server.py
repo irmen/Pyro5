@@ -12,6 +12,13 @@ config.POLLTIMEOUT = 5.0  # only used for multiplexing server
 class TestDisconnect(object):
     @expose
     def echo(self, arg):
+        """
+        Echo the given argument.
+
+        Args:
+            self: (todo): write your description
+            arg: (todo): write your description
+        """
         print("echo: ", arg)
         return arg
 

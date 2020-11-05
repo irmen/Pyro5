@@ -13,6 +13,14 @@ sys.excepthook = Pyro5.errors.excepthook
 @expose
 class Subber(Subscriber):
     def consume_message(self, topic, message):
+        """
+        Consume a message
+
+        Args:
+            self: (todo): write your description
+            topic: (str): write your description
+            message: (str): write your description
+        """
         # This callback-method is called automatically when a message arrives on the bus.
         print("\nGOT MESSAGE:")
         print("   topic:", topic)

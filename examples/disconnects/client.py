@@ -23,6 +23,12 @@ class AutoReconnectingProxy(Pyro5.api.Proxy):
     """
 
     def _pyroInvoke(self, *args, **kwargs):
+        """
+        Called bytest5 client.
+
+        Args:
+            self: (todo): write your description
+        """
         # We override the method that does the actual remote calls: _pyroInvoke.
         # If there's still a connection, try a ping to see if it is still alive.
         # If it isn't alive, reconnect it. If there's no connection, simply call

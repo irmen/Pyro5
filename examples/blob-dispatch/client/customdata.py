@@ -5,6 +5,15 @@ class CustomData(object):
     serialized_classname = "blobdispatch.CustomData"
 
     def __init__(self, a, b, c):
+        """
+        Initialize a b
+
+        Args:
+            self: (todo): write your description
+            a: (int): write your description
+            b: (int): write your description
+            c: (int): write your description
+        """
         self.a = a
         self.b = b
         self.c = c

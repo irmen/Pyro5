@@ -21,11 +21,27 @@ log = logging.getLogger("Pyro5.multiplexserver")
 class SocketServer_Multiplex(object):
     """Multiplexed transport server for socket connections (uses select, poll, kqueue, ...)"""
     def __init__(self):
+        """
+        Init the socket.
+
+        Args:
+            self: (todo): write your description
+        """
         self.sock = self.daemon = self.locationStr = None
         self.selector = selectors.DefaultSelector()
         self.shutting_down = False
 
     def init(self, daemon, host, port, unixsocket=None):
+        """
+        Initialize the connection.
+
+        Args:
+            self: (todo): write your description
+            daemon: (todo): write your description
+            host: (str): write your description
+            port: (int): write your description
+            unixsocket: (todo): write your description
+        """
         log.info("starting multiplexed socketserver")
         log.debug("selector implementation: %s.%s", self.selector.__class__.__module__, self.selector.__class__.__name__)
         self.sock = None
@@ -62,9 +78,21 @@ class SocketServer_Multiplex(object):
         self.selector.register(self.sock, selectors.EVENT_READ, self)
 
     def __repr__(self):
+        """
+        Return a representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<%s on %s; %d connections>" % (self.__class__.__name__, self.locationStr, len(self.selector.get_map()) - 1)
 
     def __del__(self):
+        """
+        Close the socket.
+
+        Args:
+            self: (todo): write your description
+        """
         if self.sock is not None:
             self.selector.close()
             self.sock.close()
@@ -93,6 +121,13 @@ class SocketServer_Multiplex(object):
         self.daemon._housekeeping()
 
     def _handleConnection(self, sock):
+        """
+        Handle a socket.
+
+        Args:
+            self: (todo): write your description
+            sock: (todo): write your description
+        """
         try:
             if sock is None:
                 return
@@ -127,6 +162,12 @@ class SocketServer_Multiplex(object):
         return None
 
     def shutdown(self):
+        """
+        Shutdown the connection.
+
+        Args:
+            self: (todo): write your description
+        """
         self.shutting_down = True
         self.wakeup()
         time.sleep(0.05)
@@ -134,6 +175,12 @@ class SocketServer_Multiplex(object):
         self.sock = None
 
     def close(self):
+        """
+        Close the socket.
+
+        Args:
+            self: (todo): write your description
+        """
         self.selector.close()
         if self.sock:
             sockname = None
@@ -148,6 +195,12 @@ class SocketServer_Multiplex(object):
 
     @property
     def sockets(self):
+        """
+        Return a list of : class :.
+
+        Args:
+            self: (todo): write your description
+        """
         registrations = self.selector.get_map()
         if registrations:
             return [sk.fileobj for sk in registrations.values()]
@@ -185,6 +238,13 @@ class SocketServer_Multiplex(object):
             return False
 
     def loop(self, loopCondition=lambda: True):
+        """
+        Main loop.
+
+        Args:
+            self: (todo): write your description
+            loopCondition: (str): write your description
+        """
         log.debug("entering multiplexed requestloop")
         while loopCondition():
             try:
@@ -209,6 +269,13 @@ class SocketServer_Multiplex(object):
                 break
 
     def combine_loop(self, server):
+        """
+        Combine the server.
+
+        Args:
+            self: (todo): write your description
+            server: (str): write your description
+        """
         for sock in server.sockets:
             self.selector.register(sock, selectors.EVENT_READ, server)
         server.selector = self.selector

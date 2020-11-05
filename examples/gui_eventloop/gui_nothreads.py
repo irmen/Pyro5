@@ -27,6 +27,12 @@ class PyroGUI(object):
     """
 
     def __init__(self):
+        """
+        Initialize the widget.
+
+        Args:
+            self: (todo): write your description
+        """
         self.tk = Tk()
         self.tk.wm_title("Pyro in a Tkinter GUI eventloop - without threads")
         self.tk.wm_geometry("500x500")
@@ -56,6 +62,11 @@ class PyroGUI(object):
         """
 
         def pyro_event():
+            """
+            Root event handler.
+
+            Args:
+            """
             while True:
                 # for as long as the pyro socket triggers, dispatch events
                 s, _, _ = select.select(daemon.sockets, [], [], 0.01)
@@ -69,21 +80,52 @@ class PyroGUI(object):
         self.tk.after(1000 // PYRO_EVENTLOOP_HZ, pyro_event)
 
     def mainloop(self):
+        """
+        The main loop.
+
+        Args:
+            self: (todo): write your description
+        """
         self.tk.mainloop()
 
     def button_msgbox_clicked(self):
+        """
+        Displays a buttonbox.
+
+        Args:
+            self: (todo): write your description
+        """
         # this button event handler is here only to show that gui events are still processed normally
         number = simpledialog.askinteger("A normal popup", "Hi there enter a number", parent=self.tk)
 
     def button_clear_clicked(self):
+        """
+        Clears the button button.
+
+        Args:
+            self: (todo): write your description
+        """
         self.serveroutput = []
         self.msg.config(text="")
 
     def button_text_clicked(self):
+        """
+        Function to display button clicked.
+
+        Args:
+            self: (todo): write your description
+        """
         # add some random text to the message list
         self.add_message("The quick brown fox jumps over the lazy dog!")
 
     def add_message(self, message):
+        """
+        Add a message to the server.
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         message = "[{0}] {1}".format(time.strftime("%X"), message)
         self.serveroutput.append(message)
         self.serveroutput = self.serveroutput[-27:]
@@ -97,9 +139,23 @@ class MessagePrinter(object):
     """
 
     def __init__(self, gui):
+        """
+        Initialize the gui
+
+        Args:
+            self: (todo): write your description
+            gui: (todo): write your description
+        """
         self.gui = gui
 
     def message(self, messagetext):
+        """
+        Add a message to the list.
+
+        Args:
+            self: (todo): write your description
+            messagetext: (str): write your description
+        """
         # Add the message to the screen.
         # Note that you can't do anything that requires gui interaction
         # (such as popping a dialog box asking for user input),
@@ -111,6 +167,13 @@ class MessagePrinter(object):
         self.gui.add_message("from Pyro: " + messagetext)
 
     def sleep(self, duration):
+        """
+        Sleep for the main loop.
+
+        Args:
+            self: (todo): write your description
+            duration: (float): write your description
+        """
         # Note that you can't perform blocking stuff at all because the method
         # call is running in the gui mainloop thread and will freeze the GUI.
         # Try it - you will see the first message but everything locks up until
@@ -122,6 +185,11 @@ class MessagePrinter(object):
 
 
 def main():
+    """
+    Main function.
+
+    Args:
+    """
     gui = PyroGUI()
 
     # create a pyro daemon with object

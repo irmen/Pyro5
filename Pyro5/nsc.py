@@ -8,7 +8,21 @@ from . import errors, core
 
 
 def handle_command(namesrv, cmd, args):
+    """
+    Handle command
+
+    Args:
+        namesrv: (todo): write your description
+        cmd: (str): write your description
+    """
     def print_list_result(resultdict, title=""):
+        """
+        Print the result of a dictionary
+
+        Args:
+            resultdict: (dict): write your description
+            title: (str): write your description
+        """
         print("--------START LIST %s" % title)
         for name, (uri, metadata) in sorted(resultdict.items()):
             print("%s --> %s" % (name, uri))
@@ -17,21 +31,41 @@ def handle_command(namesrv, cmd, args):
         print("--------END LIST %s" % title)
 
     def cmd_ping():
+        """
+        Ping ping
+
+        Args:
+        """
         namesrv.ping()
         print("Name server ping ok.")
 
     def cmd_listprefix():
+        """
+        List prefix
+
+        Args:
+        """
         if len(args) == 0:
             print_list_result(namesrv.list(return_metadata=True))
         else:
             print_list_result(namesrv.list(prefix=args[0], return_metadata=True), "- prefix '%s'" % args[0])
 
     def cmd_listregex():
+        """
+        List the packages
+
+        Args:
+        """
         if len(args) != 1:
             raise SystemExit("requires one argument: pattern")
         print_list_result(namesrv.list(regex=args[0], return_metadata=True), "- regex '%s'" % args[0])
 
     def cmd_lookup():
+        """
+        Execute the command
+
+        Args:
+        """
         if len(args) != 1:
             raise SystemExit("requires one argument: name")
         uri, metadata = namesrv.lookup(args[0], return_metadata=True)
@@ -40,12 +74,22 @@ def handle_command(namesrv, cmd, args):
             print("metadata:", metadata)
 
     def cmd_register():
+        """
+        Register a new command.
+
+        Args:
+        """
         if len(args) != 2:
             raise SystemExit("requires two arguments: name uri")
         namesrv.register(args[0], args[1], safe=True)
         print("Registered %s" % args[0])
 
     def cmd_remove():
+        """
+        Remove behaviour
+
+        Args:
+        """
         if len(args) != 1:
             raise SystemExit("requires one argument: name")
         count = namesrv.remove(args[0])
@@ -55,6 +99,11 @@ def handle_command(namesrv, cmd, args):
             print("Nothing removed")
 
     def cmd_removeregex():
+        """
+        Remove <cmd >
+
+        Args:
+        """
         if len(args) != 1:
             raise SystemExit("requires one argument: pattern")
         sure = input("Potentially removing lots of items from the Name server. Are you sure (y/n)?").strip()
@@ -63,6 +112,11 @@ def handle_command(namesrv, cmd, args):
             print("%d items removed." % count)
 
     def cmd_setmeta():
+        """
+        Set metadata
+
+        Args:
+        """
         if len(args) < 1:
             raise SystemExit("requires arguments: uri and zero or more meta tags")
         metadata = set(args[1:])
@@ -73,11 +127,21 @@ def handle_command(namesrv, cmd, args):
             print("Metadata cleared")
 
     def cmd_yplookup_all():
+        """
+        List yplook yplook
+
+        Args:
+        """
         if len(args) < 1:
             raise SystemExit("requires at least one metadata tag argument")
         print_list_result(namesrv.yplookup(meta_all=args, return_metadata=True), " - searched by metadata")
 
     def cmd_yplookup_any():
+        """
+        Print yplook
+
+        Args:
+        """
         if len(args) < 1:
             raise SystemExit("requires at least one metadata tag argument")
         print_list_result(namesrv.yplookup(meta_any=args, return_metadata=True), " - searched by metadata")
@@ -102,6 +166,11 @@ def handle_command(namesrv, cmd, args):
 
 
 def main(args=None):
+    """
+    Main function.
+
+    Args:
+    """
     from argparse import ArgumentParser
     parser = ArgumentParser(description="Pyro name server control utility.")
     parser.add_argument("-n", "--host", dest="host", help="hostname of the NS", default="")

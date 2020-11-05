@@ -11,12 +11,24 @@ log.setLevel(logging.WARNING)
 
 class CallbackHandler(object):
     def crash(self):
+        """
+        Returns a jacash.
+
+        Args:
+            self: (todo): write your description
+        """
         a = 1
         b = 0
         return a // b
 
     @expose
     def call1(self):
+        """
+        Returns the ctypes.
+
+        Args:
+            self: (todo): write your description
+        """
         print("\n\ncallback 1 received from server!")
         print("going to crash - you won't see the exception here, only on the server")
         return self.crash()
@@ -24,6 +36,12 @@ class CallbackHandler(object):
     @expose
     @callback
     def call2(self):
+        """
+        Call the crash command.
+
+        Args:
+            self: (todo): write your description
+        """
         print("\n\ncallback 2 received from server!")
         print("going to crash - but you will see the exception printed here too:")
         return self.crash()

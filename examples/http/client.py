@@ -6,6 +6,12 @@ from urllib.error import HTTPError
 
 
 def get_charset(req):
+    """
+    Get the charset of a request.
+
+    Args:
+        req: (todo): write your description
+    """
     charset = "utf-8"
     match = re.match(r".* charset=(.+)", req.getheader("Content-Type"))
     if match:
@@ -14,6 +20,14 @@ def get_charset(req):
 
 
 def pyro_call(object_name, method, callback):
+    """
+    Calls an xml - rpc method.
+
+    Args:
+        object_name: (str): write your description
+        method: (str): write your description
+        callback: (todo): write your description
+    """
     request = Request("http://127.0.0.1:8080/pyro/{0}/{1}".format(object_name, method),
                       # headers={"x-pyro-options": "oneway", "x-pyro-gateway-key": "secretgatewaykey"}
                       )
@@ -27,6 +41,12 @@ def pyro_call(object_name, method, callback):
 
 
 def write_result(result):
+    """
+    Write result to the result file.
+
+    Args:
+        result: (str): write your description
+    """
     pprint.pprint(result, width=40)
 
 try:

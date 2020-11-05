@@ -82,26 +82,72 @@ class WSGITestBase:
 
 @pytest.fixture(scope="module")
 def wsgiserver():
+    """
+    Decorator for creating a wro5 class.
+
+    Args:
+    """
     # a bit of hackery to avoid having to launch a live name server
     class NameServerDummyProxy(NameServer):
         def __init__(self):
+            """
+            Initialize the pyro5.
+
+            Args:
+                self: (todo): write your description
+            """
             super(NameServerDummyProxy, self).__init__()
             self._pyroUri = Pyro5.core.URI("PYRO:dummy12345@localhost:59999")
             self.register("http.ObjectName", "PYRO:dummy12345@localhost:59999")
 
         def __enter__(self):
+            """
+            Decor function.
+
+            Args:
+                self: (todo): write your description
+            """
             return self
 
         def __exit__(self, exc_type, exc_val, exc_tb):
+            """
+            Exit the given exception and raise the result.
+
+            Args:
+                self: (todo): write your description
+                exc_type: (todo): write your description
+                exc_val: (todo): write your description
+                exc_tb: (todo): write your description
+            """
             pass
 
         def __call__(self, *args, **kwargs):
+            """
+            Call a call.
+
+            Args:
+                self: (todo): write your description
+            """
             return ["Name1", "Name2", "Name3"]
 
         def _pyroInvokeBatch(self, calls, oneway=False):
+            """
+            Returns a list of pyroys.
+
+            Args:
+                self: (todo): write your description
+                calls: (todo): write your description
+                oneway: (todo): write your description
+            """
             return ["Name1"]
 
         def _pyroClaimOwnership(self):
+            """
+            : return : pyroClaim.
+
+            Args:
+                self: (todo): write your description
+            """
             pass
 
     ws = WSGITestBase()
@@ -116,9 +162,21 @@ def wsgiserver():
 class TestHttpGateway:
 
     def teardown_class(self):
+        """
+        Teardown the class.
+
+        Args:
+            self: (todo): write your description
+        """
         Pyro5.config.SERIALIZER = "serpent"
 
     def test_params(self):
+        """
+        Test the http parameters *
+
+        Args:
+            self: (todo): write your description
+        """
         multiparams = {
             "first": [1],
             "second": [1, 2, 3],
@@ -135,18 +193,39 @@ class TestHttpGateway:
         assert checkparams == params
 
     def test_redirect(self, wsgiserver):
+        """
+        Redirect the redirect to a redirect to the given the redirect to the application.
+
+        Args:
+            self: (todo): write your description
+            wsgiserver: (todo): write your description
+        """
         result = wsgiserver.request(Pyro5.utils.httpgateway.pyro_app, "/")
         assert wsgiserver.status == "302 Found"
         assert wsgiserver.headers == [('Location', '/pyro/')]
         assert result == b""
 
     def test_webpage(self, wsgiserver):
+        """
+        Test if the webpage webpage.
+
+        Args:
+            self: (todo): write your description
+            wsgiserver: (todo): write your description
+        """
         result = wsgiserver.request(Pyro5.utils.httpgateway.pyro_app, "/pyro/")
         assert wsgiserver.status == "200 OK"
         assert result.startswith(b"<!DOCTYPE html>")
         assert len(result) > 1000
 
     def test_methodCallGET(self, wsgiserver):
+        """
+        Test for a http request. hrocessing api.
+
+        Args:
+            self: (todo): write your description
+            wsgiserver: (todo): write your description
+        """
         result = wsgiserver.request(Pyro5.utils.httpgateway.pyro_app, "/pyro/http.ObjectName/method", query_string="param=42&param2=hello")
         # the call will result in a communication error because the dummy uri points to something that is not available
         assert wsgiserver.status == "500 Internal Server Error"
@@ -155,6 +234,13 @@ class TestHttpGateway:
         assert j["__class__"] == "Pyro5.errors.CommunicationError"
 
     def test_methodCallPOST(self, wsgiserver):
+        """
+        Make a http request.
+
+        Args:
+            self: (todo): write your description
+            wsgiserver: (todo): write your description
+        """
         result = wsgiserver.request(Pyro5.utils.httpgateway.pyro_app, "/pyro/http.ObjectName/method", post_data=b"param=42&param2=hello")
         # the call will result in a communication error because the dummy uri points to something that is not available
         assert wsgiserver.status == "500 Internal Server Error"
@@ -163,11 +249,25 @@ class TestHttpGateway:
         assert j["__class__"] == "Pyro5.errors.CommunicationError"
 
     def test_nameDeniedPattern(self, wsgiserver):
+        """
+        Test if the nameDenied by the name
+
+        Args:
+            self: (todo): write your description
+            wsgiserver: (todo): write your description
+        """
         result = wsgiserver.request(Pyro5.utils.httpgateway.pyro_app, "/pyro/Pyro.NameServer/method")
         # the call will result in a access denied error because the uri points to a non-exposed name
         assert wsgiserver.status == "403 Forbidden"
 
     def test_nameDeniedNotRegistered(self, wsgiserver):
+        """
+        Test if a nameDen
+
+        Args:
+            self: (todo): write your description
+            wsgiserver: (todo): write your description
+        """
         result = wsgiserver.request(Pyro5.utils.httpgateway.pyro_app, "/pyro/http.NotRegisteredName/method")
         # the call will result in a communication error because the dummy uri points to something that is not registered
         assert wsgiserver.status == "500 Internal Server Error"
@@ -176,4 +276,10 @@ class TestHttpGateway:
         assert j["__class__"] == "Pyro5.errors.NamingError"
 
     def test_exposedPattern(self):
+        """
+        Test for pyro55.
+
+        Args:
+            self: (todo): write your description
+        """
         assert Pyro5.utils.httpgateway.pyro_app.ns_regex == r"http\."

@@ -6,6 +6,12 @@ import Pyro5.api
 class DmesgServer:
     @Pyro5.api.expose
     def dmesg(self):
+        """
+        Return the dmes dmes - dmes
+
+        Args:
+            self: (todo): write your description
+        """
         # reading last 20 lines of the kernel's dmesg buffer... (requires root privilege)
         try:
             result = subprocess.check_output(["dmesg", "--nopager", "--level", "info"])

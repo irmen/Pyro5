@@ -15,6 +15,14 @@ my_ip = Pyro5.socketutil.get_ip_address(None, workaround127=True)
 @Pyro5.api.expose
 class EmbeddedServer(object):
     def multiply(self, x, y):
+        """
+        Multiply x and y.
+
+        Args:
+            self: (todo): write your description
+            x: (array): write your description
+            y: (array): write your description
+        """
         return x * y
 
 
@@ -44,6 +52,11 @@ pyrodaemon.combine(broadcastServer)
 
 
 def loopcondition():
+    """
+    Loop over the condition
+
+    Args:
+    """
     print(time.asctime(), "Waiting for requests...")
     return True
 

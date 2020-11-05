@@ -5,6 +5,13 @@ from Pyro5.api import expose, locate_ns, Daemon, config
 @expose
 class TimeoutServer(object):
     def delay(self, amount):
+        """
+        Return the amount of the amount
+
+        Args:
+            self: (todo): write your description
+            amount: (int): write your description
+        """
         print("sleeping %d" % amount)
         time.sleep(amount)
         print("done.")

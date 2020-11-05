@@ -4,6 +4,14 @@ import hashlib
 
 class DiffieHellman(object):
     def __init__(self, num_bits=544, group=17):
+        """
+        Initialize the private key.
+
+        Args:
+            self: (todo): write your description
+            num_bits: (int): write your description
+            group: (todo): write your description
+        """
         if num_bits % 8 != 0:
             raise ValueError("private key size should be multiple of 8 bits")
         self.num_bits = num_bits
@@ -15,6 +23,12 @@ class DiffieHellman(object):
         self.__key = None
 
     def __str__(self):
+        """
+        Generate a private key as a string.
+
+        Args:
+            self: (todo): write your description
+        """
         return """<DiffieHellman KeyPair;
           bits: {0}
     public key: {1}
@@ -51,6 +65,13 @@ class DiffieHellman(object):
         return pow(self.generator, self.private_key, self.prime)
 
     def check_public_key(self, public_key):
+        """
+        Check if public key is a public.
+
+        Args:
+            self: (todo): write your description
+            public_key: (str): write your description
+        """
         if 2 < public_key < self.prime - 1:
             if pow(public_key, (self.prime - 1)//2, self.prime) == 1:
                 return True
@@ -65,6 +86,12 @@ class DiffieHellman(object):
 
     @property
     def key(self):
+        """
+        The key of the value.
+
+        Args:
+            self: (todo): write your description
+        """
         if self.__key is not None:
             return self.__key
         else:

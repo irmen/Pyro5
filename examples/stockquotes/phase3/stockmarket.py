@@ -10,10 +10,24 @@ HOST_PORT = 9092         # Set accordingly (i.e. 9876)
 @expose
 class StockMarket(object):
     def __init__(self, marketname, symbols):
+        """
+        Initialize market symbols.
+
+        Args:
+            self: (todo): write your description
+            marketname: (str): write your description
+            symbols: (str): write your description
+        """
         self._name = marketname
         self._symbols = symbols
 
     def quotes(self):
+        """
+        Returns a random quotes.
+
+        Args:
+            self: (todo): write your description
+        """
         while True:
             symbol = random.choice(self.symbols)
             yield symbol, round(random.uniform(5, 150), 2)
@@ -21,10 +35,22 @@ class StockMarket(object):
 
     @property
     def name(self):
+        """
+        The name of the name
+
+        Args:
+            self: (todo): write your description
+        """
         return self._name
 
     @property
     def symbols(self):
+        """
+        A set of symbols that symbols.
+
+        Args:
+            self: (todo): write your description
+        """
         return self._symbols
 
 

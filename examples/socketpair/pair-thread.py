@@ -12,6 +12,13 @@ sock1, sock2 = socket.socketpair()
 class Echo(object):
     @expose
     def echo(self, message):
+        """
+        Echo message
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         print("server got message: ", message)
         return "thank you"
 

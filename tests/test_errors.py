@@ -6,10 +6,23 @@ from Pyro5 import config, errors
 
 
 def crash(arg=100):
+    """
+    Computes the crash
+
+    Args:
+        arg: (str): write your description
+    """
     pre1 = "black"
     pre2 = 999
 
     def nest(p1, p2):
+        """
+        Nest p1darray
+
+        Args:
+            p1: (int): write your description
+            p2: (int): write your description
+        """
         q = "white" + pre1
         x = pre2
         y = arg // 2
@@ -25,6 +38,12 @@ def crash(arg=100):
 
 class TestErrors:
     def testFormatTracebackNormal(self):
+        """
+        Dump traceback.
+
+        Args:
+            self: (todo): write your description
+        """
         with pytest.raises(ZeroDivisionError) as x:
             crash()
         tb = "".join(errors.format_traceback(x.type, x.value, x.tb, detailed=False))
@@ -36,6 +55,12 @@ class TestErrors:
         assert " x = 999" not in  tb
 
     def testFormatTracebackDetail(self):
+        """
+        Takes a traceback to the traceback.
+
+        Args:
+            self: (todo): write your description
+        """
         with pytest.raises(ZeroDivisionError) as x:
             crash()
         tb = "".join(errors.format_traceback(x.type, x.value, x.tb, detailed=True))
@@ -47,6 +72,12 @@ class TestErrors:
         assert " x = 999" in  tb
 
     def testPyroTraceback(self):
+        """
+        Sets the traceback of pyroro.
+
+        Args:
+            self: (todo): write your description
+        """
         try:
             crash()
         except ZeroDivisionError:
@@ -69,6 +100,12 @@ class TestErrors:
             assert "TypeError:" in pyrotb
 
     def testPyroTracebackArgs(self):
+        """
+        Sets the exception arguments.
+
+        Args:
+            self: (todo): write your description
+        """
         try:
             crash()
         except ZeroDivisionError:
@@ -83,6 +120,12 @@ class TestErrors:
             assert tb1 != tb2
 
     def testExcepthook(self):
+        """
+        Dump the crash.
+
+        Args:
+            self: (todo): write your description
+        """
         # simply test the excepthook by calling it the way Python would
         try:
             crash()
@@ -105,6 +148,12 @@ class TestErrors:
             sys.stderr = oldstderr
 
     def clearEnv(self):
+        """
+        Clears the environment variables.
+
+        Args:
+            self: (todo): write your description
+        """
         if "PYRO_HOST" in os.environ:
             del os.environ["PYRO_HOST"]
         if "PYRO_NS_PORT" in os.environ:
@@ -114,6 +163,12 @@ class TestErrors:
         config.reset()
 
     def testConfig(self):
+        """
+        Clear the environment.
+
+        Args:
+            self: (todo): write your description
+        """
         self.clearEnv()
         try:
             assert config.NS_PORT == 9090
@@ -136,6 +191,12 @@ class TestErrors:
             assert config.COMPRESSION == False
 
     def testConfigReset(self):
+        """
+        Reset the environment variables.
+
+        Args:
+            self: (todo): write your description
+        """
         try:
             config.reset()
             assert config.HOST == "localhost"

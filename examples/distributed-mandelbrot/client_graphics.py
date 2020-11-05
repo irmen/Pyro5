@@ -11,6 +11,12 @@ res_y = 800
 
 class MandelWindow(object):
     def __init__(self):
+        """
+        Initialize the widget
+
+        Args:
+            self: (todo): write your description
+        """
         self.root = tkinter.Tk()
         self.root.title("Mandelbrot (Pyro multi CPU core version)")
         canvas = tkinter.Canvas(self.root, width=res_x, height=res_y, bg="#000000")
@@ -33,6 +39,12 @@ class MandelWindow(object):
         tkinter.mainloop()
 
     def draw_results(self):
+        """
+        Draw the results.
+
+        Args:
+            self: (todo): write your description
+        """
         for task in futures.as_completed(self.tasks):
             y, pixeldata = task.result()
             self.img.put(pixeldata, (0, y))
@@ -41,7 +53,21 @@ class MandelWindow(object):
         print("Calculation took: %.2f seconds" % duration)
 
     def calc_new_line(self, y):
+        """
+        Calculate a new new server : class
+
+        Args:
+            self: (todo): write your description
+            y: (todo): write your description
+        """
         def line_task(server_uri, y):
+            """
+            Calculate the task task.
+
+            Args:
+                server_uri: (str): write your description
+                y: (str): write your description
+            """
             with Proxy(server_uri) as calcproxy:
                 return calcproxy.calc_photoimage_line(y, res_x, res_y)
         uri = self.mandels[y % len(self.mandels)]  # round robin server selection

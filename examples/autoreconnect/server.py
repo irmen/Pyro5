@@ -8,6 +8,13 @@ print("Autoreconnect using PYRO uri.")
 @expose
 class TestClass(object):
     def method(self, arg):
+        """
+        Print a method
+
+        Args:
+            self: (todo): write your description
+            arg: (todo): write your description
+        """
         print("Method called with %s" % arg)
         print("You can now try to stop this server with ctrl-C/ctrl-Break")
         time.sleep(1)

@@ -7,6 +7,12 @@ from Pyro5.api import expose, Daemon
 class QuoteGen(object):
     @expose
     def quote(self):
+        """
+        Reads the quoted string.
+
+        Args:
+            self: (todo): write your description
+        """
         try:
             quote = os.popen('fortune').read()
             if len(quote) > 0:

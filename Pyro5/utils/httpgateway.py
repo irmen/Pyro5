@@ -38,6 +38,11 @@ _nameserver = None
 
 
 def get_nameserver():
+    """
+    Return the nameserver
+
+    Args:
+    """
     global _nameserver
     if not _nameserver:
         _nameserver = core.locate_ns()
@@ -153,6 +158,13 @@ Response: <pre id="pyro_response"> &nbsp; </pre>
 
 
 def return_homepage(environ, start_response):
+    """
+    Returns a list of - of the page.
+
+    Args:
+        environ: (todo): write your description
+        start_response: (todo): write your description
+    """
     try:
         nameserver = get_nameserver()
     except errors.NamingError as x:
@@ -195,6 +207,15 @@ def return_homepage(environ, start_response):
 
 
 def process_pyro_request(environ, path, parameters, start_response):
+    """
+    Process a wsgi request.
+
+    Args:
+        environ: (dict): write your description
+        path: (str): write your description
+        parameters: (dict): write your description
+        start_response: (callable): write your description
+    """
     pyro_options = environ.get("HTTP_X_PYRO_OPTIONS", "").split(",")
     if not path:
         return return_homepage(environ, start_response)
@@ -301,6 +322,11 @@ pyro_app.comm_timeout = config.COMMTIMEOUT
 
 
 def main(args=None):
+    """
+    Main function.
+
+    Args:
+    """
     parser = ArgumentParser(description="Pyro http gateway command line launcher.")
     parser.add_argument("-H", "--host", default="localhost", help="hostname to bind server on (default=%(default)s)")
     parser.add_argument("-p", "--port", type=int, default=8080, help="port to bind server on (default=%(default)d)")

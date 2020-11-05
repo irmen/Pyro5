@@ -15,6 +15,13 @@ class CallbackHandler(object):
 
     @expose
     def done(self, number):
+        """
+        Prints the number.
+
+        Args:
+            self: (todo): write your description
+            number: (int): write your description
+        """
         print("callback: worker %d reports work is done!" % number)
         CallbackHandler.workdone += 1
 

@@ -3,10 +3,22 @@ from Pyro5.api import locate_ns, Proxy
 
 class Viewer(object):
     def __init__(self):
+        """
+        Initialize a set of symbols.
+
+        Args:
+            self: (todo): write your description
+        """
         self.markets = set()
         self.symbols = set()
 
     def start(self):
+        """
+        Start a list of the symbols
+
+        Args:
+            self: (todo): write your description
+        """
         print("Shown quotes:", self.symbols)
         quote_sources = {
             market.name: market.quotes() for market in self.markets
@@ -20,6 +32,11 @@ class Viewer(object):
 
 
 def find_stockmarkets():
+    """
+    Find a list of the stock uri uri.
+
+    Args:
+    """
     # You can hardcode the stockmarket names for nasdaq and newyork, but it
     # is more flexible if we just look for every available stockmarket.
     markets = []
@@ -33,6 +50,11 @@ def find_stockmarkets():
 
 
 def main():
+    """
+    Main function.
+
+    Args:
+    """
     viewer = Viewer()
     viewer.markets = find_stockmarkets()
     viewer.symbols = {"IBM", "AAPL", "MSFT"}
