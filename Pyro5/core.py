@@ -12,7 +12,7 @@ import socket
 import random
 import serpent
 from typing import Union, Optional
-from . import config, errors, socketutil, serializers, nameserver
+from . import config, errors, socketutil, serializers
 
 
 __all__ = ["URI", "DAEMON_NAME", "NAMESERVER_NAME", "resolve", "locate_ns", "type_meta"]
@@ -187,6 +187,7 @@ def resolve(uri: Union[str, URI], delay_time: float = 0.0) -> URI:
     if uri.protocol == "PYRO":
         return uri
     log.debug("resolving %s", uri)
+    from . import nameserver   # doing it here to avoid circular import issues
     if uri.protocol == "PYRONAME":
         with locate_ns(uri.host, uri.port) as ns:
             return nameserver.lookup(ns, uri.object, delay_time)

@@ -2,6 +2,11 @@
 Change Log
 **********
 
+**Pyro 5.12**
+
+- fixed error when import Pyro5.server   (workaround was to import Pyro5.core before it)
+
+
 **Pyro 5.11**
 
 - reworked the timezones example. (it didn't work as intended)
