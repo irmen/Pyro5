@@ -603,7 +603,10 @@ class TestOfflineNameServerTestsSqlStorage(TestOfflineNameServer):
         self.storageProvider = Pyro5.nameserver.SqlStorage("pyro-test.sqlite")
 
     def teardown_method(self):
-        super().teardown_method()
+        try:
+            super().teardown_method()
+        except AttributeError:
+            pass   # workaround for weird pypy3 issue on Travis
         import glob
         for file in glob.glob("pyro-test.sqlite*"):
             os.remove(file)
