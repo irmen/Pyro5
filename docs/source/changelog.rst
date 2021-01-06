@@ -5,6 +5,7 @@ Change Log
 **Pyro 5.12**
 
 - fixed error when import Pyro5.server   (workaround was to import Pyro5.core before it)
+- removed Python 3.5 from the support list (it is EOL). Now requires Python 3.6 or newer
 
 
 **Pyro 5.11**

@@ -23,7 +23,7 @@ Pyro is a pure Python library and runs on many different platforms and Python ve
 
 Here's a quick overview of Pyro's features:
 
-- written in 100% Python so extremely portable, runs on Python 3.5 and newer, and Pypy3
+- written in 100% Python so extremely portable, runs on Python 3.6 and newer, and Pypy3
 - works between different system architectures and operating systems.
 - able to communicate between different Python versions transparently.
 - defaults to a safe serializer (`serpent <https://pypi.python.org/pypi/serpent>`_) that supports many Python data types.
@@ -100,7 +100,7 @@ Using it should be very familiar to current Pyro4 users, however Pyro5 is not co
 To allow graceful upgrading, both versions can co-exist due to the new package name
 (the same happened years ago when Pyro 3 was upgraded to Pyro4).
 
-Pyro5 requires Python 3.5 or newer. If you're using an onder version of Python, you'll have to stick to Pyro4.
+Pyro5 requires Python 3.6 or newer. If you're using an onder version of Python, you'll have to stick to Pyro4.
 
 Pyro5 provides a basic backward-compatibility module so much of existing Pyro4 code doesn't have to
 change (apart from adding a single import statement).
@@ -121,7 +121,7 @@ What has been changed since Pyro4
 
 If you're familiar with Pyro4, most of the things are the same in Pyro5. These are the changes though:
 
-- Requires Python 3.5 or newer.
+- Requires Python 3.6 or newer.
 - the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
       - Pyro5 is the new package name

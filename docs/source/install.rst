@@ -12,7 +12,7 @@ This chapter will show how to obtain and install Pyro.
 Compatibility
 -------------
 Pyro is written in 100% Python. It works on any recent operating system where a suitable
-supported Python implementation is available (3.5 or newer).
+supported Python implementation is available (3.6 or newer).
 
 
 .. index::

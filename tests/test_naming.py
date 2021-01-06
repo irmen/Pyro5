@@ -255,12 +255,19 @@ class TestOfflineNameServer:
         self.storageProvider = Pyro5.nameserver.MemoryStorage()
 
     def teardown_method(self):
-        self.storageProvider.clear()
+        self.clearStorage()
+        self.clearStorage()
         self.storageProvider.close()
+
+    def clearStorage(self):
+        try:
+            self.storageProvider.clear()
+        except AttributeError:
+            pass   # workaround for weird pypy3 issue on Travis
 
     def testRegister(self):
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
-        self.storageProvider.clear()
+        self.clearStorage()
         ns.ping()
         ns.register("test.object1", "PYRO:000000@host.com:4444")
         ns.register("test.object2", "PYRO:222222@host.com:4444")
@@ -299,7 +306,7 @@ class TestOfflineNameServer:
 
     def testRemove(self):
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
-        self.storageProvider.clear()
+        self.clearStorage()
         ns.register(Pyro5.core.NAMESERVER_NAME, "PYRO:nameserver@host:555")
         for i in range(20):
             ns.register("test.%d" % i, "PYRO:obj@host:555")
@@ -316,7 +323,7 @@ class TestOfflineNameServer:
 
     def testRemoveProtected(self):
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
-        self.storageProvider.clear()
+        self.clearStorage()
         ns.register(Pyro5.core.NAMESERVER_NAME, "PYRO:nameserver@host:555")
         assert ns.remove(Pyro5.core.NAMESERVER_NAME) == 0
         assert ns.remove(prefix="Pyro") == 0
@@ -326,7 +333,7 @@ class TestOfflineNameServer:
 
     def testUnicodeNames(self):
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
-        self.storageProvider.clear()
+        self.clearStorage()
         uri = Pyro5.core.URI("PYRO:unicode" + chr(0x20ac) + "@host:5555")
         ns.register("unicodename" + chr(0x20ac), uri)
         x = ns.lookup("unicodename" + chr(0x20ac))
@@ -335,7 +342,7 @@ class TestOfflineNameServer:
 
     def testList(self):
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
-        self.storageProvider.clear()
+        self.clearStorage()
         ns.register("test.objects.1", "PYRONAME:something1")
         ns.register("test.objects.2", "PYRONAME:something2")
         ns.register("test.objects.3", "PYRONAME:something3")
@@ -490,7 +497,7 @@ class TestOfflineNameServer:
             ns.yplookup(meta_any="string")
 
     def testMetadata(self):
-        self.storageProvider.clear()
+        self.clearStorage()
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
         # register some names with metadata, and perform simple lookups
         ns.register("meta1", "PYRO:meta1@localhost:1111", metadata={"a", "b", "c"})
@@ -560,7 +567,7 @@ class TestOfflineNameServer:
         assert ns.count() == 1
 
     def testMetadataAny(self):
-        self.storageProvider.clear()
+        self.clearStorage()
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
         # register some names with metadata, and perform simple lookups
         ns.register("meta1", "PYRO:meta1@localhost:1111", metadata={"a", "b", "c"})
@@ -577,7 +584,7 @@ class TestOfflineNameServer:
         assert "meta2" in result
 
     def testEmptyMetadata(self):
-        self.storageProvider.clear()
+        self.clearStorage()
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
         # register some names with metadata, and perform simple lookups
         ns.register("meta1", "PYRO:meta1@localhost:1111", metadata=set())
