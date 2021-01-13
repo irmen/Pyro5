@@ -117,6 +117,7 @@ SSL_REQUIRECLIENTCERT     bool    False                   Should the server requ
 SSL_CLIENTCERT            str     *empty str*             Location of the client's certificate file
 SSL_CLIENTKEY             str     *empty str*             Location of the client's private key file
 SSL_CLIENTKEYPASSWD       str     *empty str*             Password for the client's private key
+SSL_CACERTS               str     *empty str*             Location of a 'CA' signing certificate (or a directory containing these in PEM format, `"following an OpenSSL specific layout" <https://docs.python.org/3/library/ssl.html#ssl.SSLContext.load_verify_locations>`_.)
 ========================= ======= ======================= =======
 
 .. index::
