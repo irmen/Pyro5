@@ -3,6 +3,8 @@ from Pyro5.api import expose, behavior, serve, current_context
 
 @behavior(instance_mode="single")
 class SingleInstance(object):
+    def __init__(self):
+        print("created SingleInstance instance with id", id(self))
     @expose
     def msg(self, message):
         print("[%s] %s.msg: %s" % (id(self), self.__class__.__name__, message))
@@ -11,6 +13,8 @@ class SingleInstance(object):
 
 @behavior(instance_mode="session", instance_creator=lambda clazz: clazz.create_instance())
 class SessionInstance(object):
+    def __init__(self):
+        print("created SessionInstance instance with id", id(self))
     @expose
     def msg(self, message):
         print("[%s] %s.msg: %s" % (id(self), self.__class__.__name__, message))
@@ -24,6 +28,8 @@ class SessionInstance(object):
 
 @behavior(instance_mode="percall")
 class PercallInstance(object):
+    def __init__(self):
+        print("created PercallInstance instance with id", id(self))
     @expose
     def msg(self, message):
         print("[%s] %s.msg: %s" % (id(self), self.__class__.__name__, message))
