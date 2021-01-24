@@ -241,7 +241,8 @@ class SerializerBase(object):
             # restore custom attributes on the exception object
             for attr, value in data["attributes"].items():
                 setattr(ex, attr, value)
-        ex.__traceback__=tblib.Traceback.from_dict(data['__traceback__']).as_traceback()
+        if '__traceback__' in data:
+            ex.__traceback__=tblib.Traceback.from_dict(data['__traceback__']).as_traceback()
         return ex
 
     def recreate_classes(self, literal):
