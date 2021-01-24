@@ -240,7 +240,8 @@ class Proxy(object):
                         raise errors.ProtocolError("result of call is an iterator, but the server is not configured to allow streaming")
                     return _StreamResultIterator(streamId, self)
                 if msg.flags & protocol.FLAGS_EXCEPTION:
-                    raise data  # if you see this in your traceback, you should probably inspect the remote traceback as well
+                    ____REMOTE__EXCEPTION__TRACEBACK__FOLLOWS____=data
+                    raise ____REMOTE__EXCEPTION__TRACEBACK__FOLLOWS____
                 else:
                     return data
         except (errors.CommunicationError, KeyboardInterrupt):

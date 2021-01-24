@@ -17,6 +17,7 @@ import marshal
 import json
 import serpent
 import contextlib
+import tblib
 try:
     import msgpack
 except ImportError:
@@ -140,7 +141,8 @@ class SerializerBase(object):
                 "__class__": obj.__class__.__module__ + "." + obj.__class__.__name__,
                 "__exception__": True,
                 "args": obj.args,
-                "attributes": vars(obj)  # add custom exception attributes
+                "__traceback__": tblib.Traceback(obj.__traceback__).to_dict(),
+                "attributes": vars(obj) # add custom exception attributes
             }
         try:
             value = obj.__getstate__()
@@ -239,6 +241,7 @@ class SerializerBase(object):
             # restore custom attributes on the exception object
             for attr, value in data["attributes"].items():
                 setattr(ex, attr, value)
+        ex.__traceback__=tblib.Traceback.from_dict(data['__traceback__']).as_traceback()
         return ex
 
     def recreate_classes(self, literal):
