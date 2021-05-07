@@ -621,9 +621,6 @@ All you have to do is to register the new object with the appropriate daemon::
         self._pyroDaemon.register(thing)
         return thing    # just return it, no need to return a proxy
 
-This feature can be enabled or disabled by a config item, see :doc:`config`.
-(it is on by default). If it is off, a copy of the object itself is returned,
-and the client won't be able to interact with the actual new Pyro object in the server.
 There is a :file:`autoproxy` example that shows the use of this feature,
 and several other examples also make use of it.
 

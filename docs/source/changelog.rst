@@ -2,6 +2,11 @@
 Change Log
 **********
 
+**Pyro 5.13**
+
+- corrected documentation about autoproxy: this feature is not configurable, it is always active.
+
+
 **Pyro 5.12**
 
 - fixed error when import Pyro5.server   (workaround was to import Pyro5.core before it)
