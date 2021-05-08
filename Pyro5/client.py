@@ -166,6 +166,29 @@ class Proxy(object):
         result = dir(self.__class__) + list(self.__dict__.keys())
         return sorted(set(result) | self._pyroMethods | self._pyroAttrs)
 
+    # When special methods are invoked via special syntax (e.g. obj[index] calls
+    # obj.__getitem__(index)), the special methods are not looked up via __getattr__
+    # for efficiency reasons; instead, their presence is checked directly.
+    # Thus we need to define them here to force (remote) lookup through __getitem__.
+    def __len__(self): return self.__getattr__('__len__')()
+    def __getitem__(self,index): return self.__getattr__('__getitem__')(index)
+    def __setitem__(self,index,val): return self.__getattr__('__setitem__')(index,val)
+    def __delitem__(self,index): return self.__getattr__('__delitem__')(index)
+    # iteration in loop always first checks for the presence of __iter__
+    # (regardless of what it returns); __iter__ could not be proxied if not declared here.
+    # Therefore try to get remote iterator, but provide fallback if there is none,
+    # emulating Python fallback strategy.
+    def __iter__(self):
+        try:
+            return self.__getattr__('__iter__')
+        except AttributeError: pass
+        getitem=self.__getattr__('__getitem__')
+        try:
+            for index,_ in enumerate(iter(bool,True)): yield getitem(index)
+        except (StopIteration,IndexError): return
+    # end special methods
+
+
     def _pyroRelease(self):
         """release the connection to the pyro daemon"""
         self.__check_owner()
