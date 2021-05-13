@@ -93,7 +93,7 @@ Calling methods
 ===============
 Once you have the location of the Pyro object you want to talk to, you create a Proxy for it.
 Normally you would perhaps create an instance of a class, and invoke methods on that object.
-But with Pyro, your remote method calls on Pyro objects go trough a proxy.
+But with Pyro, your remote method calls on Pyro objects go through a proxy.
 The proxy can be treated as if it was the actual object, so you write normal python code
 to call the remote methods and deal with the return values, or even exceptions::
 
@@ -212,7 +212,7 @@ Here are some rules:
   You can do this in two ways:
 
   1. calling ``_pyroRelease()`` on the proxy.
-  2. using the proxy as a context manager in a ``with`` statement. *This is the preffered way of creating and using Pyro proxies.*
+  2. using the proxy as a context manager in a ``with`` statement. *This is the preferred way of creating and using Pyro proxies.*
      This ensures that when you're done with it, or an error occurs (inside the with-block),
      the connection is released::
 
