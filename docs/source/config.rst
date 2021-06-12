@@ -101,6 +101,7 @@ SERVERTYPE                str     thread                  Select the Pyro server
 SOCK_REUSE                bool    True                    Should SO_REUSEADDR be used on sockets that Pyro creates.
 SOCK_NODELAY              bool    False                   Use tcp_nodelay on sockets
 PREFER_IP_VERSION         int     0                       The IP address type that is preferred (4=ipv4, 6=ipv6, 0=let OS decide).
+SERPENT_BYTES_REPR        bool    False                   If True, use Python's repr format to serialize bytes types, rather than the base-64 encoding format.
 THREADPOOL_SIZE           int     80                      For the thread pool server: maximum number of threads running
 THREADPOOL_SIZE_MIN       int     4                       For the thread pool server: minimum number of threads running
 SERIALIZER                str     serpent                 The wire protocol serializer to use for clients/proxies (one of: serpent, json, marshal, msgpack)

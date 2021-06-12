@@ -18,21 +18,11 @@ A couple of problems could be exposed by this test:
   to avoid these kind of problems.
 
 
-Performance numbers with the various serializers on my local network:
-
-serializer | performance (string) | performance (bytes)
------------+---------------------------------------------
-  marshal  |     ? kb/sec     |   ? kb/sec
-     json  |     ? kb/sec     |   not supported
-  serpent  |     ? kb/sec     |    ? kb/sec
-  msgpack  |     ? kb/sec     |    ? kb/sec
-
-
-Performance of the download via iterator is almost identical to
+Note that performance of the download via iterator is almost identical to
 the normal transfer speed.
 
 
 Note:
 For a possible approach on transferring large amounts of binary data
-*efficiently*, see the 'filetransfer' example.  It works with a raw socket
-connection and avoids the Pyro protocol and serialization overhead.
+*efficiently*, see the 'filetransfer' example.  It contains an example how to work with a raw socket
+connection that avoids the Pyro protocol and serialization overhead.

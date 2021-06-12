@@ -278,15 +278,21 @@ the remote iterator feature (return chunks via an iterator or generator function
 on demand in your client).
 
 
-.. note:: Serpent and binary data:
-    If you transfer binary data using the serpent serializer, be aware of the following:
-    The wire protocol is text based so serpent has to encode binary data. It uses base-64 to do that.
+.. note:: **About the Serpent serializer and binary data:**
+    If you transfer binary data using the serpent serializer, be aware that
+    its serialization protocol is text based so it has to encode binary data. By default, it uses base-64 to do that.
     This means on the receiving side, instead of the raw bytes, you get a little dictionary
     like this instead: ``{'data': 'aXJtZW4gZGUgam9uZw==', 'encoding': 'base64'}``
     Your client code needs to be explicitly aware of this and to get the original binary data back,
     it has to base-64 decode the data element by itself.  The easiest way to do this is using the
     ``serpent.tobytes`` helper function from the ``serpent`` library, which will convert
     the result to actual bytes if needed, and leave it untouched if it is already in bytes form.
+
+    You can tell the serpent serializer to use Python's repr format for bytes types instead by
+    setting the ``SERPENT_BYTES_REPR`` config item to True. Do this for the code that is *serializing*
+    the bytes. Serpent (or rather, the safe eval function it uses) will automatically convert this format back to the actual bytes type when deserializing it.
+    This is more convenient than the default base-64 representation, but it is also less efficient
+    (slower and takes more memory).  This feature is new since Pyro 5.13 and requires Serpent library 1.40 or newer.
 
 
 The following table is an indication of the relative speeds when dealing with large amounts

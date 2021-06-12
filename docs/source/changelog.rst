@@ -5,6 +5,7 @@ Change Log
 **Pyro 5.13**
 
 - corrected documentation about autoproxy: this feature is not configurable, it is always active.
+- introduced SERPENT_BYTES_REPR config item (and updated serpent library version requirement for this)
 
 
 **Pyro 5.12**

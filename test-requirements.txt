@@ -1,2 +1,2 @@
-serpent>=1.27
+serpent>=1.40
 msgpack>=0.5.2

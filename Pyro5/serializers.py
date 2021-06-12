@@ -21,7 +21,7 @@ try:
     import msgpack
 except ImportError:
     msgpack = None
-from . import errors
+from . import errors, config
 
 __all__ = ["SerializerBase", "SerpentSerializer", "JsonSerializer", "MarshalSerializer", "MsgpackSerializer",
            "serializers", "serializers_by_id"]
@@ -273,10 +273,10 @@ class SerpentSerializer(SerializerBase):
     serializer_id = 1  # never change this
 
     def dumpsCall(self, obj, method, vargs, kwargs):
-        return serpent.dumps((obj, method, vargs, kwargs), module_in_classname=True)
+        return serpent.dumps((obj, method, vargs, kwargs), module_in_classname=True, bytes_repr=config.SERPENT_BYTES_REPR)
 
     def dumps(self, data):
-        return serpent.dumps(data, module_in_classname=True)
+        return serpent.dumps(data, module_in_classname=True, bytes_repr=config.SERPENT_BYTES_REPR)
 
     def loadsCall(self, data):
         obj, method, vargs, kwargs = serpent.loads(data)

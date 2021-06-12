@@ -11,24 +11,24 @@ Annotation chunks are only parsed.
 
 The header format is::
 
-0x00   4s  4   'PYRO' (message identifier)
-0x04   H   2   protocol version
-0x06   B   1   message type
-0x07   B   1   serializer id
-0x08   H   2   message flags
-0x0a   H   2   sequence number   (to identify proper request-reply sequencing)
-0x0c   I   4   data length   (max 4 Gb)
-0x10   I   4   annotations length (max 4 Gb, total of all chunks, 0 if no annotation chunks present)
-0x14   16s 16  correlation uuid
-0x24   H   2   (reserved)
-0x26   H   2   magic number 0x4dc5
-total size: 0x28 (40 bytes)
+    0x00   4s  4   'PYRO' (message identifier)
+    0x04   H   2   protocol version
+    0x06   B   1   message type
+    0x07   B   1   serializer id
+    0x08   H   2   message flags
+    0x0a   H   2   sequence number   (to identify proper request-reply sequencing)
+    0x0c   I   4   data length   (max 4 Gb)
+    0x10   I   4   annotations length (max 4 Gb, total of all chunks, 0 if no annotation chunks present)
+    0x14   16s 16  correlation uuid
+    0x24   H   2   (reserved)
+    0x26   H   2   magic number 0x4dc5
+    total size: 0x28 (40 bytes)
 
 After the header, zero or more annotation chunks may follow, of the format::
 
-   4s  4   annotation id (4 ASCII letters)
-   I   4   chunk length  (max 4 Gb)
-   B   x   annotation chunk databytes
+    4s  4   annotation id (4 ASCII letters)
+    I   4   chunk length  (max 4 Gb)
+    B   x   annotation chunk databytes
 
 After that, the actual payload data bytes follow.
 """
