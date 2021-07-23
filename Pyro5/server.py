@@ -621,7 +621,7 @@ class Daemon(object):
             protocol.log_wiredata(log, "daemon wiredata sending (error response)", msg)
         connection.send(msg.data)
 
-    def register(self, obj_or_class, objectId=None, force=False, weak=False):
+    def register(self, obj_or_class, objectId=None, force=False):
         """
         Register a Pyro object under the given id. Note that this object is now only
         known inside this daemon, it is not automatically available in a name server.
@@ -632,16 +632,20 @@ class Daemon(object):
         to the instance_mode (set via @expose on the class). The default there is one object
         per session (=proxy connection). If you register an object directly, Pyro will use
         that single object for *all* remote calls.
-        With *weak=True*, only weak reference to the object will be stored, and the object will
-        get unregistered from the daemon automatically when garbage-collected.
+        Weak reference (`weakref.ref`) objects are accepted; they will be automatically
+        attached a finalizer which unregisters them from the daemon when garbage-collected.
         """
+        weak=None
         if objectId:
             if not isinstance(objectId, str):
                 raise TypeError("objectId must be a string or None")
         else:
             objectId = "obj_" + uuid.uuid4().hex  # generate a new objectId
+        if isinstance(obj_or_class,weakref.ref):
+            weak=obj_or_class # remember the original weak reference
+            obj_or_class=weak()
+            if obj_or_class is None: raise errors.DaemonError("Weakly referenced object deleted while registering.")
         if inspect.isclass(obj_or_class):
-            if weak: raise TypeError("Classes cannot be registered with weak=True.")
             if not hasattr(obj_or_class, "_pyroInstancing"):
                 obj_or_class._pyroInstancing = ("session", None)
         if not force:
@@ -660,8 +664,8 @@ class Daemon(object):
             else:
                 ser.register_type_replacement(type(obj_or_class), _pyro_obj_to_auto_proxy)
         # register the object/class in the mapping
-        self.objectsById[obj_or_class._pyroId] = (obj_or_class if not weak else weakref.ref(obj_or_class))
-        if weak: weakref.finalize(obj_or_class,self.unregister,objectId)
+        self.objectsById[obj_or_class._pyroId] = (weak if (weak is not None) else obj_or_class)
+        if weak is not None: weakref.finalize(obj_or_class,self.unregister,objectId)
         return self.uriFor(objectId)
 
     def unregister(self, objectOrId):
@@ -943,7 +947,7 @@ def _unpack_weakref(obj: Any):
     """
     Unpack weak reference, or return the object itself, if not a weak reference.
     If the weak reference is dead (calling it returns None), raises an
-    exception. Even though register(...,weak=True) creates finalizer which
+    exception. Even though register(weakref.ref(...)) creates finalizer which
     will delete the weakref from the mapping, it is possible that the object
     is garbage-collected asynchronously between obtaining weakref from the
     mapping and reference unpacking, making the weakref invalid; this is handled
@@ -951,7 +955,7 @@ def _unpack_weakref(obj: Any):
     """
     if not isinstance(obj,weakref.ref): return obj
     ret=obj() # ret will hold strong reference to obj, until it gets deleted itself
-    if ret is None: raise errors.DaemonError("Weakly registered deleted meanwhile (or finalizer failed?).")
+    if ret is None: raise errors.DaemonError("Object registered as weakref deleted meanwhile (or finalizer failed?).")
     return ret
 
 def _get_exposed_property_value(obj: Any, propname: str, only_exposed: bool = True) -> Any:
