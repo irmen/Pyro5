@@ -941,7 +941,13 @@ def _get_exposed_members(obj: Any, only_exposed: bool = True) -> Dict[str, Set[s
 
 def _unpack_weakref(obj: Any):
     """
-    Unpack weak reference 
+    Unpack weak reference, or return the object itself, if not a weak reference.
+    If the weak reference is dead (calling it returns None), raises an
+    exception. Even though register(...,weak=True) creates finalizer which
+    will delete the weakref from the mapping, it is possible that the object
+    is garbage-collected asynchronously between obtaining weakref from the
+    mapping and reference unpacking, making the weakref invalid; this is handled
+    by the exception here.
     """
     if not isinstance(obj,weakref.ref): return obj
     ret=obj() # ret will hold strong reference to obj, until it gets deleted itself
