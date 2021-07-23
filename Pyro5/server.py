@@ -641,7 +641,7 @@ class Daemon(object):
         else:
             objectId = "obj_" + uuid.uuid4().hex  # generate a new objectId
         if inspect.isclass(obj_or_class):
-            if weak: raise TypeError("Classes cannot be exposed with weak=True.")
+            if weak: raise TypeError("Classes cannot be registered with weak=True.")
             if not hasattr(obj_or_class, "_pyroInstancing"):
                 obj_or_class._pyroInstancing = ("session", None)
         if not force:
