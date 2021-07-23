@@ -441,6 +441,16 @@ class TestServerOnce:
             result = p.echo(obj)
             assert isinstance(result, ServerTestObject), "unregistered pyro object must be normal class again"
 
+    def testRegisterWeak(self):
+        obj=ServerTestObject()
+        uri=self.daemon.register(obj,weak=True)
+        with Pyro5.client.Proxy(uri) as p:
+            result = p.getDict()
+            assert isinstance(result, dict), "getDict() is proxied normally"
+            del obj # weak registration should not prevent the obj from being garbage-collected
+            with pytest.raises(Pyro5.errors.DaemonError):
+                result = p.getDict()
+
     def testConnectOnce(self):
         with Pyro5.client.Proxy(self.objectUri) as proxy:
             assert proxy._pyroBind(), "first bind should always connect"

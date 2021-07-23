@@ -14,6 +14,7 @@ import threading
 import logging
 import inspect
 import warnings
+import weakref
 import serpent
 import ipaddress
 from typing import Callable, Tuple, Union, Optional, Dict, Any, Sequence, Set
@@ -158,7 +159,7 @@ class DaemonObject(object):
         """
         Get metadata for the given object (exposed methods, oneways, attributes).
         """
-        obj = self.daemon.objectsById.get(objectId)
+        obj = _unpack_weakref(self.daemon.objectsById.get(objectId))
         if obj is not None:
             metadata = _get_exposed_members(obj)
             if not metadata["methods"] and not metadata["attrs"]:
@@ -427,7 +428,7 @@ class Daemon(object):
             current_context.msg_flags = msg.flags
             current_context.serializer_id = msg.serializer_id
             del msg  # invite GC to collect the object, don't wait for out-of-scope
-            obj = self.objectsById.get(objId)
+            obj = _unpack_weakref(self.objectsById.get(objId))
             if obj is not None:
                 if inspect.isclass(obj):
                     obj = self._getInstance(obj, conn)
@@ -620,7 +621,7 @@ class Daemon(object):
             protocol.log_wiredata(log, "daemon wiredata sending (error response)", msg)
         connection.send(msg.data)
 
-    def register(self, obj_or_class, objectId=None, force=False):
+    def register(self, obj_or_class, objectId=None, force=False, weak=False):
         """
         Register a Pyro object under the given id. Note that this object is now only
         known inside this daemon, it is not automatically available in a name server.
@@ -638,6 +639,7 @@ class Daemon(object):
         else:
             objectId = "obj_" + uuid.uuid4().hex  # generate a new objectId
         if inspect.isclass(obj_or_class):
+            if weak: raise TypeError("Classes cannot be exposed with weak=True.")
             if not hasattr(obj_or_class, "_pyroInstancing"):
                 obj_or_class._pyroInstancing = ("session", None)
         if not force:
@@ -656,7 +658,8 @@ class Daemon(object):
             else:
                 ser.register_type_replacement(type(obj_or_class), _pyro_obj_to_auto_proxy)
         # register the object/class in the mapping
-        self.objectsById[obj_or_class._pyroId] = obj_or_class
+        self.objectsById[obj_or_class._pyroId] = (obj_or_class if not weak else weakref.ref(obj_or_class))
+        if weak: weakref.finalize(obj_or_class,self.unregister,objectId)
         return self.uriFor(objectId)
 
     def unregister(self, objectOrId):
@@ -709,7 +712,7 @@ class Daemon(object):
         uri = self.uriFor(objectOrId, nat)
         # can only be cached if registered, else no-op
         if uri.object in self.objectsById:
-            registered_object = self.objectsById[uri.object]
+            registered_object = _unpack_weakref(self.objectsById[uri.object])
             # Clear cache regardless of how it is accessed
             _reset_exposed_members(registered_object)
 
@@ -723,7 +726,7 @@ class Daemon(object):
         uri = self.uriFor(objectOrId, nat)
         proxy = client.Proxy(uri)
         try:
-            registered_object = self.objectsById[uri.object]
+            registered_object = _unpack_weakref(self.objectsById[uri.object])
         except KeyError:
             raise errors.DaemonError("object isn't registered in this daemon")
         meta = _get_exposed_members(registered_object)
@@ -933,6 +936,15 @@ def _get_exposed_members(obj: Any, only_exposed: bool = True) -> Dict[str, Set[s
     __exposed_member_cache[cache_key] = result
     return result
 
+
+def _unpack_weakref(obj: Any):
+    """
+    Unpack weak reference 
+    """
+    if not isinstance(obj,weakref.ref): return obj
+    ret=obj() # ret will hold strong reference to obj, until it gets deleted itself
+    if ret is None: raise errors.DaemonError("Weakly registered deleted meanwhile (or finalizer failed?).")
+    return ret
 
 def _get_exposed_property_value(obj: Any, propname: str, only_exposed: bool = True) -> Any:
     """
