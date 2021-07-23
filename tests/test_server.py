@@ -119,6 +119,17 @@ class NotEverythingExposedClass(object):
     def unexposed(self):
         return "you should not see this"
 
+@Pyro5.server.expose
+class NotEverythingExposedClass_noexpose(object):
+    def __init__(self, name):
+        self.name = name
+
+    def getName(self):
+        return self.name
+
+    @Pyro5.server.noexpose
+    def unexposed(self):
+        return "you should not see this"
 
 class DaemonLoopThread(threading.Thread):
     def __init__(self, pyrodaemon):
@@ -189,6 +200,8 @@ class TestServerOnce:
         self.objectUri = uri
         obj2 = NotEverythingExposedClass("hello")
         self.daemon.register(obj2, "unexposed")
+        obj2a = NotEverythingExposedClass_noexpose("hello")
+        self.daemon.register(obj2a, "unexposed2")
         self.daemonthread = DaemonLoopThread(self.daemon)
         self.daemonthread.start()
         self.daemonthread.running.wait()
@@ -324,6 +337,15 @@ class TestServerOnce:
             with pytest.raises(AttributeError) as e:
                 p.unexposed_set = 999
             expected_msg = "remote object '%s' has no exposed attribute 'unexposed_set'" % p._pyroUri
+            assert str(e.value) == expected_msg
+
+    def testExposedRequired_noexpose(self):
+        with self.daemon.proxyFor("unexposed2") as p:
+            assert p._pyroMethods == {"getName"}
+            assert p.getName() == "hello"
+            with pytest.raises(AttributeError) as e:
+                p.unexposed()
+            expected_msg = "remote object '%s' has no exposed attribute or method 'unexposed'" % p._pyroUri
             assert str(e.value) == expected_msg
 
     def testProperties(self):

@@ -67,6 +67,18 @@ def oneway(method: Callable) -> Callable:
     method._pyroOneway = True       # type: ignore
     return method
 
+def noexpose(thing: Callable) -> Callable:
+    """
+    Decorator to mark a method to be skipped when running expose on the entire class.
+    """
+    if inspect.isfunction(thing) or inspect.ismethoddescriptor(thing):
+        # the value of _pyroNoexpose is not relevant
+        thing._pyroNoexpose=True
+    elif inspect.ismethod(thing):
+        thing.__func__._pyroNoexpose=True
+    elif instepct.isdatadescriptor(thing):
+        raise AttribueError("@noexpose cannot be used on data descriptors (only methods and functions).")
+
 
 def expose(method_or_class: Union[Callable, type]) -> Union[Callable, type]:
     """
@@ -98,9 +110,9 @@ def expose(method_or_class: Union[Callable, type]) -> Union[Callable, type]:
             if is_private_attribute(name):
                 continue
             thing = getattr(clazz, name)
-            if inspect.isfunction(thing) or inspect.ismethoddescriptor(thing):
+            if (inspect.isfunction(thing) or inspect.ismethoddescriptor(thing)) and not hasattr(thing,'_pyroNoexpose'):
                 thing._pyroExposed = True
-            elif inspect.ismethod(thing):
+            elif inspect.ismethod(thing) and not hasattr(thing.__func__,'_pyroNoexpose'):
                 thing.__func__._pyroExposed = True
             elif inspect.isdatadescriptor(thing):
                 if getattr(thing, "fset", None):
