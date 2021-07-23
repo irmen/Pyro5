@@ -347,7 +347,7 @@ Registering objects/classes
 Every object you want to publish as a Pyro object needs to be registered with the daemon.
 You can let Pyro choose a unique object id for you, or provide a more readable one yourself.
 
-.. method:: Daemon.register(obj_or_class [, objectId=None, force=False])
+.. method:: Daemon.register(obj_or_class [, objectId=None, force=False, weak=False])
 
     Registers an object with the daemon to turn it into a Pyro object.
 
@@ -356,6 +356,7 @@ You can let Pyro choose a unique object id for you, or provide a more readable o
     :type objectId: str or None
     :param force: optional flag to force registration, normally Pyro checks if an object had already been registered.
         If you set this to True, the previous registration (if present) will be silently overwritten.
+    :param weak: only store weak reference to the object, automatically unregistering it when it is garbage-collected. Without this, the daemon will keep the object alive by having it stored in its mapping, preventing garbage-collection until manual unregistration.
     :type force: bool
     :returns: an uri for the object
     :rtype: :class:`Pyro5.core.URI`
@@ -455,7 +456,7 @@ Client code example to connect to this object::
 
 Unregistering objects
 ---------------------
-When you no longer want to publish an object, you need to unregister it from the daemon:
+When you no longer want to publish an object, you need to unregister it from the daemon (unless it was registered with ``weak=True`` when it will be unregistered automatically when garbage-collected):
 
 .. method:: Daemon.unregister(objectOrId)
 

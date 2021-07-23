@@ -632,6 +632,8 @@ class Daemon(object):
         to the instance_mode (set via @expose on the class). The default there is one object
         per session (=proxy connection). If you register an object directly, Pyro will use
         that single object for *all* remote calls.
+        With *weak=True*, only weak reference to the object will be stored, and the object will
+        get unregistered from the daemon automatically when garbage-collected.
         """
         if objectId:
             if not isinstance(objectId, str):
