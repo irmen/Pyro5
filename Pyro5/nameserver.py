@@ -6,6 +6,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 import warnings
 import re
+import sys
 import logging
 import socket
 import time
@@ -678,6 +679,7 @@ def start_ns_loop(host=None, port=None, enableBroadcast=True, bchost=None, bcpor
         print("external URI = %s" % nsUri)
     else:
         print("URI = %s" % nsUri)
+    sys.stdout.flush()
     try:
         daemon.requestLoop()
     finally:
