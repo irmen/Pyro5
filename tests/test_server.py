@@ -6,7 +6,6 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 import time
 import threading
-import weakref
 import serpent
 import pytest
 import Pyro5.core
@@ -444,7 +443,7 @@ class TestServerOnce:
 
     def testRegisterWeak(self):
         obj=ServerTestObject()
-        uri=self.daemon.register(weakref.ref(obj))
+        uri=self.daemon.register(obj,weak=True)
         with Pyro5.client.Proxy(uri) as p:
             result = p.getDict()
             assert isinstance(result, dict), "getDict() is proxied normally"
