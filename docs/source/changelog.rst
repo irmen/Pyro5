@@ -7,6 +7,8 @@ Change Log
 - corrected documentation about autoproxy: this feature is not configurable, it is always active.
 - introduced SERPENT_BYTES_REPR config item (and updated serpent library version requirement for this)
 - flush nameserver output to console before entering request loop
+- added optional boolean "weak" parameter to Daemon.register(), to register a weak reference to the server object
+  that will be unregistered automatically when the server object gets deleted.
 
 
 **Pyro 5.12**

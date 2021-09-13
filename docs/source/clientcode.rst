@@ -354,8 +354,7 @@ Lingering can be disabled completely by setting the value to 0, then all remote 
 immediately be discarded in the server if the proxy gets disconnected or closed.
 
 There are several examples that use the remote iterator feature.
-Have a look at the :py:mod:`stockquotes` tutorial example, or the :py:mod:`filetransfer` example.
-
+Have a look at the :py:mod:`streaming`, :py:mod:`stockquotes`, or the :py:mod:`filetransfer` examples.
 
 
 .. index:: callback
