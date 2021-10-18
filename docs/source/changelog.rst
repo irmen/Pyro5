@@ -9,6 +9,7 @@ Change Log
 - flush nameserver output to console before entering request loop
 - added optional boolean "weak" parameter to Daemon.register(), to register a weak reference to the server object
   that will be unregistered automatically when the server object gets deleted.
+- switched from travis to using github actions for CI builds and tests
 
 
 **Pyro 5.12**

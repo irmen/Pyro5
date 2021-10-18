@@ -263,7 +263,7 @@ class TestOfflineNameServer:
         try:
             self.storageProvider.clear()
         except AttributeError:
-            pass   # workaround for weird pypy3 issue on Travis
+            pass
 
     def testRegister(self):
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
@@ -613,7 +613,7 @@ class TestOfflineNameServerTestsSqlStorage(TestOfflineNameServer):
         try:
             super().teardown_method()
         except AttributeError:
-            pass   # workaround for weird pypy3 issue on Travis
+            pass
         import glob
         for file in glob.glob("pyro-test.sqlite*"):
             os.remove(file)
