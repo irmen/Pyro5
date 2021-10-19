@@ -30,7 +30,7 @@ import json
 from wsgiref.simple_server import make_server
 from argparse import ArgumentParser
 import traceback
-from Pyro5 import __version__, config, errors, client, core, protocol, serializers, callcontext
+from .. import __version__, config, errors, client, core, protocol, serializers, callcontext
 
 __all__ = ["pyro_app", "main"]
 _nameserver = None
@@ -49,23 +49,21 @@ def get_nameserver():
         return get_nameserver()
 
 
+def cors_response_header(header, cors):
+    header.append(('Access-Control-Allow-Origin', cors))
+    header.append(('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'))
+    header.append(('Access-Control-Allow-Headers', 'Content-Type'))
+    return header
+
 def invalid_request(start_response):
     """Called if invalid http method."""
-    start_response('405 Method Not Allowed', [('Content-Type', 'text/plain'),
-    						('Access-Control-Allow-Origin', pyro_app.cors),
-                                          	('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                                          	('Access-Control-Allow-Headers', 'Content-Type')
-                                             ])
+    start_response('405 Method Not Allowed', cors_response_header([('Content-Type', 'text/plain')], pyro_app.cors))
     return [b'Error 405: Method Not Allowed']
 
 
 def not_found(start_response):
     """Called if Url not found."""
-    start_response('404 Not Found', [('Content-Type', 'text/plain'),
-    				      ('Access-Control-Allow-Origin', pyro_app.cors),
-                                     ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                                     ('Access-Control-Allow-Headers', 'Content-Type')
-                                    ])
+    start_response('404 Not Found', cors_response_header([('Content-Type', 'text/plain')], pyro_app.cors))
     return [b'Error 404: Not Found']
 
 
@@ -78,7 +76,7 @@ def redirect(start_response, target):
 index_page_template = """<!DOCTYPE html>
 <html>
 <head>
-    <title>Pyro HTTP gateway modified by Philippe</title>
+    <title>Pyro HTTP gateway</title>
     <style type="text/css">
     html {{ color: #202020; background-color: white; }}
     body {{ margin: 1em; }}
@@ -164,13 +162,10 @@ def return_homepage(environ, start_response):
         nameserver = get_nameserver()
     except errors.NamingError as x:
         print("Name server error:", x)
-        start_response('500 Internal Server Error', [('Content-Type', 'text/plain')])
+        start_response('500 Internal Server Error', cors_response_header([('Content-Type', 'text/plain')], pyro_app.cors))
         return [b"Cannot connect to the Pyro name server. Is it running? Refresh page to retry."]
-    start_response('200 OK', [('Content-Type', 'text/html'),
-    			       ('Access-Control-Allow-Origin', pyro_app.cors),
-        		       ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-        		       ('Access-Control-Allow-Headers', 'Content-Type')
-        		      ])
+    start_response('200 OK', cors_response_header([('Content-Type', 'text/html')], pyro_app.cors))
+    
     nslist = ["<table><tr><th>Name</th><th>methods</th><th>attributes (zero-param methods)</th></tr>"]
     names = sorted(list(nameserver.list(regex=pyro_app.ns_regex).keys())[:10])
     with client.BatchProxy(nameserver) as nsbatch:
@@ -218,22 +213,12 @@ def process_pyro_request(environ, path, parameters, start_response):
         gateway_key = environ.get("HTTP_X_PYRO_GATEWAY_KEY", "") or parameters.get("$key", "")
         gateway_key = gateway_key.encode("utf-8")
         if gateway_key != pyro_app.gateway_key:
-            start_response('403 Forbidden', [
-            				      ('Content-Type', 'text/plain'),
-            				      ('Access-Control-Allow-Origin', pyro_app.cors),
-            				      ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-            				      ('Access-Control-Allow-Headers', 'Content-Type')
-            				      ])
+            start_response('403 Forbidden', cors_response_header([('Content-Type', 'text/plain')], pyro_app.cors))
             return [b"403 Forbidden - incorrect gateway api key"]
         if "$key" in parameters:
             del parameters["$key"]
     if pyro_app.ns_regex and not re.match(pyro_app.ns_regex, object_name):
-        start_response('403 Forbidden', [
-        				   ('Content-Type', 'text/plain'),
-        				   ('Access-Control-Allow-Origin', pyro_app.cors),
-        				   ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-        				   ('Access-Control-Allow-Headers', 'Content-Type')
-        				  ])
+        start_response('403 Forbidden', cors_response_header([('Content-Type', 'text/plain')], pyro_app.cors))
         return [b"403 Forbidden - access to the requested object has been denied"]
     try:
         nameserver = get_nameserver()
@@ -250,11 +235,10 @@ def process_pyro_request(environ, path, parameters, start_response):
             if method == "$meta":
                 result = {"methods": tuple(proxy._pyroMethods), "attributes": tuple(proxy._pyroAttrs)}
                 reply = json.dumps(result).encode("utf-8")
-                start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8'),
-                                          ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id)),
-                                          ('Access-Control-Allow-Origin', pyro_app.cors),
-                                          ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                                          ('Access-Control-Allow-Headers', 'Content-Type')])
+                start_response('200 OK', cors_response_header([
+                  ('Content-Type', 'application/json; charset=utf-8'),
+                  ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id))
+                  ], pyro_app.cors))
                 return [reply]
             else:
                 proxy._pyroRawWireResponse = True   # we want to access the raw response json
@@ -268,39 +252,29 @@ def process_pyro_request(environ, path, parameters, start_response):
                     
                 if msg is None or "oneway" in pyro_options:
                     # was a oneway call, no response available
-                    start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8'),
-                                              ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id)),
-                                              ('Access-Control-Allow-Origin', pyro_app.cors),
-                                              ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                                              ('Access-Control-Allow-Headers', 'Content-Type')])
+                    start_response('200 OK', cors_response_header([
+                      ('Content-Type', 'application/json; charset=utf-8'),
+                      ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id))
+                      ], pyro_app.cors))
                     return []
                 elif msg.flags & protocol.FLAGS_EXCEPTION:
                     # got an exception response so send a 500 status
-                    start_response('500 Internal Server Error', [
-                    						   ('Content-Type', 'application/json; charset=utf-8'),
-                    						   ('Access-Control-Allow-Origin', pyro_app.cors),
-                                          			   ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                                          			   ('Access-Control-Allow-Headers', 'Content-Type')
-                                          			  ])
+                    start_response('500 Internal Server Error', cors_response_header([
+                      ('Content-Type', 'application/json; charset=utf-8')
+                      ], pyro_app.cors))
                     return [msg.data]
                 else:
                     # normal response
-                    start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8'),
-                                              ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id)),
-                                              ('Access-Control-Allow-Origin', pyro_app.cors),
-                                              ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                                              ('Access-Control-Allow-Headers', 'Content-Type')
-                                             ])
+                    start_response('200 OK', cors_response_header([
+                      ('Content-Type', 'application/json; charset=utf-8'),		
+                      ('X-Pyro-Correlation-Id', str(callcontext.current_context.correlation_id))
+                      ], pyro_app.cors))
                     return [msg.data]
     except Exception as x:
         stderr = environ["wsgi.errors"]
         print("ERROR handling {0} with params {1}:".format(path, parameters), file=stderr)
         traceback.print_exc(file=stderr)
-        start_response('500 Internal Server Error', [('Content-Type', 'application/json; charset=utf-8'),
-        					       ('Access-Control-Allow-Origin', pyro_app.cors),
-                                                     ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                                          	       ('Access-Control-Allow-Headers', 'Content-Type')
-                                          	      ])
+        start_response('500 Internal Server Error', cors_response_header([('Content-Type', 'application/json; charset=utf-8')], pyro_app.cors))
         reply = json.dumps(serializers.SerializerBase.class_to_dict(x)).encode("utf-8")
         return [reply]
 
