@@ -10,6 +10,7 @@ def test_compat_config():
     Pyro4.config.NS_PORT = 12345
     conf = Pyro4.config.asDict()
     assert conf["NS_PORT"] == 12345
+    Pyro4.config.NS_PORT = 9090
 
 
 def test_compat_layer():
