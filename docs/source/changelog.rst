@@ -4,6 +4,7 @@ Change Log
 
 **Pyro 5.13**
 
+- removed Python 3.6 from the support list (it is EOL). Now supported on Python 3.7 or newer
 - corrected documentation about autoproxy: this feature is not configurable, it is always active.
 - introduced SERPENT_BYTES_REPR config item (and updated serpent library version requirement for this)
 - flush nameserver output to console before entering request loop

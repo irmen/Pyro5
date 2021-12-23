@@ -41,7 +41,7 @@ New code should use Pyro5 if at all possible.
 Features
 --------
 
-- written in 100% Python so extremely portable, supported on Python 3.6 and newer, and Pypy3
+- written in 100% Python so extremely portable, supported on Python 3.7 and newer, and Pypy3
 - works between different system architectures and operating systems.
 - able to communicate between different Python versions transparently.
 - defaults to a safe serializer (`serpent <https://pypi.python.org/pypi/serpent>`_) that supports many Python data types.
