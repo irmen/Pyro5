@@ -1,7 +1,7 @@
 Pyro5
 =====
 
-*Remote objects communication library, fifth major version*
+*Remote objects communication library*
 
 .. image:: https://img.shields.io/pypi/v/Pyro5.svg
     :target: https://pypi.python.org/pypi/Pyro5
