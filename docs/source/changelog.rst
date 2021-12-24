@@ -2,6 +2,11 @@
 Change Log
 **********
 
+**Pyro 5.14**
+
+...
+
+
 **Pyro 5.13**
 
 - removed Python 3.6 from the support list (it is EOL). Now supported on Python 3.7 or newer
