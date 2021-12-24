@@ -4,6 +4,8 @@ Change Log
 
 **Pyro 5.14**
 
+- fix @expose issue on Python 3.10 static method/classmethod due to python API change
+
 ...
 
 
