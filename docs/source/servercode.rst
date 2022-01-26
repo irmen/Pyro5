@@ -259,7 +259,7 @@ You can perform some limited customization:
     :param objects: mapping of objects/classes to names, these are the Pyro objects that will be hosted by the daemon, using the names you provide as values in the mapping.
         Normally you'll provide a name yourself but in certain situations it may be useful to set it to ``None``. Read below for the exact behavior there.
     :type objects: dict
-    :param host: optional hostname where the daemon should be accessible on. Necessary if you want to access the daemon from other machines.
+    :param host: optional hostname where the daemon should be reached on. Details below at :ref:`create_deamon`
     :type host: str or None
     :param port: optional port number where the daemon should be accessible on
     :type port: int
@@ -310,6 +310,8 @@ configuration. Then provide it to this function using the ``daemon`` parameter. 
 .. index::
     double: Pyro daemon; creating a daemon
 
+.. _create_deamon:
+
 Creating a Daemon
 -----------------
 Pyro's daemon is ``Pyro5.server.Daemon``.
@@ -322,6 +324,8 @@ It has a few optional arguments when you create it:
 
     :param host: the hostname or IP address to bind the server on. Default is ``None`` which means it uses the configured default (which is localhost).
                  It is necessary to set this argument to a visible hostname or ip address, if you want to access the daemon from other machines.
+                 When binding to a hostname be careful of your OS's policies as it might still bind to localhost as well. Depending on your DNS
+                 setup you may have to use "", "0.0.0.0" or an explicit externally visible IP addres to make the server accessible over the network.
     :type host: str or None
     :param port: port to bind the server on. Defaults to 0, which means to pick a random port.
     :type port: int
