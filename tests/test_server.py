@@ -123,7 +123,7 @@ class NotEverythingExposedClass(object):
 class DaemonLoopThread(threading.Thread):
     def __init__(self, pyrodaemon):
         super().__init__()
-        self.setDaemon(True)
+        self.daemon = True
         self.pyrodaemon = pyrodaemon
         self.running = threading.Event()
         self.running.clear()

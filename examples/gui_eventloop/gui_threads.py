@@ -150,7 +150,7 @@ def main():
 
     # create a pyro daemon with object, running in its own worker thread
     pyro_thread = MyPyroDaemon(gui)
-    pyro_thread.setDaemon(True)
+    pyro_thread.daemon = True
     pyro_thread.start()
     pyro_thread.started.wait()
 

@@ -2,6 +2,10 @@
 Change Log
 **********
 
+**Pyro 5.14**
+- fixed deprecation warning about setting threads in daemon mode
+
+
 **Pyro 5.13.1**
 
 - fixed @expose issue on static method/classmethod due to API change in Python 3.10

@@ -67,7 +67,7 @@ serv._pyroBind()  # simplify the uri
 threads = []
 for i in range(5):
     t = threading.Thread(target=func, args=[serv._pyroUri])
-    t.setDaemon(True)
+    t.daemon = True
     threads.append(t)
     t.start()
 print("Waiting for threads to finish:")

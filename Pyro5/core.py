@@ -213,8 +213,8 @@ def locate_ns(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address] = "
             if ":" in config.NS_HOST:  # ipv6
                 hosts = ["[%s]" % config.NS_HOST]
             else:
-                # Some systems (Debian Linux) have 127.0.1.1 in the hosts file assigned to the hostname,
-                # try this too for convenience sake (only if it's actually used as a valid ip address)
+                # Some systems have 127.0.1.1 in the hosts file assigned to the hostname,
+                # so try this too (only if it's actually used as a valid ip address)
                 try:
                     socket.gethostbyaddr("127.0.1.1")
                     hosts = [config.NS_HOST] if config.NS_HOST == "127.0.1.1" else [config.NS_HOST, "127.0.1.1"]

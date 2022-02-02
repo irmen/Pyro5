@@ -241,7 +241,7 @@ class PyroDaemonThread(threading.Thread):
         threading.Thread.__init__(self)
         self.pyroserver = remote.GameServer(engine)
         self.pyrodaemon = Pyro5.api.Daemon()
-        self.setDaemon(True)
+        self.daemon = True
 
     def run(self):
         ns = Pyro5.api.locate_ns()
