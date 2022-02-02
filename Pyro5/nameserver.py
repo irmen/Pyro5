@@ -659,7 +659,7 @@ def start_ns_loop(host=None, port=None, enableBroadcast=True, bchost=None, bcpor
             print("Not starting broadcast server for IPv6.")
             log.info("Not starting NS broadcast server because NS is using IPv6")
             enableBroadcast = False
-        elif hostip.startswith("127.") or hostip == "::1":
+        elif hostip.startswith("127.") or hostip in ("localhost", "::1"):
             print("Not starting broadcast server for localhost.")
             log.info("Not starting NS broadcast server because NS is bound to localhost")
             enableBroadcast = False
@@ -698,7 +698,7 @@ def start_ns(host=None, port=None, enableBroadcast=True, bchost=None, bcport=Non
     nsUri = daemon.uriFor(daemon.nameserver)
     if not unixsocket:
         hostip = daemon.sock.getsockname()[0]
-        if hostip.startswith("127."):
+        if hostip.startswith("127.") or hostip in ("localhost", "::1"):
             # not starting broadcast server for localhost.
             enableBroadcast = False
         if enableBroadcast:
