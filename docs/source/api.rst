@@ -12,6 +12,7 @@ such as :mod:`Pyro5.core`, but for ease of use, the most important ones are also
    api/config.rst
    api/client.rst
    api/core.rst
+   api/server.rst
    api/errors.rst
    api/nameserver.rst
    api/callcontext.rst
