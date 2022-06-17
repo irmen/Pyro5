@@ -4,6 +4,7 @@ Client related classes (Proxy, mostly)
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
+import sys
 import time
 import logging
 import serpent
@@ -165,6 +166,27 @@ class Proxy(object):
     def __dir__(self):
         result = dir(self.__class__) + list(self.__dict__.keys())
         return sorted(set(result) | self._pyroMethods | self._pyroAttrs)
+
+    # When special methods are invoked via special syntax (e.g. obj[index] calls
+    # obj.__getitem__(index)), the special methods are not looked up via __getattr__
+    # for efficiency reasons; instead, their presence is checked directly.
+    # Thus we need to define them here to force (remote) lookup through __getitem__.
+    def __bool__(self): return True
+    def __len__(self): return self.__getattr__('__len__')()
+    def __getitem__(self, index): return self.__getattr__('__getitem__')(index)
+    def __setitem__(self, index, val): return self.__getattr__('__setitem__')(index, val)
+    def __delitem__(self, index): return self.__getattr__('__delitem__')(index)
+
+    def __iter__(self):
+        try:
+            # use remote iterator if it exists
+            yield from self.__getattr__('__iter__')()
+        except AttributeError:
+            # fallback to indexed based iteration
+            try:
+                yield from (self[index] for index in range(sys.maxsize))
+            except (StopIteration, IndexError):
+                return
 
     def _pyroRelease(self):
         """release the connection to the pyro daemon"""

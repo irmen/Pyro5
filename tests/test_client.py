@@ -2,6 +2,7 @@ import copy
 import pytest
 import time
 import Pyro5.client
+import Pyro5.server
 import Pyro5.errors
 from Pyro5 import config
 

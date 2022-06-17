@@ -7,6 +7,7 @@ Change Log
 - http gateway now also has OPTION call with CORS
 - fixed deprecation warning about setting threads in daemon mode
 - fixed more threading module deprecation warnings
+- proxy now correctly exposes remote __len__, __iter__ and __getitem__ etc
 
 
 **Pyro 5.13.1**

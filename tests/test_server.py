@@ -29,6 +29,7 @@ class ServerTestObject(object):
         self._dictionary = {"number": 42}
         self.dict_attr = {"number2": 43}
         self._value = 12345
+        self.items = list("qwerty")
 
     def getDict(self):
         return self._dictionary
@@ -106,6 +107,15 @@ class ServerTestObject(object):
 
     def new_test_object(self):
         return ServerTestObject()
+
+    def __len__(self):
+        return len(self.items)
+
+    def __iter__(self):
+        return iter(self.items)
+
+    def __getitem__(self, item):
+        return self.items[item]
 
 
 class NotEverythingExposedClass(object):
@@ -272,7 +282,8 @@ class TestServerOnce:
             p._pyroBind()
             assert p._pyroAttrs == {'value', 'dictionary'}
             assert p._pyroMethods == {'echo', 'getDict', 'divide', 'nonserializableException', 'ping', 'oneway_delay', 'delayAndId', 'delay', 'testargs',
-                              'multiply', 'oneway_multiply', 'getDictAttr', 'iterator', 'generator', 'response_annotation', 'blob', 'new_test_object'}
+                              'multiply', 'oneway_multiply', 'getDictAttr', 'iterator', 'generator', 'response_annotation', 'blob', 'new_test_object',
+                              '__iter__', '__len__', '__getitem__'}
             assert p._pyroOneway == {'oneway_multiply', 'oneway_delay'}
             p._pyroAttrs = None
             p._pyroGetMetadata()
@@ -478,6 +489,20 @@ class TestServerOnce:
             with pytest.raises(StopIteration):
                 next(iterator)
             iterator.close()
+
+    def testLenAndIterAndIndexing(self):
+        with Pyro5.client.Proxy(self.objectUri) as p:
+            assert len(p) == 6
+            values = list(iter(p))
+            assert values == ['q', 'w', 'e', 'r', 't', 'y']
+            assert p[0] == 'q'
+            assert p[1] == 'w'
+            assert p[2] == 'e'
+            assert p[3] == 'r'
+            assert p[4] == 't'
+            assert p[5] == 'y'
+            with pytest.raises(IndexError):
+                _ = p[6]
 
     def testGenerator(self):
         with Pyro5.client.Proxy(self.objectUri) as p:
