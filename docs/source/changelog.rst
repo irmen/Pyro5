@@ -4,6 +4,7 @@ Change Log
 
 **Pyro 5.14**
 
+- http gateway now also has OPTION call with CORS
 - fixed deprecation warning about setting threads in daemon mode
 - fixed more threading module deprecation warnings
 
