@@ -3,7 +3,9 @@ Change Log
 **********
 
 **Pyro 5.14**
+
 - fixed deprecation warning about setting threads in daemon mode
+- fixed more threading module deprecation warnings
 
 
 **Pyro 5.13.1**

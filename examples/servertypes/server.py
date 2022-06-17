@@ -19,7 +19,7 @@ class Server(object):
         return config.as_dict()
 
     def delay(self):
-        threadname = threading.current_thread().getName()
+        threadname = threading.current_thread().name
         print("delay called in thread %s" % threadname)
         time.sleep(1)
         self.callcount += 1
@@ -27,7 +27,7 @@ class Server(object):
 
     @oneway
     def onewaydelay(self):
-        threadname = threading.current_thread().getName()
+        threadname = threading.current_thread().name
         print("onewaydelay called in thread %s" % threadname)
         time.sleep(1)
         self.callcount += 1

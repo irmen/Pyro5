@@ -60,7 +60,7 @@ def func(uri):
     # This will run in a thread. Create a proxy just for this thread:
     with Proxy(uri) as p:
         processed = p.delay()
-        print("[ thread %s called delay, processed by: %s ]  " % (threading.current_thread().getName(), processed))
+        print("[ thread %s called delay, processed by: %s ]  " % (threading.current_thread().name, processed))
 
 
 serv._pyroBind()  # simplify the uri
