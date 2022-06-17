@@ -60,6 +60,10 @@ def invalid_request(start_response):
     start_response('405 Method Not Allowed', cors_response_header([('Content-Type', 'text/plain')], pyro_app.cors))
     return [b'Error 405: Method Not Allowed']
 
+def option_request(start_response):
+    """OPTION Call with CORS"""
+    start_response('200 OK', cors_response_header([('Content-Type', 'text/plain')], pyro_app.cors))
+    return [b'200 OK']
 
 def not_found(start_response):
     """Called if Url not found."""
@@ -296,8 +300,12 @@ def pyro_app(environ, start_response):
         
     if path.startswith("pyro/"):
         if method in ("GET", "POST", "OPTIONS"):
-            parameters = singlyfy_parameters(cgi.parse(environ['wsgi.input'], environ))
-            return process_pyro_request(environ, path[5:], parameters, start_response)
+            if method in ("OPTIONS"):
+                return option_request(start_response)
+            else:
+                """GET POST"""
+                parameters = singlyfy_parameters(cgi.parse(environ['wsgi.input'], environ))
+                return process_pyro_request(environ, path[5:], parameters, start_response)
         else:
             return invalid_request(start_response)
            
