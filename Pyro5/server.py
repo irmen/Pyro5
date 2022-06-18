@@ -17,9 +17,10 @@ import warnings
 import weakref
 import serpent
 import ipaddress
-from typing import Callable, Tuple, Union, Optional, Dict, Any, Sequence, Set
+from typing import TypeVar, Tuple, Union, Optional, Dict, Any, Sequence, Set
 from . import config, core, errors, serializers, socketutil, protocol, client
 from .callcontext import current_context
+from collections.abc import Callable
 
 __all__ = ["Daemon", "DaemonObject", "callback", "expose", "behavior", "oneway", "serve"]
 
@@ -69,7 +70,10 @@ def oneway(method: Callable) -> Callable:
     return method
 
 
-def expose(method_or_class: Union[Callable, type]) -> Union[Callable, type]:
+_T = TypeVar("_T", bound=Union[Callable, type])
+
+
+def expose(method_or_class: _T) -> _T:
     """
     Decorator to mark a method or class to be exposed for remote calls.
     You can apply it to a method or a class as a whole.
