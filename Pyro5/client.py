@@ -42,10 +42,18 @@ class Proxy(object):
     .. attribute:: _pyroHandshake
 
         The data object that should be sent in the initial connection handshake message. Can be any serializable object.
+
+    .. attribute:: _pyroLocalSocket
+
+        The socket that is used locally to connect to the remote daemon.
+        The format depends on the address family used for the connection, but usually
+        for IPV4 connections it is the familiar (hostname, port) tuple.
+        Consult the Python documentation on `socket families <https://docs.python.org/3/library/socket.html#socket-families>`_
+        for more details
     """
     __pyroAttributes = frozenset(
         ["__getnewargs__", "__getnewargs_ex__", "__getinitargs__", "_pyroConnection", "_pyroUri",
-         "_pyroOneway", "_pyroMethods", "_pyroAttrs", "_pyroTimeout", "_pyroSeq",
+         "_pyroOneway", "_pyroMethods", "_pyroAttrs", "_pyroTimeout", "_pyroSeq", "_pyroLocalSocket",
          "_pyroRawWireResponse", "_pyroHandshake", "_pyroMaxRetries", "_pyroSerializer",
          "_Proxy__pyroTimeout", "_Proxy__pyroOwnerThread"])
 
@@ -132,6 +140,7 @@ class Proxy(object):
         self.__pyroTimeout = config.COMMTIMEOUT
         self._pyroMaxRetries = config.MAX_RETRIES
         self._pyroConnection = None
+        self._pyroLocalSocket = None
         self._pyroSeq = 0
         self._pyroRawWireResponse = False
         self.__pyroOwnerThread = get_ident()
@@ -194,6 +203,7 @@ class Proxy(object):
         if self._pyroConnection is not None:
             self._pyroConnection.close()
             self._pyroConnection = None
+            self._pyroLocalSocket = None
 
     def _pyroBind(self):
         """
@@ -338,6 +348,7 @@ class Proxy(object):
                     self.__processMetadata(handshake_response["meta"])
                     handshake_response = handshake_response["handshake"]
                     self._pyroConnection = conn
+                    self._pyroLocalSocket = conn.sock.getsockname()
                     if replaceUri:
                         self._pyroUri = uri
                     self._pyroValidateHandshake(handshake_response)
@@ -360,6 +371,7 @@ class Proxy(object):
         connect_location = uri.sockname or (uri.host, uri.port)
         if connected_socket:
             self._pyroConnection = socketutil.SocketConnection(connected_socket, uri.object, True)
+            self._pyroLocalSocket = connected_socket.getsockname()
         else:
             connect_and_handshake(conn)
         # obtain metadata if this feature is enabled, and the metadata is not known yet

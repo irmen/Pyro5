@@ -9,6 +9,7 @@ Change Log
 - fixed more threading module deprecation warnings
 - proxy now correctly exposes remote __len__, __iter__ and __getitem__ etc
 - improved type hint for expose()
+- added Proxy._pyroLocalSocket property that is the local socket address used in the proxy.
 
 
 **Pyro 5.13.1**
