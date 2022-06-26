@@ -142,11 +142,13 @@ class SerializerBase(object):
                 "args": obj.args,
                 "attributes": vars(obj)  # add custom exception attributes
             }
-        try:
+        # note: python 3.11+ object itself now has __getstate__
+        has_own_getstate = (
+            hasattr(type(obj), '__getstate__')
+            and type(obj).__getstate__ is not getattr(object, '__getstate__', None)
+        )
+        if has_own_getstate:
             value = obj.__getstate__()
-        except AttributeError:
-            pass
-        else:
             if isinstance(value, dict):
                 return value
         try:
