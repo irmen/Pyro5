@@ -810,7 +810,7 @@ class Daemon(object):
         return objId, method, (blob,), {}  # object, method, vargs, kwargs
 
 
-def serve(objects: Dict[Any, str], host: Optional[Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]] = "",
+def serve(objects: Dict[Any, str], host: Optional[Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]] = None,
           port: int = 0, daemon: Optional[Daemon] = None, use_ns: bool = True, verbose: bool = True) -> None:
     """
     Basic method to fire up a daemon (or supply one yourself).

@@ -10,6 +10,7 @@ Change Log
 - proxy now correctly exposes remote __len__, __iter__ and __getitem__ etc
 - improved type hint for expose()
 - added Proxy._pyroLocalSocket property that is the local socket address used in the proxy.
+- serve() no longer defaults host parameter to empty string, but None. To be more similar to what a creation of Daemon() normally does.
 
 
 **Pyro 5.13.1**
