@@ -11,6 +11,7 @@ Change Log
 - improved type hint for expose()
 - added Proxy._pyroLocalSocket property that is the local socket address used in the proxy.
 - serve() no longer defaults host parameter to empty string, but None. To be more similar to what a creation of Daemon() normally does.
+- fixed a Python 3.11 serialization issue
 
 
 **Pyro 5.13.1**
