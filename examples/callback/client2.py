@@ -30,11 +30,11 @@ class CallbackHandler(object):
 
 
 daemon = Daemon()
-callback = CallbackHandler()
-daemon.register(callback)
+callback_handler = CallbackHandler()
+daemon.register(callback_handler)
 
 with Proxy("PYRONAME:example.callback2") as server:
-    server.doCallback(callback)   # this is a oneway call, so we can continue right away
+    server.doCallback(callback_handler)   # this is a oneway call, so we can continue right away
 
 print("waiting for callbacks to arrive...")
 print("(ctrl-c/break the program once it's done)")
