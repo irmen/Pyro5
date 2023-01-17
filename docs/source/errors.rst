@@ -5,7 +5,7 @@ Exceptions and remote tracebacks
 ********************************
 
 There is an example that shows various ways to deal with exceptions when writing Pyro code.
-Have a look at the ``exceptions`` example in the :file:`examples` directory.
+Have a look at the `exceptions example <https://github.com/irmen/Pyro5/tree/master/examples/exceptions>`_ .
 
 Pyro exceptions
 ---------------

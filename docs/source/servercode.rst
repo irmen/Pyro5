@@ -109,7 +109,7 @@ to methods that are marked with ``@Pyro5.server.oneway`` on the server, will hap
 
 
 See :ref:`oneway-calls-client` for the documentation about how client code handles this.
-See the :file:`oneway` example for some code that demonstrates the use of oneway methods.
+See the `oneway example <https://github.com/irmen/Pyro5/tree/master/examples/oneway>`_ for some code that demonstrates the use of oneway methods.
 
 
 Exposing classes and methods without changing existing source code
@@ -156,7 +156,7 @@ There are a few caveats when using this:
    serialization issues for instance when a method of the class returns an object whose type is again a class from the library.
 
 
-See the :file:`thirdpartylib` example for a little server that deals with such a third party library.
+See the `thirdpartylib example <https://github.com/irmen/Pyro5/tree/master/examples/thirdpartylib>`_ for a little server that deals with such a third party library.
 
 
 .. index:: publishing objects
@@ -494,7 +494,9 @@ A daemon provides a few tools to let you integrate it into your own event loop:
 * :py:attr:`Pyro5.server.Daemon.sockets` - list of all socket objects used by the daemon, to inject in your own event loop
 * :py:meth:`Pyro5.server.Daemon.events` - method to call from your own event loop when Pyro needs to process requests. Argument is a list of sockets that triggered.
 
-For more details and example code, see the :file:`eventloop` and :file:`gui_eventloop` examples.
+For more details and example code, see the
+`eventloop <https://github.com/irmen/Pyro5/tree/master/examples/eventloop>`_ and
+`gui_eventloop <https://github.com/irmen/Pyro5/tree/master/examples/gui_eventloop>`_ examples.
 They show how to use Pyro including a name server, in your own event loop, and also possible ways
 to use Pyro from within a GUI program with its own event loop.
 
@@ -519,7 +521,7 @@ There are a few ways to do this:
    so that you only have to call the requestLoop of that "master daemon".
    Basically Pyro will run an integrated multiplexed event loop for you.
    You can combine normal Daemon objects, the NameServerDaemon and also the name server's BroadcastServer.
-   Again, have a look at the :file:`eventloop` example to see how this can be done.
+   Again, have a look at the `eventloop example <https://github.com/irmen/Pyro5/tree/master/examples/eventloop>`_ to see how this can be done.
    (Note: this will only work with the ``multiplex`` server type, not with the ``thread`` type)
 
 
@@ -608,8 +610,8 @@ If you need special initialization or the class's init method requires parameter
 an ``instance_creator`` callable as well. Pyro will then use that to create an instance of your class.
 It will call it with the class to create an instance of as the single parameter.
 
-See the :file:`instancemode` example to learn about various ways to use this.
-See the :file:`usersession` example to learn how you could use it to build user-bound resource access without concurrency problems.
+See the `instancemode example <https://github.com/irmen/Pyro5/tree/master/examples/instancemode>`_ to learn about various ways to use this.
+See the `usersession example <https://github.com/irmen/Pyro5/tree/master/examples/usersession>`_ to learn how you could use it to build user-bound resource access without concurrency problems.
 
 
 .. index:: automatic proxying
@@ -626,7 +628,7 @@ All you have to do is to register the new object with the appropriate daemon::
         self._pyroDaemon.register(thing)
         return thing    # just return it, no need to return a proxy
 
-There is a :file:`autoproxy` example that shows the use of this feature,
+There is a `autoproxy example <https://github.com/irmen/Pyro5/tree/master/examples/autoproxy>`_ that shows the use of this feature,
 and several other examples also make use of it.
 
 Note that when using the marshal serializer, this feature doesn't work. You have to use
@@ -810,7 +812,7 @@ user written code that implements the remote method. This user code may raise an
 
 It may be useful however to also process the error on the *server*, for instance, to log the error
 somewhere for later reference. For this purpose, you can set the ``methodcall_error_handler`` attribute
-on the daemon object to a custom error handler function. See the :file:`exceptions` example.
+on the daemon object to a custom error handler function. See the `exceptions example <https://github.com/irmen/Pyro5/tree/master/examples/exceptions>`_ .
 This function's signature is::
 
     def custom_error_handler(daemon: Daemon, client_sock: socketutil.SocketConnection,

@@ -68,7 +68,7 @@ to use certs as well and check these in your server. This makes it 2-way-SSL or 
 For more details see here :ref:`cert_verification`. The SSL config items are in :ref:`config-items`.
 
 For example code on how to set up a 2-way-SSL Pyro client and server, with cert verification,
-see the ``ssl`` example.
+see the `ssl example <https://github.com/irmen/Pyro5/tree/master/examples/ssl>`_ .
 
 .. index::
     double: security; object traversal
@@ -123,4 +123,4 @@ Having certs on both client and server is called 2-way-SSL or mutual authenticat
 It's a bit too involved to fully describe here but it not much harder than the basic SSL configuration
 described earlier. You just have to make sure you supply a client certificate and that the server requires
 a client certificate (and verifies some properties of it).
-The ``ssl`` example shows how to do all this.
+The `ssl example <https://github.com/irmen/Pyro5/tree/master/examples/ssl>`_ shows how to do all this.

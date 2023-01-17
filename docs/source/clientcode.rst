@@ -136,7 +136,7 @@ Note that direct remote attribute access only works if the metadata feature is e
     print("velocity = ", velo)
 
 
-See the :file:`attributes` example for more information.
+See the `attributes example <https://github.com/irmen/Pyro5/tree/master/examples/attributes>`_ for more information.
 
 
 
@@ -191,7 +191,11 @@ The hooks are provided via several methods:
 and their unregister-counterparts:
     :py:meth:`Pyro5.api.unregister_class_to_dict` and :py:meth:`Pyro5.api.unregister_dict_to_class`
 
-Click on the method link to see its apidoc, or have a look at the :file:`custom-serialization` example and the :file:`test_serialize` unit tests for more information.
+Click on the method link to see its apidoc, or have a look at the
+`custom-serialization example <https://github.com/irmen/Pyro5/tree/master/examples/custom-serialization>`_
+and the
+`test_serialize unit tests <https://github.com/irmen/Pyro5/blob/master/tests/test_serialize.py>`_
+for more information.
 It is recommended to avoid using these hooks if possible, there's a security risk
 to create arbitrary objects from serialized data that is received from untrusted sources.
 
@@ -251,7 +255,8 @@ If you want to find out later what - if anything - happened, you have to call an
 **How to make methods one-way:**
 You mark the methods of your class *in the server* as one-way by using a special *decorator*.
 See :ref:`decorating-pyro-class` for details on how to do this.
-See the :file:`oneway` example for some code that demonstrates the use of oneway methods.
+See the `oneway example <https://github.com/irmen/Pyro5/tree/master/examples/oneway>`_
+for some code that demonstrates the use of oneway methods.
 
 
 .. index:: batch calls
@@ -299,7 +304,7 @@ The signature of the batch proxy call is as follows:
     # results==None
 
 
-See the :py:mod:`batchedcalls` example for more details.
+See the `batchedcalls example <https://github.com/irmen/Pyro5/tree/master/examples/batchedcalls>`_ for more details.
 
 
 .. index:: remote iterators/generators
@@ -353,8 +358,10 @@ because the remote generator has been discarded in the meantime.
 Lingering can be disabled completely by setting the value to 0, then all remote generators from a proxy will
 immediately be discarded in the server if the proxy gets disconnected or closed.
 
-There are several examples that use the remote iterator feature.
-Have a look at the :py:mod:`streaming`, :py:mod:`stockquotes`, or the :py:mod:`filetransfer` examples.
+There are several examples that use the remote iterator feature. Have a look at the
+`streaming <https://github.com/irmen/Pyro5/tree/master/examples/streaming>`_ ,
+`stockquotes <https://github.com/irmen/Pyro5/tree/master/examples/stockquotes>`_ or the
+`filetransfer <https://github.com/irmen/Pyro5/tree/master/examples/filetransfer>`_ examples.
 
 
 .. index:: callback
@@ -404,7 +411,7 @@ stack trace (if you have logging enabled)::
 
 Also notice that the callback method (or the whole class) has to be decorated
 with ``@Pyro5.api.expose`` as well to allow it to be called remotely at all.
-See the :py:mod:`callback` example for more details and code.
+See the `callback example <https://github.com/irmen/Pyro5/tree/master/examples/callback>`_ for more details and code.
 
 
 .. index:: misc features
@@ -422,7 +429,7 @@ You can just do exception handling as you would do when writing normal Python co
 However, Pyro provides a few extra features when dealing with errors that occurred in
 remote objects. This subject is explained in detail its own chapter: :doc:`errors`.
 
-See the :py:mod:`exceptions` example for more details.
+See the `exceptions example <https://github.com/irmen/Pyro5/tree/master/examples/exceptions>`_ for more details.
 
 .. index:: timeouts
 
@@ -444,7 +451,7 @@ You can also do this on a per-proxy basis by setting the timeout property on the
     proxy._pyroTimeout = 1.5    # 1.5 seconds
 
 
-See the :py:mod:`timeout` example for more details.
+See the `timeout example <https://github.com/irmen/Pyro5/tree/master/examples/timeout>`_ for more details.
 
 Also, there is a automatic retry mechanism for timeout or connection closed (by server side),
 in order to use this automatically retry::
@@ -456,7 +463,7 @@ You can also do this on a pre-proxy basis by setting the max retries property on
     proxy._pyroMaxRetries = 3      # attempt to retry 3 times before raise the exception
 
 Be careful to use when remote functions have a side effect (e.g.: calling twice results in error)!
-See the :py:mod:`autoretry` example for more details.
+See the `autoretry example <https://github.com/irmen/Pyro5/tree/master/examples/autoretry>`_ for more details.
 
 .. index::
     double: reconnecting; automatic
@@ -467,7 +474,7 @@ Automatic reconnecting
 ----------------------
 If your client program becomes disconnected to the server (because the server crashed for instance),
 Pyro will raise a :py:exc:`Pyro5.errors.ConnectionClosedError`.
-You can use the automatic retry mechanism to handle this exception, see the :py:mod:`autoretry` example for more details.
+You can use the automatic retry mechanism to handle this exception, see the `autoretry example <https://github.com/irmen/Pyro5/tree/master/examples/autoretry>`_ for more details.
 Alternatively, it is also possible to catch this and tell Pyro to attempt to reconnect to the server by calling
 ``_pyroReconnect()`` on the proxy (it takes an optional argument: the number of attempts
 to reconnect to the daemon. By default this is almost infinite). Once successful, you can resume operations
@@ -483,7 +490,7 @@ This will only work if you take a few precautions in the server. Most importantl
 up again, it needs to publish its Pyro objects with the exact same URI as before (object id, hostname, daemon
 port number).
 
-See the :py:mod:`autoreconnect` example for more details and some suggestions on how to do this.
+See the `autoreconnect example <https://github.com/irmen/Pyro5/tree/master/examples/autoreconnect>`_ for more details and some suggestions on how to do this.
 
 The ``_pyroReconnect()`` method can also be used to force a newly created proxy to connect immediately,
 rather than on first use.
@@ -502,7 +509,7 @@ data sequence.
 You can explicitly transfer ownership of a proxy to another thread via the proxy's ``_pyroClaimOwnership()`` method.
 The current thread then claims the ownership of this proxy from another thread. Any existing connection will remain active.
 
-See the :py:mod:`threadproxysharing` example for more details.
+See the `threadproxysharing example <https://github.com/irmen/Pyro5/tree/master/examples/threadproxysharing>`_ for more details.
 
 
 .. index::

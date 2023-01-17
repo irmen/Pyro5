@@ -144,7 +144,7 @@ This is more complex than simply launching it via the command line tool,
 because you have to integrate the name server into the rest of your program (perhaps you need to merge event loops?).
 For your convenience, two helper functions are available to create a name server yourself:
 :py:func:`Pyro5.nameserver.start_ns` and :py:func:`Pyro5.nameserver.start_ns_loop`.
-Look at the :file:`eventloop` example to see how you can use this.
+Look at the `eventloop example <https://github.com/irmen/Pyro5/tree/master/examples/eventloop>`_ to see how you can use this.
 
 **Custom storage mechanism:**
 The utility functions allow you to specify a custom storage mechanism (via the ``storage`` parameter).
@@ -360,7 +360,7 @@ you can write this instead::
 An additional benefit of using a PYRONAME uri in a proxy is that the proxy isn't strictly
 tied to a specific object on a specific location. This is useful in scenarios where the server
 objects might move to another location, for instance when a disconnect/reconnect occurs.
-See the :file:`autoreconnect` example for more details about this.
+See the `autoreconnect example <https://github.com/irmen/Pyro5/tree/master/examples/autoreconnect>`_ for more details about this.
 
 .. note::
     Pyro has to do a lookup every time it needs to connect one of these PYRONAME uris.
@@ -614,7 +614,7 @@ this will connect to a (randomly chosen) object with both the ``resource.printer
 Also see :ref:`nameserver-pyrometa`.
 
 
-You can find some code that uses the metadata API in the :file:`ns-metadata` example.
+You can find some code that uses the metadata API in the `ns-metadata example <https://github.com/irmen/Pyro5/tree/master/examples/ns-metadata>`_ .
 Note that the ``nsc`` tool (:ref:`nameserver-nsc`) also allows you to manipulate the metadata in the name server from the command line.
 
 

@@ -86,7 +86,7 @@ Finally, Pyro can be a communication glue library to easily integrate various pa
 consisting of many different parts and pieces. As long as you have a working (and supported) Python version
 running on it, you should be able to talk to it using Pyro from any other part of the system.
 
-Have a look at the :file:`examples` directory in the source archive, perhaps one of the many example
+Have a look at the `examples directory <https://github.com/irmen/Pyro5/tree/master/examples/>`_ in the source, perhaps one of the many example
 programs in there gives even more inspiration of possibilities.
 
 
@@ -278,7 +278,7 @@ the command :command:`python -m Pyro5.nsc list` (or simply: :command:`pyro5-nsc 
 This concludes this simple Pyro example.
 
 .. note::
- In the source archive there is a directory :file:`examples` that contains a truckload
+ In the source code there is an `examples directory <https://github.com/irmen/Pyro5/tree/master/examples/>`_ that contains a truckload
  of example programs that show the various features of Pyro. If you're interested in them
  (it is highly recommended to be so!) you will have to download the Pyro distribution archive.
  Installing Pyro only provides the library modules. For more information, see :doc:`config`.
@@ -303,4 +303,8 @@ Pyro is pretty fast, but speed depends largely on many external factors:
 - contents and size of the pyro call request and response messages
 - the serializer being used
 
-Experiment with the ``benchmark``, ``batchedcalls`` and ``hugetransfer`` examples to see what results you get on your own setup.
+Experiment with the
+`benchmark <https://github.com/irmen/Pyro5/tree/master/examples/benchmark>`_ ,
+`batchedcalls <https://github.com/irmen/Pyro5/tree/master/examples/batchedcalls>`_ and
+`hugetransfer <https://github.com/irmen/Pyro5/tree/master/examples/hugetransfer>`_
+examples to see what results you get on your own setup.

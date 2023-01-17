@@ -296,7 +296,7 @@ on demand in your client).
 
 
 The following table is an indication of the relative speeds when dealing with large amounts
-of binary data. It lists the results of the :file:`hugetransfer` example, using python 3.8,
+of binary data. It lists the results of the `hugetransfer example <https://github.com/irmen/Pyro5/tree/master/examples/hugetransfer>`_ , using python 3.8,
 over a 1 Gbit LAN connection:
 
 ========== ========== ============= ================ ====================
@@ -317,7 +317,7 @@ Marshal is very efficient and is almost saturating the 1 Gbit connection speed l
 Pyro allows you to add custom annotation chunks to the request and response messages
 (see  :ref:`msg_annotations`). Because these are binary chunks they will not be passed
 through the serializer at all. Depending on what the configured maximum message size is
-you may have to split up larger files. The ``filetransfer`` example contains
+you may have to split up larger files. The `filetransfer example <https://github.com/irmen/Pyro5/tree/master/examples/filetransfer>`_ contains
 fully working example code to see this in action. It combines this with the remote
 iterator capability of Pyro to easily get all chunks of the file.
 It has to split up the file in small chunks but is still quite a bit faster than transmitting
@@ -330,7 +330,7 @@ and no low level network or socket code.
 It is possible to get data transfer speeds that are close to the limit of your network adapter
 by doing the actual data transfer via low-level socket code and everything else via Pyro.
 This keeps the amount of low-level code to a minimum.
-Have a look at the ``filetransfer`` example again, to see a possible way of doing this.
+Have a look at the `filetransfer example <https://github.com/irmen/Pyro5/tree/master/examples/filetransfer>`_ again, to see a possible way of doing this.
 It creates a special Daemon subclass that uses Pyro for everything as usual,
 but for actual file transfer it sets up a dedicated temporary socket connection over which the file data
 is transmitted.
@@ -476,7 +476,7 @@ Http response status codes:
 - 500 Internal server error: something went wrong during request processing, response is serialized exception object (if available)
 
 
-Look at the :file:`http` example for working code how you could set this up.
+Look at the `http example <https://github.com/irmen/Pyro5/tree/master/examples/http>`_ for working code how you could set this up.
 
 
 .. index:: current_context, correlation_id
@@ -550,8 +550,8 @@ When accessed in a Pyro server it contains various attributes:
 
 
 For an example of how this information can be retrieved, and how to set the ``correlation_id``,
-see the :file:`callcontext` example.
-See the :file:`usersession` example to learn how you could use it to build user-bound resource access without concurrency problems.
+see the `callcontext example <https://github.com/irmen/Pyro5/tree/master/examples/callcontext>`_ .
+See the `usersession example <https://github.com/irmen/Pyro5/tree/master/examples/usersession>`_ to learn how you could use it to build user-bound resource access without concurrency problems.
 
 
 .. index:: resource-tracking
@@ -593,7 +593,7 @@ Resource tracking and untracking is done in your server class on the ``Pyro5.cur
     Untrack a previously tracked resource, useful if you have freed it normally.
 
 
-See the ``resourcetracking`` example for working code utilizing this.
+See the `resourcetracking example <https://github.com/irmen/Pyro5/tree/master/examples/resourcetracking>`_ for working code utilizing this.
 
 .. note::
     The order in which the resources are freed is arbitrary.
@@ -639,7 +639,9 @@ If you're using large annotation chunks, it is advised to clear these fields aft
 See :ref:`current_context`.
 In your server code, in the Daemon, you can use the :py:data:`Pyro5.current_context` to access the ``annotations`` of the last message that was received.
 
-To see how you can work with custom message annotations, see the :py:mod:`callcontext` or :py:mod:`filetransfer` examples.
+To see how you can work with custom message annotations, see the
+`callcontext <https://github.com/irmen/Pyro5/tree/master/examples/callcontext>`_ or
+`filetransfer <https://github.com/irmen/Pyro5/tree/master/examples/filetransfer>`_ examples.
 
 
 .. index:: handshake
@@ -667,7 +669,7 @@ This result value will be received back in the Proxy where you can act on it
 if you subclass the proxy and override :py:meth:`Pyro5.client.Proxy._pyroValidateHandshake`.
 
 
-For an example of how you can work with connections handshake validation, see the :py:mod:`handshake` example.
+For an example of how you can work with connections handshake validation, see the `handshake example <https://github.com/irmen/Pyro5/tree/master/examples/handshake>`_ .
 It implements a (bad!) security mechanism that requires the client to supply a "secret" password to be able to connect to the daemon.
 
 
@@ -705,7 +707,7 @@ Because the message is then never de/reserialized in the dispatcher code, you av
 and also don't have to include the source code for the serialized types in the dispatcher.
 It just deals with a blob of serialized bytes.
 
-An example that shows how this mechanism can be used, can be found as :py:mod:`blob-dispatch` in the examples folder.
+An example that shows how this mechanism can be used, is `blob-dispatch <https://github.com/irmen/Pyro5/tree/master/examples/blob-dispatch>`_ .
 
 
 .. index:: socketpair, user provided sockets
@@ -727,5 +729,5 @@ Closing the proxy or the daemon will *not* close the underlying user-supplied so
 for another proxy (to access a different object). You created the socket(s) yourself,
 and you also have to close the socket(s) yourself.
 
-See the :py:mod:`socketpair` example for two example programs (one using threads, the other using fork
+See the `socketpair example <https://github.com/irmen/Pyro5/tree/master/examples/socketpair>`_ for two example programs (one using threads, the other using fork
 to create a child process).
