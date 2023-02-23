@@ -36,6 +36,7 @@ class NSLoopThread(threading.Thread):
 
 
 class TestBCSetup:
+    @pytest.mark.network
     def testBCstart(self):
         myIpAddress = Pyro5.socketutil.get_ip_address("", workaround127=True)
         nsUri, nameserver, bcserver = Pyro5.nameserver.start_ns(host=myIpAddress, port=0, bcport=0, enableBroadcast=False)
@@ -76,11 +77,13 @@ class TestNameServer:
         config.NS_PORT = self.old_nsPort
         config.NS_BCPORT = self.old_bcPort
 
+    @pytest.mark.network
     def testLookupUnixsockParsing(self):
         # this must not raise AttributeError, it did before because of a parse bug
         with pytest.raises(NamingError):
             Pyro5.core.locate_ns("./u:/tmp/Pyro5-naming.usock")
 
+    @pytest.mark.network
     def testLookupAndRegister(self):
         ns = Pyro5.core.locate_ns()  # broadcast lookup
         assert isinstance(ns, Pyro5.client.Proxy)
@@ -107,6 +110,7 @@ class TestNameServer:
         assert ns.lookup("unittest.object3") == Pyro5.core.URI("PYRO:66666@host.com:4444")
         ns._pyroRelease()
 
+    @pytest.mark.network
     def testDaemonPyroObj(self):
         uri = self.nsUri
         uri.object = Pyro5.core.DAEMON_NAME
@@ -116,6 +120,7 @@ class TestNameServer:
             with pytest.raises(AttributeError):
                 daemonobj.shutdown()
 
+    @pytest.mark.network
     def testMulti(self):
         uristr = str(self.nsUri)
         p = Pyro5.client.Proxy(uristr)
@@ -157,6 +162,7 @@ class TestNameServer:
         _ = Pyro5.core.resolve(pyronameUri)
         _ = Pyro5.core.resolve(pyronameUri)
 
+    @pytest.mark.network
     def testResolve(self):
         resolved1 = Pyro5.core.resolve(Pyro5.core.URI("PYRO:12345@host.com:4444"))
         resolved2 = Pyro5.core.resolve("PYRO:12345@host.com:4444")
@@ -186,6 +192,7 @@ class TestNameServer:
         with pytest.raises(TypeError):
             Pyro5.core.resolve(999)
 
+    @pytest.mark.network
     def testRefuseDottedNames(self):
         with Pyro5.core.locate_ns(self.nsUri.host, self.nsUri.port) as ns:
             # the name server should never have dotted names enabled
@@ -194,6 +201,7 @@ class TestNameServer:
             assert ns._pyroConnection is not None
         assert ns._pyroConnection is None
 
+    @pytest.mark.network
     def testAutoClean(self):
         try:
             config.NS_AUTOCLEAN = 0.0
@@ -243,6 +251,7 @@ class TestNameServer0000:
         config.NS_PORT = self.old_nsPort
         config.NS_BCPORT = self.old_bcPort
 
+    @pytest.mark.network
     def testBCLookup0000(self):
         ns = Pyro5.core.locate_ns()  # broadcast lookup
         assert isinstance(ns, Pyro5.client.Proxy)
@@ -388,6 +397,7 @@ class TestOfflineNameServer:
                 pass
         ns.close()
 
+    @pytest.mark.network
     def testStartNSfunc(self):
         myIpAddress = Pyro5.socketutil.get_ip_address("", workaround127=True)
         uri1, ns1, bc1 = Pyro5.nameserver.start_ns(host=myIpAddress, port=0, bcport=0, enableBroadcast=False)
