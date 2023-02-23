@@ -29,6 +29,7 @@ class TestSocketutil:
     def setup_class(cls):
         config.POLLTIMEOUT = 0.1
 
+    @pytest.mark.network
     def testGetIP(self):
         config.PREFER_IP_VERSION = 4
         myip = socketutil.get_ip_address("")
@@ -231,6 +232,7 @@ class TestSocketutil:
         if os.path.exists(SOCKNAME):
             os.remove(SOCKNAME)
 
+    @pytest.mark.network
     def testBroadcast(self):
         ss = socketutil.create_bc_socket((None, 0))
         port = ss.getsockname()[1]
