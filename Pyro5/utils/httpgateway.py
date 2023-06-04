@@ -24,7 +24,7 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 
 import sys
 import re
-import cgi
+import urllib.parse
 import uuid
 import json
 from wsgiref.simple_server import make_server
@@ -304,7 +304,7 @@ def pyro_app(environ, start_response):
                 return option_request(start_response)
             else:
                 """GET POST"""
-                parameters = singlyfy_parameters(cgi.parse(environ['wsgi.input'], environ))
+                parameters = singlyfy_parameters(urllib.parse.parse_qs(environ["QUERY_STRING"]))
                 return process_pyro_request(environ, path[5:], parameters, start_response)
         else:
             return invalid_request(start_response)
@@ -314,7 +314,7 @@ def pyro_app(environ, start_response):
 
 def singlyfy_parameters(parameters):
     """
-    Makes a cgi-parsed parameter dictionary into a dict where the values that
+    Makes a parsed querystring parameter dictionary into a dict where the values that
     are just a list of a single value, are converted to just that single value.
     """
     for key, value in parameters.items():
