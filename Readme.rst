@@ -9,12 +9,6 @@ Pyro5
 .. image:: https://anaconda.org/conda-forge/pyro5/badges/version.svg
     :target: https://anaconda.org/conda-forge/pyro5
 
-.. image:: https://img.shields.io/lgtm/grade/python/g/irmen/Pyro5.svg?logo=lgtm&logoWidth=18
-    :target: https://lgtm.com/projects/g/irmen/Pyro5/context:python
-
-.. image:: https://img.shields.io/lgtm/alerts/g/irmen/Pyro5.svg?logo=lgtm&logoWidth=18
-    :target: https://lgtm.com/projects/g/irmen/Pyro5/alerts
-
 
 Info
 ----
