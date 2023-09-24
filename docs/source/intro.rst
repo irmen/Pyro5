@@ -119,7 +119,7 @@ What has been changed since Pyro4
 
 If you're familiar with Pyro4, most of the things are the same in Pyro5. These are the changes though:
 
-- Requires Python 3.7 or newer.
+- Supported on Python 3.8 or newer.
 - the Pyro5 API is redesigned and this library is not compatible with Pyro4 code (although everything should be familiar):
 
       - Pyro5 is the new package name

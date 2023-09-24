@@ -2,6 +2,13 @@
 Change Log
 **********
 
+**Pyro 5.15**
+
+- removed Python 3.7 from the support list (it is EOL). Now supported on Python 3.8 or newer.
+- fixed cgi.parse deprecation problem in http gateway
+- some small tweaks to setup, tests, examples, and docs.
+
+
 **Pyro 5.14**
 
 - http gateway now also has OPTION call with CORS
