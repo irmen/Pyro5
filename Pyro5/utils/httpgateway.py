@@ -91,14 +91,13 @@ index_page_template = """<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <script src="//code.jquery.com/jquery-2.1.3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script>
     "use strict";
-    function pyro_call(name, method, params) {{
+    function pyro_call(name, query) {{
         $.ajax({{
-            url: name+"/"+method,
+            url: name+"/"+query,
             type: "GET",
-            data: params,
             dataType: "json",
             // headers: {{ "X-Pyro-Correlation-Id": "11112222-1111-2222-3333-222244449999" }},
             // headers: {{ "X-Pyro-Gateway-Key": "secret-key" }},
@@ -130,26 +129,26 @@ index_page_template = """<!DOCTYPE html>
 {name_server_contents_list}
 <p>Name server examples: (these examples are working if you expose the Pyro.NameServer object)</p>
 <ul>
-<li><a href="Pyro.NameServer/$meta" onclick="pyro_call('Pyro.NameServer','$meta'); return false;">Pyro.NameServer/$meta</a>
+<li><a href="javascript:void();" onclick="pyro_call('Pyro.NameServer','$meta'); return false;">Pyro.NameServer/$meta</a>
      -- gives meta info of the name server (methods)</li>
-<li><a href="Pyro.NameServer/list" onclick="pyro_call('Pyro.NameServer','list'); return false;">Pyro.NameServer/list</a>
+<li><a href="javascript:void();" onclick="pyro_call('Pyro.NameServer','list'); return false;">Pyro.NameServer/list</a>
      -- lists the contents of the name server</li>
-<li><a href="Pyro.NameServer/list?prefix=test."
-       onclick="pyro_call('Pyro.NameServer','list', {{'prefix':'test.'}}); return false;">
+<li><a href="javascript:void();"
+       onclick="pyro_call('Pyro.NameServer','list?prefix=test.'); return false;">
        Pyro.NameServer/list?prefix=test.</a> -- lists the contents of the name server starting with 'test.'</li>
-<li><a href="Pyro.NameServer/lookup?name=Pyro.NameServer"
-       onclick="pyro_call('Pyro.NameServer','lookup', {{'name':'Pyro.NameServer'}}); return false;">
+<li><a href="javascript:void();"
+       onclick="pyro_call('Pyro.NameServer','lookup?name=Pyro.NameServer'); return false;">
        Pyro.NameServer/lookup?name=Pyro.NameServer</a> -- perform lookup method of the name server</li>
-<li><a href="Pyro.NameServer/lookup?name=test.echoserver"
-       onclick="pyro_call('Pyro.NameServer','lookup', {{'name':'test.echoserver'}}); return false;">
+<li><a href="javascript:void();"
+       onclick="pyro_call('Pyro.NameServer','lookup?name=test.echoserver'); return false;">
        Pyro.NameServer/lookup?name=test.echoserver</a> -- perform lookup method of the echo server</li>
 </ul>
 <p>Echoserver examples: (these examples are working if you expose the test.echoserver object)</p>
 <ul>
-<li><a href="test.echoserver/error" onclick="pyro_call('test.echoserver','error'); return false;">test.echoserver/error</a>
+<li><a href="javascript:void();" onclick="pyro_call('test.echoserver','error'); return false;">test.echoserver/error</a>
      -- perform error call on echoserver</li>
-<li><a href="test.echoserver/echo?message=Hi there, browser script!"
-       onclick="pyro_call('test.echoserver','echo', {{'message':'Hi there, browser script!'}}); return false;">
+<li><a href="javascript:void();"
+       onclick="pyro_call('test.echoserver','echo?message=Hi there, browser script!'); return false;">
        test.echoserver/echo?message=Hi there, browser script!</a> -- perform echo call on echoserver</li>
 </ul>
 <h2>Pyro response data (via Ajax):</h2>
@@ -182,7 +181,7 @@ def return_homepage(environ, start_response):
                     proxy._pyroBind()
                     methods = " &nbsp; ".join(proxy._pyroMethods) or "-"
                     attributes = [
-                        "<a href=\"{name}/{attribute}\" onclick=\"pyro_call('{name}','{attribute}'); return false;\">{attribute}</a>"
+                        "<a href=\"javascript:void();\" onclick=\"pyro_call('{name}','{attribute}'); return false;\">{attribute}</a>"
                         .format(name=name, attribute=attribute)
                         for attribute in proxy._pyroAttrs
                     ]
@@ -193,7 +192,7 @@ def return_homepage(environ, start_response):
                 traceback.print_exc(file=stderr)
                 methods = "??error:%s??" % str(x)
             nslist.append(
-                "<tr><td><a href=\"{name}/$meta\" onclick=\"pyro_call('{name}','$meta'); "
+                "<tr><td><a href=\"javascript:void();\" onclick=\"pyro_call('{name}','$meta'); "
                 "return false;\">{name}</a></td><td>{methods}</td><td>{attributes}</td></tr>"
                 .format(name=name, methods=methods, attributes=attributes))
     nslist.append("</table>")
