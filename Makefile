@@ -5,7 +5,7 @@ all:
 	@echo "targets: dist, docs, upload, install, clean, test"
 
 docs:
-	$(PYTHON) setup.py build_sphinx
+	sphinx-build docs/source build/docs
 
 dist:
 	$(PYTHON) setup.py sdist bdist_wheel
