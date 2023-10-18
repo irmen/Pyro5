@@ -91,28 +91,33 @@ index_page_template = """<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script>
     "use strict";
-    function pyro_call(name, query) {{
-        $.ajax({{
-            url: name+"/"+query,
-            type: "GET",
-            dataType: "json",
-            // headers: {{ "X-Pyro-Correlation-Id": "11112222-1111-2222-3333-222244449999" }},
-            // headers: {{ "X-Pyro-Gateway-Key": "secret-key" }},
-            // headers: {{ "X-Pyro-Options": "oneway" }},
-            beforeSend: function(xhr, settings) {{
-                $("#pyro_call").text(settings.type+" "+settings.url);
-            }},
-            error: function(xhr, status, error) {{
-                var errormessage = "ERROR: "+xhr.status+" "+error+" \\n"+xhr.responseText;
-                $("#pyro_response").text(errormessage);
-            }},
-            success: function(data) {{
-                $("#pyro_response").text(JSON.stringify(data, null, 4));
+    async function pyro_call(name, method, params) {{
+        // http header examples:
+        //  "X-Pyro-Correlation-Id": "11112222-1111-2222-3333-222244449999"
+        //  "X-Pyro-Gateway-Key": "secret-key"
+        //  "X-Pyro-Options": "oneway"
+        let api_url = name+"/"+method
+        if(params) api_url += "?"+(new URLSearchParams(params).toString())
+        document.getElementById("pyro_call").innerText = "GET "+api_url;
+        await fetch(api_url, {{
+            method: 'GET',
+            headers: {{
+                'Accept': 'application/json',
+                'Content-Type': 'application/json' 
             }}
-        }});
+        }} )
+        .then(async res => {{
+            if(res.status>=400) {{
+                const err =  "SERVER ERROR "+res.status+"\\n"+(await res.text())
+                document.getElementById("pyro_response").innerText = err
+                throw err
+            }} else {{
+                return res.json()
+            }}
+        }})
+        .then(json_result => document.getElementById("pyro_response").innerText = JSON.stringify(json_result, null, 4))
     }}
     </script>
 <div id="title-logo"><img src="http://pyro5.readthedocs.io/en/stable/_static/pyro.png"></div>
@@ -134,13 +139,13 @@ index_page_template = """<!DOCTYPE html>
 <li><a href="javascript:void();" onclick="pyro_call('Pyro.NameServer','list'); return false;">Pyro.NameServer/list</a>
      -- lists the contents of the name server</li>
 <li><a href="javascript:void();"
-       onclick="pyro_call('Pyro.NameServer','list?prefix=test.'); return false;">
+       onclick="pyro_call('Pyro.NameServer','list', {{'prefix':'test.'}}); return false;">
        Pyro.NameServer/list?prefix=test.</a> -- lists the contents of the name server starting with 'test.'</li>
 <li><a href="javascript:void();"
-       onclick="pyro_call('Pyro.NameServer','lookup?name=Pyro.NameServer'); return false;">
+       onclick="pyro_call('Pyro.NameServer','lookup', {{'name':'Pyro.NameServer'}}); return false;">
        Pyro.NameServer/lookup?name=Pyro.NameServer</a> -- perform lookup method of the name server</li>
 <li><a href="javascript:void();"
-       onclick="pyro_call('Pyro.NameServer','lookup?name=test.echoserver'); return false;">
+       onclick="pyro_call('Pyro.NameServer','lookup', {{'name':'test.echoserver'}}); return false;">
        Pyro.NameServer/lookup?name=test.echoserver</a> -- perform lookup method of the echo server</li>
 </ul>
 <p>Echoserver examples: (these examples are working if you expose the test.echoserver object)</p>
@@ -148,7 +153,7 @@ index_page_template = """<!DOCTYPE html>
 <li><a href="javascript:void();" onclick="pyro_call('test.echoserver','error'); return false;">test.echoserver/error</a>
      -- perform error call on echoserver</li>
 <li><a href="javascript:void();"
-       onclick="pyro_call('test.echoserver','echo?message=Hi there, browser script!'); return false;">
+       onclick="pyro_call('test.echoserver','echo', {{'message':'Hi there, browser script!'}}); return false;">
        test.echoserver/echo?message=Hi there, browser script!</a> -- perform echo call on echoserver</li>
 </ul>
 <h2>Pyro response data (via Ajax):</h2>

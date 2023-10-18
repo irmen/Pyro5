@@ -439,7 +439,7 @@ object with the given name (yes, every call goes through a naming server lookup)
 Parameters are passed via a regular query string parameter list (in case of a GET request) or via form post parameters
 (in case of a POST request). The response is a JSON document.
 In case of an exception, a JSON encoded exception object is returned.
-You can easily call this from your web page scripts using ``XMLHttpRequest`` or something like JQuery's ``$.ajax()``.
+You can easily call this from your web page scripts using javascript's ``fetch()``.
 Have a look at the page source of the gateway's web page to see how this could be done.
 Note that you have to comply with the browser's same-origin policy: if you want to allow your own scripts
 to access the gateway, you'll have to make sure they are loaded from the same website.
