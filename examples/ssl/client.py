@@ -20,7 +20,7 @@ def verify_cert(cert):
     # today = datetime.datetime.now()
     # if today > not_after or today < not_before:
     #     raise Pyro5.errors.CommunicationError("cert not yet valid or expired")
-    if cert["serialNumber"] != "8C3AD2A88A0657EF":
+    if cert["serialNumber"] != "63B5A2EB71E2C78CBE4200C7EAB9634E7B669407":
         raise Pyro5.errors.CommunicationError("cert serial number incorrect", cert["serialNumber"])
     issuer = dict(p[0] for p in cert["issuer"])
     subject = dict(p[0] for p in cert["subject"])

@@ -30,7 +30,7 @@ class CertValidatingDaemon(Pyro5.api.Daemon):
         # today = datetime.datetime.now()
         # if today > not_after or today < not_before:
         #     raise Pyro5.errors.CommunicationError("cert not yet valid or expired")
-        if cert["serialNumber"] != "DC3EFDB52BE9D350":
+        if cert["serialNumber"] != "1FABD733200A52DCED0702B7A856773F37AAC0E3":
             raise Pyro5.errors.CommunicationError("cert serial number incorrect", cert["serialNumber"])
         issuer = dict(p[0] for p in cert["issuer"])
         subject = dict(p[0] for p in cert["subject"])

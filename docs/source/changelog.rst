@@ -6,7 +6,9 @@ Change Log
 
 - removed Python 3.7 from the support list (it is EOL). Now supported on Python 3.8 or newer.
 - fixed cgi.parse deprecation problem in http gateway
+- removed jquery dependency in http gateway
 - some small tweaks to setup, tests, examples, and docs.
+- updated the self-signed example certificates and serial numbers in the ssl example.
 
 
 **Pyro 5.14**
