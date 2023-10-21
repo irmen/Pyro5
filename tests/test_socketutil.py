@@ -56,10 +56,15 @@ class TestSocketutil:
 
     def testGetInterface(self):
         addr = socketutil.get_interface("localhost")
-        assert addr.version == 4
-        assert str(addr).startswith("127.")
-        assert str(addr.ip).startswith("127.0")
-        assert str(addr.network).startswith("127.0")
+        if addr.version == 6:
+            assert str(addr).startswith("::1")
+            assert str(addr.ip) == "::1"
+            assert str(addr.network).startswith("::1")
+        else:
+            assert addr.version == 4
+            assert str(addr).startswith("127.")
+            assert str(addr.ip).startswith("127.0")
+            assert str(addr.network).startswith("127.0")
         if has_ipv6:
             addr = socketutil.get_interface("::1")
             assert addr.version == 6
