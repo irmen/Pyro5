@@ -649,7 +649,8 @@ class Daemon(object):
             if not hasattr(obj_or_class, "_pyroInstancing"):
                 obj_or_class._pyroInstancing = ("session", None)
         if not force:
-            if hasattr(obj_or_class, "_pyroId") and obj_or_class._pyroId != "":  # check for empty string is needed for Cython
+            pyro_id = getattr(obj_or_class, "_pyroId", None)
+            if pyro_id and self.objectsById[pyro_id] is obj_or_class:
                 raise errors.DaemonError("object or class already has a Pyro id")
             if objectId in self.objectsById:
                 raise errors.DaemonError("an object or class is already registered with that id")
