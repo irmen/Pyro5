@@ -1,3 +1,4 @@
+serpent
 sphinx>7.0.0
 sphinx_rtd_theme>=1.2
 sphinxcontrib-jquery
