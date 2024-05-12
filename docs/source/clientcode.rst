@@ -125,9 +125,7 @@ For normal usage, there's not a single line of Pyro specific code once you have 
 Accessing remote attributes
 ===========================
 You can access exposed attributes of your remote objects directly via the proxy.
-If you try to access an undefined or unexposed attribute, the proxy will raise an AttributeError stating the problem.
-Note that direct remote attribute access only works if the metadata feature is enabled (``METADATA`` config item, enabled by default).
-::
+If you try to access an undefined or unexposed attribute, the proxy will raise an AttributeError stating the problem::
 
     import Pyro5.api
 

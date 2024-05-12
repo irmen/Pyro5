@@ -278,7 +278,7 @@ class TestServerOnce:
             assert p._pyroAttrs == set()
             assert p._pyroMethods == set()
             assert p._pyroOneway == set()
-            # connecting it should obtain metadata (as long as METADATA is true)
+            # connecting it should obtain metadata
             p._pyroBind()
             assert p._pyroAttrs == {'value', 'dictionary'}
             assert p._pyroMethods == {'echo', 'getDict', 'divide', 'nonserializableException', 'ping', 'oneway_delay', 'delayAndId', 'delay', 'testargs',
@@ -299,7 +299,7 @@ class TestServerOnce:
         # read attributes
         with Pyro5.client.Proxy(self.objectUri) as p:
             # unconnected proxy still has empty metadata.
-            # but, as soon as an attribute is used, the metadata is obtained (as long as METADATA is true)
+            # but, as soon as an attribute is used, the metadata is obtained
             a = p.value
             assert a == 12345
             a = p.multiply
