@@ -41,7 +41,10 @@ It lets you mark the following items to be available for remote access:
 - properties (these will be available as remote attributes on the proxy) It's not possible to expose a 'private' property
   (name starting with underscore). You can't expose attributes directly. It is required to provide a @property for them
   and decorate that with ``@expose``, if you want to provide a remotely accessible attribute.
-- classes as a whole (exposing a class has the effect of exposing every nonprivate method and property of the class automatically)
+- classes as a whole (exposing a class has the effect of exposing every nonprivate method and property of the class automatically).
+  *Note*: only the direct members of the class are exposed. If it's part of a class hierarchy, the members of the base class(es) are *not*
+  automatically exposed as well - you'll still have to ``@expose`` those explicitly. This is to avoid making
+  stuff remotely accessible by accident.
 
 Anything that isn't decorated with ``@expose`` is not remotely accessible.
 

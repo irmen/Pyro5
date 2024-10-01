@@ -2,6 +2,12 @@
 Change Log
 **********
 
+**Pyro 5.16**
+
+- removed Python 3.8 from the support list (it is EOL). Now supported on Python 3.9 or newer.
+- docs: clarify @expose on a class not automatically exposing base class(es).
+
+
 **Pyro 5.15**
 
 - removed Python 3.7 from the support list (it is EOL). Now supported on Python 3.8 or newer.
