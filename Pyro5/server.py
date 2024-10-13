@@ -168,7 +168,7 @@ class DaemonObject(object):
             metadata = _get_exposed_members(obj)
             if not metadata["methods"] and not metadata["attrs"]:
                 # Something seems wrong: nothing is remotely exposed.
-                warnings.warn("Class %r doesn't expose any methods or attributes. Did you forget setting @expose on them?" % type(obj))
+                warnings.warn("Class %s doesn't expose any methods or attributes. Did you forget setting @expose on them?" % repr(obj))
             return metadata
         else:
             log.debug("unknown object requested: %s", objectId)

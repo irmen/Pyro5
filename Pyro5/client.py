@@ -413,7 +413,7 @@ class Proxy(object):
             log.debug("from meta: methods=%s, oneway methods=%s, attributes=%s",
                       sorted(self._pyroMethods), sorted(self._pyroOneway), sorted(self._pyroAttrs))
         if not self._pyroMethods and not self._pyroAttrs:
-            raise errors.PyroError("remote object doesn't expose any methods or attributes. Did you forget setting @expose on them?")
+            raise errors.PyroError("remote object '%s' doesn't expose any methods or attributes. Did you forget setting @expose on them?" % self._pyroUri)
 
     def _pyroReconnect(self, tries=100000000):
         """
