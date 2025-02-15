@@ -456,6 +456,16 @@ class Daemon(object):
                     if method == "__getattr__":
                         # special case for direct attribute access (only exposed @properties are accessible)
                         data = _get_exposed_property_value(obj, vargs[0])
+                        if not request_flags & protocol.FLAGS_ONEWAY:
+                            isStream, data = self._streamResponse(data, conn)
+                            if isStream:
+                                # throw an exception as well as setting message flags
+                                # this way, it is backwards compatible with older pyro versions.
+                                exc = errors.ProtocolError("result of call is an iterator")
+                                ann = {"STRM": data.encode()} if data else {}
+                                self._sendExceptionResponse(conn, request_seq, serializer.serializer_id, exc, None,
+                                                            annotations=ann, flags=protocol.FLAGS_ITEMSTREAMRESULT)
+                                return
                     elif method == "__setattr__":
                         # special case for direct attribute access (only exposed @properties are accessible)
                         data = _set_exposed_property_value(obj, vargs[0], vargs[1])
