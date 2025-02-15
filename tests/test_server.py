@@ -4,6 +4,7 @@ Tests for a running Pyro server, without timeouts.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
+from functools import lru_cache
 import time
 import threading
 import serpent
@@ -183,6 +184,105 @@ class TestServerBrokenHandshake:
             message = str(x.value)
             assert "rejected:" in message
             assert "rigged connection failure" in message
+
+
+@lru_cache(maxsize=None)
+class LiveObjects:
+    def __init__(self):
+        self.__objs: dict[int, str] = {}
+
+    def add(self, obj):
+        self.__objs[id(obj)] = str(obj)
+
+    def remove(self, obj):
+        self.__objs.pop(id(obj), None)
+
+    def clear(self):
+        self.__objs.clear()
+
+    def get_alive_names(self):
+        return self.__objs.values()
+
+
+@Pyro5.server.expose
+class Child:
+    def __init__(self, name: str):
+        self.__name = name
+        LiveObjects().add(self)
+
+    def __del__(self):
+        LiveObjects().remove(self)
+
+    def __repr__(self):
+        return self.__name
+
+    def ping(self):
+        return f"I am {self.__name}"
+
+
+@Pyro5.server.expose
+class Parent:
+    def __init__(self):
+        self.__name = "outer"
+        LiveObjects().add(self)
+
+    def __del__(self):
+        LiveObjects().remove(self)
+
+    def __repr__(self):
+        return self.__name
+
+    def ping(self):
+        return f"I am {self.__name}"
+
+    def createAutoproxyInstance(self):
+        i = Child(name="single instance")
+        self._pyroDaemon.register(i)
+        return i
+
+    def createAutoproxyGenerator(self):
+        ii = (Child(name=f"iterator instance {i}") for i in range(4))
+        for i in ii:
+            self._pyroDaemon.register(i)
+            yield i
+
+
+class TestServerAutoproxyLifetime:
+    """tests to verify that autoproxy server objects are released after use"""
+
+    def setup_method(self):
+        LiveObjects().clear()
+        self.daemon = Pyro5.server.Daemon(port=0)
+        uri = self.daemon.register(Parent, force=True)
+        self.objectUri = uri
+        self.daemonthread = DaemonLoopThread(self.daemon)
+        self.daemonthread.start()
+        self.daemonthread.running.wait()
+        time.sleep(0.05)
+
+    def teardown_method(self):
+        time.sleep(0.05)
+        if self.daemon is not None:
+            self.daemon.shutdown()
+            self.daemonthread.join()
+        assert not LiveObjects().get_alive_names(), "server autoproxy object(s) still alive"
+
+    def testSession(self):
+        with Pyro5.client.Proxy(self.objectUri) as p1, Pyro5.client.Proxy(self.objectUri) as p2:
+            assert "outer" in p1.ping()
+            assert "outer" in p2.ping()
+
+    @pytest.mark.xfail
+    def testAutoproxyInstance(self):
+        with Pyro5.client.Proxy(self.objectUri) as p:
+            inst = p.createAutoproxyInstance()
+            assert "single instance" in inst.ping()
+
+    @pytest.mark.xfail
+    def testAutoproxyGenerator(self):
+        with Pyro5.client.Proxy(self.objectUri) as p:
+                for inner in p.createAutoproxyGenerator():
+                    assert "iterator instance" in inner.ping()
 
 
 class TestServerOnce:
