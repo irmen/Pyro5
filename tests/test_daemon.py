@@ -182,11 +182,23 @@ class TestDaemon:
             assert not(hasattr(o1, "_pyroId"))
             assert not(hasattr(o1, "_pyroDaemon"))
             o1._pyroId = "FOOBAR"
-            with pytest.raises(DaemonError) as x:
-                d.register(o1)
-            assert str(x.value) == "object or class already has a Pyro id"
+            d.register(o1)
             o1._pyroId = ""
             d.register(o1)  # with empty-string _pyroId register should work
+
+    def testRegisterInstanceAndClass(self):
+        with Pyro5.server.Daemon(port=0) as d:
+            o1 = MyObj("object1")
+            o2 = MyObj("object2")
+            d.register(MyObj)
+            d.register(o1)
+            d.register(o2)
+            with pytest.raises(DaemonError) as x:
+                d.register(o2)
+            assert str(x.value) == "object or class already has a Pyro id"
+            with pytest.raises(DaemonError) as x:
+                d.register(MyObj)
+            assert str(x.value) == "object or class already has a Pyro id"
 
     def testRegisterTwiceForced(self):
         with Pyro5.server.Daemon(port=0) as d:

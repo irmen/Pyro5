@@ -660,7 +660,9 @@ class Daemon(object):
                 obj_or_class._pyroInstancing = ("session", None)
         if not force:
             if hasattr(obj_or_class, "_pyroId") and obj_or_class._pyroId != "":  # check for empty string is needed for Cython
-                raise errors.DaemonError("object or class already has a Pyro id")
+                pyro_id = obj_or_class._pyroId
+                if pyro_id and self.objectsById.get(pyro_id) is obj_or_class:
+                    raise errors.DaemonError("object or class already has a Pyro id")
             if objectId in self.objectsById:
                 raise errors.DaemonError("an object or class is already registered with that id")
         # set some pyro attributes
@@ -674,7 +676,7 @@ class Daemon(object):
             else:
                 ser.register_type_replacement(type(obj_or_class), _pyro_obj_to_auto_proxy)
         # register the object/class in the mapping
-        self.objectsById[obj_or_class._pyroId] = (obj_or_class if not weak else weakref.ref(obj_or_class))
+        self.objectsById[obj_or_class._pyroId] = obj_or_class if not weak else weakref.ref(obj_or_class)
         if weak: weakref.finalize(obj_or_class,self.unregister,objectId)
         return self.uriFor(objectId)
 
