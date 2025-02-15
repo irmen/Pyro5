@@ -35,6 +35,14 @@ class Streamer(object):
             yield a
             a, b = b, a + b
 
+    @property
+    def prop_iter(self):
+        return iter([1,2,3,4,5,6,7,8,9,10])
+
+    @property
+    def prop_generator(self):
+        return (x for x in range(10))
+
 
 serve({
         Streamer: "example.streamer"

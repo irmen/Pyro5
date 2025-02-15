@@ -356,6 +356,8 @@ because the remote generator has been discarded in the meantime.
 Lingering can be disabled completely by setting the value to 0, then all remote generators from a proxy will
 immediately be discarded in the server if the proxy gets disconnected or closed.
 
+Remote properties can also be iterators or generators.
+
 There are several examples that use the remote iterator feature. Have a look at the
 `streaming <https://github.com/irmen/Pyro5/tree/master/examples/streaming>`_ ,
 `stockquotes <https://github.com/irmen/Pyro5/tree/master/examples/stockquotes>`_ or the

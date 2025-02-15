@@ -17,3 +17,7 @@ with Pyro5.api.Proxy(uri) as p:
     print("\nslow generator:")
     for number in p.slow_generator():
         print(number)
+    print("\nproperty iterator:")
+    print(list(p.prop_iter))
+    print("\nproperty generator:")
+    print(list(p.prop_generator))
