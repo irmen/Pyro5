@@ -10,6 +10,7 @@ import contextlib
 import ipaddress
 import socket
 import random
+import platform
 import serpent
 from typing import Union, Optional
 from . import config, errors, socketutil, serializers
@@ -215,11 +216,15 @@ def locate_ns(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address] = "
             else:
                 # Some systems have 127.0.1.1 in the hosts file assigned to the hostname,
                 # so try this too (only if it's actually used as a valid ip address)
-                try:
-                    socket.gethostbyaddr("127.0.1.1")
-                    hosts = [config.NS_HOST] if config.NS_HOST == "127.0.1.1" else [config.NS_HOST, "127.0.1.1"]
-                except socket.error:
+                # Skip this check on Windows to avoid slow DNS lookup timeout (5+ seconds)
+                if platform.system() == "Windows":
                     hosts = [config.NS_HOST]
+                else:
+                    try:
+                        socket.gethostbyaddr("127.0.1.1")
+                        hosts = [config.NS_HOST] if config.NS_HOST == "127.0.1.1" else [config.NS_HOST, "127.0.1.1"]
+                    except socket.error:
+                        hosts = [config.NS_HOST]
             for host in hosts:
                 uristring = "PYRO:%s@%s:%d" % (NAMESERVER_NAME, host, port or config.NS_PORT)
                 log.debug("locating the NS: %s", uristring)
