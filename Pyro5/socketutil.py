@@ -154,9 +154,12 @@ def receive_data(sock: socket.socket, size: int) -> bytes:
                     data.extend(chunk)
                     msglen += len(chunk)
                 if len(data) != size:
-                    err = ConnectionClosedError("receiving: not enough data")
-                    err.partialData = data  # store the message that was received until now
-                    raise err
+                    try:
+                        err = ConnectionClosedError("receiving: not enough data")
+                        err.partialData = data  # store the message that was received until now
+                        raise err
+                    finally:
+                        del err
                 return data  # yay, complete
             except socket.timeout:
                 raise TimeoutError("receiving: timeout")

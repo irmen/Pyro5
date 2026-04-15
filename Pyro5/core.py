@@ -153,7 +153,13 @@ class _ExceptionWrapper(object):
         self.exception = exception
 
     def raiseIt(self):
-        raise self.exception
+        try:
+            err = self.exception.__class__(*self.exception.args)
+            if hasattr(self.exception, '_pyroTraceback'):
+                err._pyroTraceback = self.exception._pyroTraceback
+            raise err
+        finally:
+            del err
 
     def __serialized_dict__(self):
         """serialized form as a dictionary"""
