@@ -7,6 +7,8 @@ Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 import time
 import socket
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 import Pyro5.core
 import Pyro5.client
@@ -667,3 +669,93 @@ class TestMetaInfo:
             assert "newly_added_method_two" in meta["methods"]
             del Dummy.newly_added_method
             del Dummy.newly_added_method_two
+
+
+@Pyro5.server.expose
+class Child:
+    def __init__(self, name: str, alive: set[str]):
+        self.__name = name
+        self.__alive = alive
+        alive.add(name)
+
+    def __del__(self):
+        self.__alive.remove(self.__name)
+
+    def __repr__(self):
+        return self.__name
+
+    def ping(self):
+        return f"I am {self.__name}"
+
+
+_live_objects: set[str]
+
+
+@Pyro5.server.expose
+@Pyro5.server.behavior(instance_mode="session", instance_creator=lambda clazz: clazz(_live_objects))
+class Parent:
+    _pyroDaemon: Pyro5.server.Daemon
+
+    def __init__(self, alive: set[str]):
+        self.__name = f"outer {id(self)}"
+        self.__alive = alive
+        alive.add(self.__name)
+
+    def __del__(self):
+        self.__alive.remove(self.__name)
+
+    def __repr__(self):
+        return self.__name
+
+    def ping(self):
+        return f"I am {self.__name}"
+
+    def createInstance(self, weak=False):
+        i = Child(name="single instance", alive=self.__alive)
+        self._pyroDaemon.register(i, weak)
+        return i
+
+    def createGenerator(self, weak=False):
+        ii = [
+            Child(name=f"iterator instance {i}", alive=self.__alive) for i in range(4)
+        ]
+        for i in ii:
+            self._pyroDaemon.register(i, weak)
+            yield i
+
+
+@pytest.fixture
+def gc_proxy(self):
+    global _live_objects
+    _live_objects = set()
+    with ThreadPoolExecutor(max_workers=1) as e, Pyro5.server.Daemon() as daemon:
+        uri = daemon.register(Parent, force=True)
+        e.submit(daemon.requestLoop)
+        with Pyro5.client.Proxy(uri) as proxy1, Pyro5.client.Proxy(uri) as proxy2:
+            yield proxy1, proxy2
+        daemon.shutdown()
+    del daemon  # Alternatively, move the daemon to a separate function
+    import gc; gc.collect()  # Delete circular references
+    assert not _live_objects, "some objects were not cleaned up"
+
+
+# succeeds
+def test_proxy_lifetime(proxy):
+    p1, p2 = proxy
+    assert "outer" in p1.ping()
+    assert "outer" in p2.ping()
+
+
+# fails teardown: AssertionError: some objects were not cleaned up
+def test_instance_lifetime(proxy):
+    p, _ = proxy
+    assert "outer" in p.ping()
+    inner = p.createInstance()
+    assert "single instance" in inner.ping()
+
+
+# fails teardown: AssertionError: some objects were not cleaned up
+def test_generator_lifetime(proxy):
+    p, _ = proxy
+    for inner in p.createGenerator():
+        assert "iterator instance" in inner.ping()

@@ -667,7 +667,7 @@ class Daemon(object):
                 raise errors.DaemonError("an object or class is already registered with that id")
         # set some pyro attributes
         obj_or_class._pyroId = objectId
-        obj_or_class._pyroDaemon = self
+        obj_or_class._pyroDaemon = weakref.proxy(self)
         # register a custom serializer for the type to automatically return proxies
         # we need to do this for all known serializers
         for ser in serializers.serializers.values():
