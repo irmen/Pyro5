@@ -725,7 +725,7 @@ class Parent:
 
 
 @pytest.fixture
-def gc_proxy(self):
+def gc_proxy():
     global _live_objects
     _live_objects = set()
     with ThreadPoolExecutor(max_workers=1) as e, Pyro5.server.Daemon() as daemon:
@@ -740,22 +740,22 @@ def gc_proxy(self):
 
 
 # succeeds
-def test_proxy_lifetime(proxy):
-    p1, p2 = proxy
+def test_proxy_lifetime(gc_proxy):
+    p1, p2 = gc_proxy
     assert "outer" in p1.ping()
     assert "outer" in p2.ping()
 
 
 # fails teardown: AssertionError: some objects were not cleaned up
-def test_instance_lifetime(proxy):
-    p, _ = proxy
+def test_instance_lifetime(gc_proxy):
+    p, _ = gc_proxy
     assert "outer" in p.ping()
     inner = p.createInstance()
     assert "single instance" in inner.ping()
 
 
 # fails teardown: AssertionError: some objects were not cleaned up
-def test_generator_lifetime(proxy):
-    p, _ = proxy
+def test_generator_lifetime(gc_proxy):
+    p, _ = gc_proxy
     for inner in p.createGenerator():
         assert "iterator instance" in inner.ping()
