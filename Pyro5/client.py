@@ -9,6 +9,8 @@ import time
 import logging
 import serpent
 import contextlib
+from threading import local
+from collections import defaultdict
 from . import config, core, serializers, protocol, errors, socketutil
 from .callcontext import current_context
 try:
@@ -180,6 +182,7 @@ class Proxy(object):
     # obj.__getitem__(index)), the special methods are not looked up via __getattr__
     # for efficiency reasons; instead, their presence is checked directly.
     # Thus we need to define them here to force (remote) lookup through __getitem__.
+    def __call__(self, *args, **kwargs): return self.__getattr__('__call__')(*args, **kwargs)
     def __bool__(self): return True
     def __len__(self): return self.__getattr__('__len__')()
     def __getitem__(self, index): return self.__getattr__('__getitem__')(index)
@@ -629,7 +632,24 @@ class BatchProxy(object):
         results = self.__proxy._pyroInvokeBatch(self.__calls)
         self.__calls = []  # clear for re-use
         return self.__resultsgenerator(results)
+    
+class ConcurrentProxy(Proxy):
+    """
+    Proxy for remote python objects. The `Proxy` must be explicitly passed across threads. This class handles automatically
+    creating new proxies for the current thread when necessary.
+    """
+    THREAD_PROXY_MAP = defaultdict(local)
+    def __init__(self, uri: str, **kwargs):
+        super().__init__(uri, **kwargs)
+        ConcurrentProxy.THREAD_PROXY_MAP[self._pyroUri].proxy = self
 
+    def _pyroInvoke(self, methodname, vargs, kwargs, flags=0, objectId=None):
+        local_data = ConcurrentProxy.THREAD_PROXY_MAP[self._pyroUri]
+        if not hasattr(local_data, "proxy"):
+            local_data.proxy = self.__copy__()
+        return Proxy._pyroInvoke(
+            local_data.proxy, methodname, vargs, kwargs, flags, objectId
+        )
 
 class SerializedBlob(object):
     """

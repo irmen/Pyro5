@@ -1032,7 +1032,6 @@ class TestMetaAndExpose:
         assert Pyro5.server.is_private_attribute("___p")
         assert not Pyro5.server.is_private_attribute("__dunder__")  # dunder methods should not be private except a list of exceptions as tested below
         assert Pyro5.server.is_private_attribute("__init__")
-        assert Pyro5.server.is_private_attribute("__call__")
         assert Pyro5.server.is_private_attribute("__new__")
         assert Pyro5.server.is_private_attribute("__del__")
         assert Pyro5.server.is_private_attribute("__repr__")
