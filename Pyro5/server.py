@@ -254,6 +254,7 @@ class Daemon(object):
         self._pyroInstances = {}   # pyro objects for instance_mode=single (singletons, just one per daemon)
         self.streaming_responses = {}   # stream_id -> (client, creation_timestamp, linger_timestamp, stream)
         self.housekeeper_lock = threading.Lock()
+        self._disconnect_lock = threading.Lock()
         self.create_single_instance_lock = threading.Lock()
         self.__mustshutdown.clear()
         self.methodcall_error_handler = _default_methodcall_error_handler
@@ -524,19 +525,20 @@ class Daemon(object):
                 raise  # re-raise if flagged as callback, communication or security error.
 
     def _clientDisconnect(self, conn):
-        if config.ITER_STREAM_LINGER > 0:
-            # client goes away, keep streams around for a bit longer (allow reconnect)
-            for streamId in list(self.streaming_responses):
-                info = self.streaming_responses.get(streamId, None)
-                if info and info[0] is conn:
-                    _, timestamp, _, stream = info
-                    self.streaming_responses[streamId] = (None, timestamp, time.time(), stream)
-        else:
-            # client goes away, close any streams it had open as well
-            for streamId in list(self.streaming_responses):
-                info = self.streaming_responses.get(streamId, None)
-                if info and info[0] is conn:
-                    del self.streaming_responses[streamId]
+        with self._disconnect_lock:
+            if config.ITER_STREAM_LINGER > 0:
+                # client goes away, keep streams around for a bit longer (allow reconnect)
+                for streamId in list(self.streaming_responses):
+                    info = self.streaming_responses.get(streamId, None)
+                    if info and info[0] is conn:
+                        _, timestamp, _, stream = info
+                        self.streaming_responses[streamId] = (None, timestamp, time.time(), stream)
+            else:
+                # client goes away, close any streams it had open as well
+                for streamId in list(self.streaming_responses):
+                    info = self.streaming_responses.get(streamId, None)
+                    if info and info[0] is conn:
+                        del self.streaming_responses[streamId]
         self.clientDisconnect(conn)  # user overridable hook
 
     def _housekeeping(self):

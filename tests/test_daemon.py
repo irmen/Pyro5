@@ -638,6 +638,30 @@ class TestDaemon:
         finally:
             config.SERVERTYPE = "thread"
 
+    def testClientDisconnectLockIsPerDaemon(self):
+        from concurrent.futures import ThreadPoolExecutor
+
+        class SlowDisconnectDaemon(Pyro5.server.Daemon):
+            def clientDisconnect(self, conn):
+                time.sleep(0.5)
+
+        s1, c1 = socket.socketpair()
+        s2, c2 = socket.socketpair()
+        d1 = SlowDisconnectDaemon(connected_socket=s1)
+        d2 = SlowDisconnectDaemon(connected_socket=s2)
+        try:
+            start = time.time()
+            with ThreadPoolExecutor(2) as pool:
+                pool.submit(d1._clientDisconnect, d1.transportServer.conn)
+                pool.submit(d2._clientDisconnect, d2.transportServer.conn)
+            elapsed = time.time() - start
+            assert elapsed < 0.9  # per-daemon locks run in parallel
+        finally:
+            d1.close()
+            d2.close()
+            c1.close()
+            c2.close()
+
 
 class TestMetaInfo:
     def testMeta(self):

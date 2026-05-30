@@ -17,7 +17,6 @@ import contextlib
 from . import config, socketutil, errors
 
 log = logging.getLogger("Pyro5.threadpoolserver")
-_client_disconnect_lock = threading.Lock()
 
 
 class ClientConnectionJob(object):
@@ -56,11 +55,10 @@ class ClientConnectionJob(object):
                         log.warning(msg)
                         break
             finally:
-                with _client_disconnect_lock:
-                    try:
-                        self.daemon._clientDisconnect(self.csock)
-                    except Exception as x:
-                        log.warning("Error in clientDisconnect: %s", x)
+                try:
+                    self.daemon._clientDisconnect(self.csock)
+                except Exception as x:
+                    log.warning("Error in clientDisconnect: %s", x)
                 self.csock.close()
 
     def handleConnection(self):
