@@ -75,12 +75,11 @@ class SendingMessage:
         self.seq = seq
         self.serializer_id = serializer_id
         annotations = annotations or {}
-        annotations_size = sum([8 + len(v) for v in annotations.values()])
+        annotations_size = sum(8 + len(v) for v in annotations.values())
         flags &= ~FLAGS_COMPRESSED
         if config.COMPRESSION and len(payload) > 100:
             payload = zlib.compress(payload, 4)
             flags |= FLAGS_COMPRESSED
-        self.flags = flags
         total_size = len(payload) + annotations_size
         if total_size > config.MAX_MESSAGE_SIZE:
             raise errors.ProtocolError("message too large ({:d}, max={:d})".format(total_size, config.MAX_MESSAGE_SIZE))
@@ -89,7 +88,8 @@ class SendingMessage:
             self.corr_id = current_context.correlation_id.bytes
         else:
             self.corr_id = _empty_correlation_id
-        header_data = struct.pack(_header_format, b"PYRO", PROTOCOL_VERSION, msgtype, serializer_id, flags, seq,
+        self.flags = flags
+        header_data = struct.pack(_header_format, b"PYRO", PROTOCOL_VERSION, msgtype, serializer_id, self.flags, seq,
                                   len(payload), annotations_size, self.corr_id, 0, _magic_number)
         annotation_data = []
         for k, v in annotations.items():
@@ -158,9 +158,12 @@ class ReceivingMessage:
             while i < self.annotations_size:
                 annotation_id = bytes(payload[i:i+4]).decode("ascii")
                 length = int.from_bytes(payload[i+4:i+8], "big")
+                if length < 0 or i + 8 + length > self.annotations_size:
+                    raise errors.ProtocolError("annotation chunk length exceeds remaining data")
                 self.annotations[annotation_id] = payload[i+8:i+8+length]     # note: it stores a memoryview!
                 i += 8 + length
-            assert i == self.annotations_size
+            if i != self.annotations_size:
+                raise errors.ProtocolError("annotation parsing did not consume all annotation data")
             self.data = payload[self.annotations_size:]
         else:
             self.data = payload
@@ -175,8 +178,8 @@ def log_wiredata(logger, text, msg):
     num_anns = len(msg.annotations) if hasattr(msg, "annotations") else 0
     corr_bytes = bytes(msg.corr_id) if hasattr(msg, "corr_id") else _empty_correlation_id
     corr_id = uuid.UUID(bytes=corr_bytes)
-    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d num_annotations=%s corr_id=%s\ndata=%r" %
-                 (text, msg.type, msg.flags, msg.serializer_id, msg.seq, num_anns, corr_id, bytes(msg.data)))
+    logger.debug("%s: msgtype=%d flags=0x%x ser=%d seq=%d num_annotations=%s corr_id=%s\ndata=%r",
+                 text, msg.type, msg.flags, msg.serializer_id, msg.seq, num_anns, corr_id, bytes(msg.data))
 
 
 def recv_stub(connection, accepted_msgtypes=None):
