@@ -247,27 +247,28 @@ def locate_ns(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address] = "
                 port = config.NS_BCPORT
             log.debug("broadcast locate")
             sock = socketutil.create_bc_socket(reuseaddr=config.SOCK_REUSE, timeout=0.7)
-            for _ in range(3):
-                try:
-                    for bcaddr in config.BROADCAST_ADDRS:
-                        try:
-                            sock.sendto(b"GET_NSURI", 0, (bcaddr, port))
-                        except socket.error as x:
-                            err = getattr(x, "errno", x.args[0])
-                            # handle some errno's that some platforms like to throw:
-                            if err not in socketutil.ERRNO_EADDRNOTAVAIL and err not in socketutil.ERRNO_EADDRINUSE:
-                                raise
-                    data, _ = sock.recvfrom(100)
-                    sock.close()
-                    text = data.decode("iso-8859-1")
-                    log.debug("located NS: %s", text)
-                    proxy = client.Proxy(text)
-                    return proxy
-                except socket.timeout:
-                    continue
-            with contextlib.suppress(OSError, socket.error):
-                sock.shutdown(socket.SHUT_RDWR)
-            sock.close()
+            try:
+                for _ in range(3):
+                    try:
+                        for bcaddr in config.BROADCAST_ADDRS:
+                            try:
+                                sock.sendto(b"GET_NSURI", 0, (bcaddr, port))
+                            except socket.error as x:
+                                err = getattr(x, "errno", x.args[0])
+                                # handle some errno's that some platforms like to throw:
+                                if err not in socketutil.ERRNO_EADDRNOTAVAIL and err not in socketutil.ERRNO_EADDRINUSE:
+                                    raise
+                        data, _ = sock.recvfrom(100)
+                        text = data.decode("iso-8859-1")
+                        log.debug("located NS: %s", text)
+                        proxy = client.Proxy(text)
+                        return proxy
+                    except socket.timeout:
+                        continue
+            finally:
+                with contextlib.suppress(OSError, socket.error):
+                    sock.shutdown(socket.SHUT_RDWR)
+                sock.close()
             log.debug("broadcast locate failed, try direct connection on NS_HOST")
         else:
             log.debug("skipping broadcast lookup")

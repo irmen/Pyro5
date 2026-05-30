@@ -308,11 +308,11 @@ class Pool(object):
     def close(self):
         if not self.closed:
             log.debug("closing down")
+            self.closed = True
             for w in list(self.busy):
                 w.process(None)
             for w in list(self.idle):
                 w.process(None)
-            self.closed = True
             time.sleep(0.1)
             idle, self.idle = self.idle, set()
             busy, self.busy = self.busy, set()
