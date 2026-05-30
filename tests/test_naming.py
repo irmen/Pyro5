@@ -606,6 +606,37 @@ class TestOfflineNameServer:
             assert meta == set()
         ns.set_metadata("meta1", set())
 
+    def testRemoveNameThreadSafe(self):
+        import threading
+        import time
+        if not isinstance(self.storageProvider, Pyro5.nameserver.MemoryStorage):
+            pytest.skip("TOCTOU race only affects MemoryStorage (SqlStorage handles missing keys gracefully)")
+        ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
+        self.clearStorage()
+        ns.register("testkey", "PYRO:obj@host:555")
+
+        exc = None
+
+        def remover():
+            nonlocal exc
+            try:
+                ns.remove("testkey")
+            except KeyError as e:
+                exc = e
+
+        # Hold the lock so the remover thread blocks on `with self.lock:`
+        # after the `name in self.storage` check has already passed.
+        ns.lock.acquire()
+        t = threading.Thread(target=remover)
+        t.start()
+        time.sleep(0.1)
+        # The remover is now blocked on the lock, with the check already done. Delete the key from under it.
+        del ns.storage["testkey"]
+        ns.lock.release()
+        t.join()
+        if exc:
+            raise exc
+
     def testListNoMultipleFilters(self):
         ns = Pyro5.nameserver.NameServer(storageProvider=self.storageProvider)
         with pytest.raises(ValueError):

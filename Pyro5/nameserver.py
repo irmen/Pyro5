@@ -333,22 +333,26 @@ class NameServer(object):
 
     def remove(self, name=None, prefix=None, regex=None):
         """Remove a registration. returns the number of items removed."""
-        if name and name in self.storage and name != core.NAMESERVER_NAME:
+        if name and name != core.NAMESERVER_NAME:
             with self.lock:
-                del self.storage[name]
-            return 1
+                if name in self.storage:
+                    del self.storage[name]
+                    return 1
+                return 0
         if prefix:
-            items = list(self.list(prefix=prefix).keys())
-            if core.NAMESERVER_NAME in items:
-                items.remove(core.NAMESERVER_NAME)
-            self.storage.remove_items(items)
-            return len(items)
+            with self.lock:
+                items = list(self.list(prefix=prefix).keys())
+                if core.NAMESERVER_NAME in items:
+                    items.remove(core.NAMESERVER_NAME)
+                self.storage.remove_items(items)
+                return len(items)
         if regex:
-            items = list(self.list(regex=regex).keys())
-            if core.NAMESERVER_NAME in items:
-                items.remove(core.NAMESERVER_NAME)
-            self.storage.remove_items(items)
-            return len(items)
+            with self.lock:
+                items = list(self.list(regex=regex).keys())
+                if core.NAMESERVER_NAME in items:
+                    items.remove(core.NAMESERVER_NAME)
+                self.storage.remove_items(items)
+                return len(items)
         return 0
 
     # noinspection PyNoneFunctionAssignment
