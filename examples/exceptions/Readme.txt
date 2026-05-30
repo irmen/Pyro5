@@ -4,7 +4,7 @@ various kinds of exceptions. The client will print those.
 
 Note the special handling of the Pyro exception.
 It is possible to extract and print the *remote* traceback.
-You can then see where in the code on the remote side the error occured!
+You can then see where in the code on the remote side the error occurred!
 By installing Pyro's excepthook you can even
 see the remote traceback when you're not catching any exceptions.
 

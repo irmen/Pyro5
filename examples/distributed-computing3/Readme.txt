@@ -7,7 +7,7 @@ to find one randomly chosen object that has the required metadata tag.
 It's pretty simple but is also a bit dumb; it doesn't know if the chosen
 worker is idle or busy with another client's request.
 Also it doesn't deal with a worker that crashed or is unreachable.
-Optimizing these things is an excercise left for the reader.
+Optimizing these things is an exercise left for the reader.
 
 
 *** Starting up ***

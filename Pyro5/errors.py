@@ -70,7 +70,7 @@ def get_pyro_traceback(ex_type=None, ex_value=None, ex_tb=None):
     you do not supply the objects yourself."""
 
     def formatRemoteTraceback(remote_tb_lines):
-        result = [" +--- This exception occured remotely (Pyro) - Remote traceback:"]
+        result = [" +--- This exception occurred remotely (Pyro) - Remote traceback:"]
         for line in remote_tb_lines:
             if line.endswith("\n"):
                 line = line[:-1]

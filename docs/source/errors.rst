@@ -72,7 +72,7 @@ A full Pyro exception traceback, including the remote traceback on the server, l
       File "/home/irmen/Projects/pyro5/Pyro5/client.py", line 243, in _pyroInvoke
         raise data  # if you see this in your traceback, you should probably inspect the remote traceback as well
     TypeError: unsupported operand type(s) for //: 'str' and 'int'
-     +--- This exception occured remotely (Pyro) - Remote traceback:
+     +--- This exception occurred remotely (Pyro) - Remote traceback:
      | Traceback (most recent call last):
      |   File "/home/irmen/Projects/pyro5/Pyro5/server.py", line 466, in handleRequest
      |     data = method(*vargs, **kwargs)  # this is the actual method call to the Pyro object
@@ -100,7 +100,7 @@ There is another utility that Pyro has to make it easier to debug remote object 
 If you enable the ``DETAILED_TRACEBACK`` config item on the server (see :ref:`config-items`), the remote
 traceback is extended with details of the values of the local variables in every frame::
 
-     +--- This exception occured remotely (Pyro) - Remote traceback:
+     +--- This exception occurred remotely (Pyro) - Remote traceback:
      | ----------------------------------------------------
      |  EXCEPTION <class 'TypeError'>: unsupported operand type(s) for //: 'str' and 'int'
      |  Extended stacktrace follows (most recent call last)
