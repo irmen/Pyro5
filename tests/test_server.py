@@ -524,6 +524,14 @@ class TestServerOnce:
                 next(generator)
             generator.close()
 
+    def testNatPortIPv6(self):
+        d = Pyro5.server.Daemon(host="::1", port=0, nathost="example.com", natport=0)
+        try:
+            assert d.locationStr.startswith("[")
+            assert ":" in d.natLocationStr
+        finally:
+            d.close()
+
     def testCleanup(self):
         p1 = Pyro5.client.Proxy(self.objectUri)
         p2 = Pyro5.client.Proxy(self.objectUri)

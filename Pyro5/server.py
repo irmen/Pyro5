@@ -241,7 +241,7 @@ class Daemon(object):
         natport_for_loc = natport
         if natport == 0:
             # expose internal port number as NAT port as well. (don't use port because it could be 0 and will be chosen by the OS)
-            natport_for_loc = int(self.locationStr.split(":")[1])
+            natport_for_loc = int(self.locationStr.rsplit(":", 1)[1])
         # The NAT-location (str of the form ``nathost:natportnumber``) on which the Daemon is exposed for use with NAT-routing
         self.natLocationStr = "%s:%d" % (nathost, natport_for_loc) if nathost else None
         if self.natLocationStr:
