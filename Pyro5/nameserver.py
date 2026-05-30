@@ -37,7 +37,7 @@ class MemoryStorage(dict):
 
     def __setitem__(self, key, value):
         uri, metadata = value
-        super(MemoryStorage, self).__setitem__(key, (uri, metadata or frozenset()))
+        super(MemoryStorage, self).__setitem__(key, (uri, metadata if metadata is not None else frozenset()))
 
     def optimized_prefix_list(self, prefix, return_metadata=False):
         return None
@@ -315,7 +315,7 @@ class NameServer(object):
         with self.lock:
             if safe and name in self.storage:
                 raise NamingError("name already registered: " + name)
-            self.storage[name] = uri, set(metadata) if metadata else None
+            self.storage[name] = uri, set(metadata) if metadata is not None else None
 
     def set_metadata(self, name, metadata):
         """update the metadata for an existing registration"""
@@ -327,7 +327,7 @@ class NameServer(object):
         with self.lock:
             try:
                 uri, old_meta = self.storage[name]
-                self.storage[name] = uri, set(metadata) if metadata else None
+                self.storage[name] = uri, set(metadata) if metadata is not None else None
             except KeyError:
                 raise NamingError("unknown name: " + name)
 
