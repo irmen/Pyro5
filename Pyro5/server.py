@@ -250,7 +250,7 @@ class Daemon(object):
         pyroObject._pyroId = core.DAEMON_NAME
         # Dictionary from Pyro object id to the actual Pyro object registered by this id
         self.objectsById = {pyroObject._pyroId: pyroObject}
-        log.debug("pyro protocol version: %d" % protocol.PROTOCOL_VERSION)
+        log.debug("pyro protocol version: %d", protocol.PROTOCOL_VERSION)
         self._pyroInstances = {}   # pyro objects for instance_mode=single (singletons, just one per daemon)
         self.streaming_responses = {}   # stream_id -> (client, creation_timestamp, linger_timestamp, stream)
         self.housekeeper_lock = threading.Lock()
@@ -859,8 +859,8 @@ def _default_methodcall_error_handler(daemon: Daemon, client_sock: socketutil.So
                                       method: Callable, vargs: Sequence[Any], kwargs: Dict[str, Any],
                                       exception: Exception) -> None:
     """The default routine called to process a exception raised in the user code of a method call"""
-    log.debug("exception occurred in method call user code: client={} method={} exception={}"
-              .format(client_sock, method.__qualname__, repr(exception)))
+    log.debug("exception occurred in method call user code: client=%s method=%s exception=%r",
+              client_sock, method.__qualname__, exception)
 
 
 # register the special serializers for the pyro objects

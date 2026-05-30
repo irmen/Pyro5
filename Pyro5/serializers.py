@@ -231,7 +231,7 @@ class SerializerBase(object):
                 exceptiontype = getattr(sqlite3, short_classname)
                 if issubclass(exceptiontype, BaseException):
                     return SerializerBase.make_exception(exceptiontype, data)
-        log.warning("unsupported serialized class: " + classname)
+        log.warning("unsupported serialized class: %s", classname)
         raise errors.SerializeError("unsupported serialized class: " + classname)
 
     @staticmethod

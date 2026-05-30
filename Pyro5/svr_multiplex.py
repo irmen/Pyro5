@@ -87,7 +87,7 @@ class SocketServer_Multiplex(object):
                     try:
                         self.daemon._clientDisconnect(s)
                     except Exception as x:
-                        log.warning("Error in clientDisconnect: " + str(x))
+                        log.warning("Error in clientDisconnect: %s", x)
                     self.selector.unregister(s)
                     s.close()
         self.daemon._housekeeping()
@@ -174,7 +174,7 @@ class SocketServer_Multiplex(object):
             return False
         except errors.TimeoutError as x:
             # for timeout errors we're not really interested in detailed traceback info
-            log.warning("error during handleRequest: %s" % x)
+            log.warning("error during handleRequest: %s", x)
             return False
         except Exception:
             # other error occurred, close the connection, but also log a warning

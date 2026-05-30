@@ -4,6 +4,7 @@ Tests for the daemon.
 Pyro - Python Remote Objects.  Copyright by Irmen de Jong (irmen@razorvine.net).
 """
 
+import logging
 import time
 import socket
 import uuid
@@ -71,6 +72,11 @@ class TestDaemon:
                 cm = ConnectionMock(msg)
                 d.handleRequest(cm)
 
+    def testDaemonLogsProtocolVersion(self, caplog):
+        caplog.set_level(logging.DEBUG, logger="Pyro5.server")
+        with Pyro5.server.Daemon(port=0):
+            assert "pyro protocol version" in caplog.text
+
     def testDaemon(self):
         with Pyro5.server.Daemon(port=0) as d:
             hostname, port = d.locationStr.split(":")
@@ -112,6 +118,13 @@ class TestDaemon:
                 assert "Existing" in d.transportServer.__class__.__name__
         finally:
             Pyro5.config.SERVERTYPE = "thread"
+
+    def testDaemonConnectedSocketLog(self, caplog):
+        caplog.set_level(logging.INFO, logger="Pyro5.existingconnectionserver")
+        s1, s2 = socket.socketpair()
+        with Pyro5.server.Daemon(connected_socket=s1):
+            assert "starting server on user-supplied connected socket" in caplog.text
+        s2.close()
 
     def testDaemonUnixSocket(self):
         if hasattr(socket, "AF_UNIX"):

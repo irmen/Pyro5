@@ -24,7 +24,7 @@ class SocketServer_ExistingConnection(object):
             raise socket.error("SSL configured for Pyro but existing socket is not a SSL socket")
         self.daemon = daemon
         self.sock = connected_socket
-        log.info("starting server on user-supplied connected socket " + str(connected_socket))
+        log.info("starting server on user-supplied connected socket %s", connected_socket)
         sn = connected_socket.getsockname()
         if hasattr(socket, "AF_UNIX") and connected_socket.family == socket.AF_UNIX:
             self.locationStr = "./u:" + (sn or "<<not-bound>>")
@@ -86,7 +86,7 @@ class SocketServer_ExistingConnection(object):
             return False
         except errors.TimeoutError as x:
             # for timeout errors we're not really interested in detailed traceback info
-            log.warning("error during handleRequest: %s" % x)
+            log.warning("error during handleRequest: %s", x)
             return False
         except Exception:
             # other error occurred, close the connection, but also log a warning

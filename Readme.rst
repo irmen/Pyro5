@@ -37,7 +37,7 @@ New code should use Pyro5 if at all possible.
 Features
 --------
 
-- written in 100% Python so extremely portable, supported on Python 3.9 and newer, and Pypy3
+- written in 100% Python so extremely portable, supported on CPython 3 and Pypy 3
 - works between different system architectures and operating systems.
 - able to communicate between different Python versions transparently.
 - defaults to a safe serializer (`serpent <https://pypi.python.org/pypi/serpent>`_) that supports many Python data types.
@@ -56,6 +56,10 @@ Features
 - you can define timeouts on network communications to prevent a call blocking forever if there's something wrong.
 - remote exceptions will be raised in the caller, as if they were local. You can extract detailed remote traceback information.
 - http gateway available for clients wanting to use http+json (such as browser scripts).
+- custom handshake data can be exchanged during connection setup.
+- message annotations support attaching custom metadata to every call.
+- correlation ids on every call for end-to-end request tracing.
+- SerializedBlob for efficient transfer of large serialized data blobs.
 - stable network communication code that has worked reliably on many platforms for over a decade.
 - can hook onto existing sockets created for instance with socketpair() to communicate efficiently between threads or sub-processes.
 - possibility to integrate Pyro's event loop into your own (or third party) event loop.

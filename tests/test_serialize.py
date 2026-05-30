@@ -689,6 +689,13 @@ class TestGenericCases:
             _ = Pyro5.serializers.SerializerBase.dict_to_class(data)
         assert str(cm.value) == "unsupported serialized class: builtins.ZeroDivisionError"
 
+    def testUnsupportedSerializedClassWarning(self, caplog):
+        caplog.set_level(logging.WARNING, logger="Pyro5.serializers")
+        data = {"__class__": "nonexistent.module.SomeType"}
+        with pytest.raises(Pyro5.errors.SerializeError):
+            Pyro5.serializers.SerializerBase.dict_to_class(data)
+        assert "unsupported serialized class: nonexistent.module.SomeType" in caplog.text
+
     def testWeirdFloats(self):
         ser = Pyro5.serializers.serializers[config.SERIALIZER]
         p = ser.dumps([float("+inf"), float("-inf"), float("nan")])

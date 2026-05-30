@@ -46,7 +46,7 @@ class ClientConnectionJob(object):
                         break
                     except errors.TimeoutError as x:
                         # for timeout errors we're not really interested in detailed traceback info
-                        log.warning("error during handleRequest: %s" % x)
+                        log.warning("error during handleRequest: %s", x)
                         break
                     except Exception:
                         # other errors log a warning, break this loop and close the client connection
@@ -60,7 +60,7 @@ class ClientConnectionJob(object):
                     try:
                         self.daemon._clientDisconnect(self.csock)
                     except Exception as x:
-                        log.warning("Error in clientDisconnect: " + str(x))
+                        log.warning("Error in clientDisconnect: %s", x)
                 self.csock.close()
 
     def handleConnection(self):
@@ -77,7 +77,7 @@ class ClientConnectionJob(object):
         return False
 
     def denyConnection(self, reason):
-        log.warning("client connection was denied: " + reason)
+        log.warning("client connection was denied: %s", reason)
         # return failed handshake
         self.daemon._handshake(self.csock, denied_reason=reason)
         self.csock.close()
