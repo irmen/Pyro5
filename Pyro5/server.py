@@ -17,7 +17,7 @@ import warnings
 import weakref
 import serpent
 import ipaddress
-from typing import TypeVar, Tuple, Union, Optional, Dict, Any, Sequence, Set
+from typing import Generic, ParamSpec, TypeVar, Tuple, Union, Optional, Dict, Any, Sequence, Set
 from . import config, core, errors, serializers, socketutil, protocol, client
 from .callcontext import current_context
 from collections.abc import Callable
@@ -29,7 +29,7 @@ log = logging.getLogger("Pyro5.server")
 
 _private_dunder_methods = frozenset([
     "__init__", "__init_subclass__", "__class__", "__module__", "__weakref__",
-    "__call__", "__new__", "__del__", "__repr__",
+    "__new__", "__del__", "__repr__",
     "__str__", "__format__", "__nonzero__", "__bool__", "__coerce__",
     "__cmp__", "__eq__", "__ne__", "__hash__", "__ge__", "__gt__", "__le__", "__lt__",
     "__dir__", "__enter__", "__exit__", "__copy__", "__deepcopy__", "__sizeof__",
@@ -136,6 +136,26 @@ def behavior(instance_mode: str = "session", instance_creator: Optional[Callable
     if not isinstance(instance_mode, str):
         raise SyntaxError("behavior decorator is missing argument(s)")
     return _behavior
+
+
+ReturnType = TypeVar("ReturnType")
+ParamsTypes = ParamSpec("ParamsTypes")
+
+@expose
+class Functor(Generic[ParamsTypes, ReturnType]):
+    """
+    A functor is a callable object that can be used as a function.
+    This is used to wrap functions that are not methods of a class.
+    """
+
+    def __init__(self, func: Callable[ParamsTypes, ReturnType]):
+        self.func = func
+
+    @expose
+    def __call__(
+        self, *args: ParamsTypes.args, **kwargs: ParamsTypes.kwargs
+    ) -> ReturnType:
+        return self.func(*args, **kwargs)
 
 
 @expose
