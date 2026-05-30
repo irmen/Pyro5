@@ -93,6 +93,8 @@ class Configuration:
                         envvalue = True
                     else:
                         raise ValueError("invalid boolean value: %s%s=%s" % (prefix, item, envvalue))
+                elif valuetype is type(None):
+                    envvalue = str(envvalue)
                 else:
                     try:
                         envvalue = valuetype(envvalue)

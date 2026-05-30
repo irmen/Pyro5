@@ -74,6 +74,21 @@ class TestCore:
         del os.environ["PYRO_COMPRESSION"]
         config.reset()
 
+    def testConfigNoneEnvVar(self):
+        config = Pyro5.configure.Configuration()
+        config.NATHOST = "original"
+        config.NS_BCHOST = "original"
+        os.environ["PYRO_NATHOST"] = "envhost"
+        os.environ["PYRO_NS_BCHOST"] = "envbchost"
+        config.reset()
+        assert config.NATHOST == "envhost"
+        assert config.NS_BCHOST == "envbchost"
+        del os.environ["PYRO_NATHOST"]
+        del os.environ["PYRO_NS_BCHOST"]
+        config.reset()
+        assert config.NATHOST is None
+        assert config.NS_BCHOST is None
+
     def testConfigDump(self):
         config = Pyro5.configure.Configuration()
         dump = config.dump()
