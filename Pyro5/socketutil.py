@@ -79,7 +79,10 @@ def get_ip_address(hostname: str, workaround127: bool = False, version: int = No
             raise ValueError("unknown value for argument ipVersion.")
         ip = socket.getaddrinfo(hostname or socket.gethostname(), 80, family, socket.SOCK_STREAM, socket.SOL_TCP)[0][4][0]
         if workaround127 and (ip.startswith("127.") or ip == "0.0.0.0"):
-            return get_interface("4.2.2.2").ip
+            try:
+                return get_interface("4.2.2.2").ip
+            except OSError:
+                pass  # network unreachable, fall through to return loopback address
         return ipaddress.ip_address(ip)
 
     try:
