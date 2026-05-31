@@ -422,7 +422,7 @@ class MsgpackSerializer(SerializerBase):
         return msgpack.packb(data, use_bin_type=True, default=self.default)
 
     def loadsCall(self, data):
-        return msgpack.unpackb(self._convertToBytes(data), raw=False, object_hook=self.object_hook)
+        return msgpack.unpackb(self._convertToBytes(data), raw=False, object_hook=self.object_hook, ext_hook=self.ext_hook)
 
     def loads(self, data):
         return msgpack.unpackb(self._convertToBytes(data), raw=False, object_hook=self.object_hook, ext_hook=self.ext_hook)
