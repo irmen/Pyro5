@@ -5,6 +5,20 @@ Change Log
 **Pyro 5.17-dev0**
 
 - Fixed slow ``locate_ns()`` on Windows: skipped reverse DNS lookup of 127.0.1.1 which caused 5+ second delays due to DNS timeout.
+- Fixed exception leaks in message handling (PR #116 by sgolev)
+- Fixed GC issue with daemon property
+- Fixed thread race condition in nameserver ``remove()``
+- Fixed possible resource leaks in client
+- Fixed IPv6 NAT port parse error in server
+- Fixed crash related to ``None`` environment variable handling
+- Fixed a deadlock scenario when using multiple proxies with different daemon connections
+- Improved logging performance by avoiding eager string formatting
+- Gracefully handle unreachable network in ``ip`` address resolution fallback
+- Fixed potential socket leak from broadcast discovery when nameserver is unreachable
+- Added extra message protocol validation for robustness
+- Fixed nameserver metadata lookup returning incorrect results for ``None`` values
+- Fix msgpack serializer loadsCall to make sure custom arguments get properly deserialized
+- Various documentation and spelling corrections
 
 
 **Pyro 5.16**
