@@ -110,7 +110,6 @@ class TestJsonSerializer(TestSerpentSerializer):
 if "msgpack" in Pyro5.serializers.serializers:
     class TestMsgpackSerializer(TestSerpentSerializer):
         serializer = Pyro5.serializers.serializers["msgpack"]
-        import msgpack 
      
         class Thing:
             def __init__(self, value):
@@ -153,7 +152,7 @@ if "msgpack" in Pyro5.serializers.serializers:
                 data = self.serializer.dumps(Thing(7))
                 back = self.serializer.loads(data)
                 assert isinstance(back, Thing)
-                  assert back.value == 7
+                assert back.value == 7
 
 class TestSerializer2_serpent:
     SERIALIZER = "serpent"
