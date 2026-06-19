@@ -2,7 +2,7 @@
 Change Log
 **********
 
-**Pyro 5.17-dev0**
+**Pyro 5.17**
 
 - Fixed slow ``locate_ns()`` on Windows: skipped reverse DNS lookup of 127.0.1.1 which caused 5+ second delays due to DNS timeout.
 - Fixed exception leaks in message handling (PR #116 by sgolev)
